@@ -24,7 +24,7 @@ jobs:
       - name: Fetch Player Data
         shell: bash
         run: |
-          SLEEPER_LEAGUE_ID=${{ secrets.SLEEPER_LEAGUE_ID }} go run ./tools/fetch-player-data/main.go
+          go run ./tools/fetch-player-data/main.go
 
       - name: Commit Updated Data
         shell: bash

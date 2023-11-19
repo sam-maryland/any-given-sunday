@@ -7,15 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 // The purpose of this application is to fetch and refresh the local storage of all player data.
 
 func main() {
-	_ = godotenv.Load()
-
 	sc := sleeper.NewSleeperClient(http.DefaultClient)
 
 	i := interactor.NewInteractor(sc)
