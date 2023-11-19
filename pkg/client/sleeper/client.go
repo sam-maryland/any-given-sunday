@@ -5,6 +5,7 @@ import (
 	"any-given-sunday/pkg/types"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -22,6 +23,7 @@ type ISleeperClient interface {
 	GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (types.Matchups, error)
 
 	GetNFLState(ctx context.Context) (types.NFLState, error)
+	FetchAllPlayers(ctx context.Context) (map[string]types.Player, error)
 }
 
 type SleeperClient struct {
@@ -138,4 +140,25 @@ func (c *SleeperClient) GetNFLState(ctx context.Context) (types.NFLState, error)
 	}
 
 	return *state, nil
+}
+
+func (c *SleeperClient) FetchAllPlayers(ctx context.Context) ([]byte, error) {
+	u := "https://api.sleeper.app/v1/players/nfl"
+
+	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }

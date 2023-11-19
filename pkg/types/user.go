@@ -16,6 +16,15 @@ type UserMetadata struct {
 
 type Users []User
 
+func (us Users) WithID(id string) User {
+	for _, u := range us {
+		if u.ID == id {
+			return u
+		}
+	}
+	return User{}
+}
+
 func (u User) String() {
 	if u.Metadata.TeamName == "" {
 		u.Metadata.TeamName = u.DisplayName

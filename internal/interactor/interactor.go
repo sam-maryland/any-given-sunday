@@ -7,6 +7,7 @@ type interactor struct {
 }
 
 type Interactor interface {
+	PlayerInteractor
 	ReportInteractor
 }
 

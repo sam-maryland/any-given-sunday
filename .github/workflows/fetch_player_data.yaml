@@ -1,0 +1,21 @@
+name: Fetch Player Data
+on:
+  schedule:
+    - cron: "0 0 * * 2"
+  workflow_dispatch:
+
+jobs:
+  player-data-update:
+    name: player data update
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+
+      - name: Fetch Player Data
+        shell: bash
+        run: |
+          SLEEPER_LEAGUE_ID=${{ secrets.SLEEPER_LEAGUE_ID }} go run ./tools/fetch-player-data/main.go    
