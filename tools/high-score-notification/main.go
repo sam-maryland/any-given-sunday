@@ -5,6 +5,7 @@ import (
 	"any-given-sunday/pkg/client/discord"
 	"any-given-sunday/pkg/client/sleeper"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -34,6 +35,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("error getting high score for previous week: %v", err)
 	}
+
+	h = fmt.Sprintf("High Score Notification for %s", h)
 
 	if err := dc.SendMessage(ctx, h); err != nil {
 		log.Fatalf("error sending message: %v", err)

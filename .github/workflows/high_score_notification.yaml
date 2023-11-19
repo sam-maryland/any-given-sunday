@@ -1,6 +1,5 @@
 name: High Score Notification
 on:
-  workflow_dispatch:
   schedule:
     - cron: "0 13 * * 3"
 
