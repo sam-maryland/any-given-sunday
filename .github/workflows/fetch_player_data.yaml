@@ -25,4 +25,12 @@ jobs:
       - name: Fetch Player Data
         shell: bash
         run: |
-          SLEEPER_LEAGUE_ID=${{ secrets.SLEEPER_LEAGUE_ID }} go run ./tools/fetch-player-data/main.go    
+          SLEEPER_LEAGUE_ID=${{ secrets.SLEEPER_LEAGUE_ID }} go run ./tools/fetch-player-data/main.go
+
+      - name: Commit Updated Data
+        shell: bash
+        run: |
+          git add --all
+          git commit -m "update player data"
+          git fetch origin main
+          git push origin HEAD:main    
