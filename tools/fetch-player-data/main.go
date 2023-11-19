@@ -14,10 +14,7 @@ import (
 // The purpose of this application is to fetch and refresh the local storage of all player data.
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("error loading env: %v", err)
-	}
+	_ = godotenv.Load()
 
 	sc := sleeper.NewSleeperClient(http.DefaultClient)
 
