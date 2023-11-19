@@ -26,8 +26,12 @@ func (us Users) WithID(id string) User {
 }
 
 func (u User) String() {
+	fmt.Printf("%s - %s (%s)\n", u.TeamName(), u.DisplayName, u.ID)
+}
+
+func (u User) TeamName() string {
 	if u.Metadata.TeamName == "" {
-		u.Metadata.TeamName = u.DisplayName
+		return u.DisplayName
 	}
-	fmt.Printf("%s - %s (%s)\n", u.Metadata.TeamName, u.DisplayName, u.ID)
+	return u.Metadata.TeamName
 }

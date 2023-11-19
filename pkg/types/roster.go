@@ -1,5 +1,7 @@
 package types
 
+import "sort"
+
 type Roster struct {
 	ID       int            `json:"roster_id"`
 	Players  []string       `json:"players"`
@@ -42,4 +44,23 @@ func (rl Rosters) WithID(id int) Roster {
 		}
 	}
 	return Roster{}
+}
+
+func (rl Rosters) SortedByStandings() Rosters {
+	sort.Slice(rl, func(i, j int) bool {
+		if rl[i].Settings.Wins > rl[j].Settings.Wins {
+			return true
+		}
+		if rl[i].Settings.Wins == rl[j].Settings.Wins {
+			if rl[i].GetPointsFor() > rl[j].GetPointsFor() {
+				return true
+			}
+		}
+		return false
+	})
+	return rl
+}
+
+func (r Roster) GetPointsFor() float32 {
+	return float32(r.Settings.PointsFor) + float32(r.Settings.PointsForDecimal)/100
 }
