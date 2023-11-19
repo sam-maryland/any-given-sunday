@@ -7,26 +7,7 @@ import (
 )
 
 type ReportInteractor interface {
-	HighestScoreForEachWeek(ctx context.Context) error
 	HighestScoreForWeek(ctx context.Context, week int) (string, error)
-}
-
-func (i *interactor) HighestScoreForEachWeek(ctx context.Context) error {
-	state, err := i.SleeperClient.GetNFLState(ctx)
-	if err != nil {
-		return err
-	}
-
-	for wk := 1; wk < state.Week; wk++ {
-		s, err := i.HighestScoreForWeek(ctx, wk)
-		if err != nil {
-			return err
-		}
-		fmt.Println(s)
-	}
-
-	return nil
-
 }
 
 func (i *interactor) HighestScoreForWeek(ctx context.Context, week int) (string, error) {
