@@ -125,7 +125,7 @@ func (c *SleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string,
 }
 
 func (c *SleeperClient) GetNFLState(ctx context.Context) (types.NFLState, error) {
-	u := "https://api.sleeper.app/v1/state/nfl"
+	u := fmt.Sprintf("%s/state/nfl", baseURL)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
@@ -143,7 +143,7 @@ func (c *SleeperClient) GetNFLState(ctx context.Context) (types.NFLState, error)
 }
 
 func (c *SleeperClient) FetchAllPlayers(ctx context.Context) ([]byte, error) {
-	u := "https://api.sleeper.app/v1/players/nfl"
+	u := fmt.Sprintf("%s/players/nfl", baseURL)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
