@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS matchups (
                                         away_score FLOAT NOT NULL                               -- Total score for the away team
 );
 
-CREATE OR REPLACE VIEW career_stats AS
+CREATE OR REPLACE VIEW career_stats with (security_invoker = on) AS
 SELECT
     u.id AS user_id,
     u.name AS user_name,
