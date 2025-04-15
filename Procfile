@@ -1,1 +1,1 @@
-worker: go run ./cmd/commish-bot
+worker: bin/commish-bot
