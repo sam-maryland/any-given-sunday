@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	log.Println("Bot is now running. Press CTRL+C to exit.")
+	log.Println("commish-bot is online")
 
 	// Handle SIGINT and SIGTERM signals to gracefully shutdown
 	stop := make(chan os.Signal, 1)
@@ -44,7 +44,7 @@ func main() {
 
 	// Close the database connection pool
 	c.Pool.Close()
-	log.Println("Bot has stopped.")
+	log.Println("commish-bot has stopped.")
 }
 
 func registerDiscordCommands(cfg *config.Config, c *dependency.Chain) {
