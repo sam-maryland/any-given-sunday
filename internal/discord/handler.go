@@ -4,6 +4,7 @@ import (
 	"any-given-sunday/internal/interactor"
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -70,6 +71,7 @@ func (h *Handler) handleCareerStatsCommand(ctx context.Context, s *discordgo.Ses
 
 	stats, err := h.interactor.GetCareerStatsForDiscordUser(ctx, targetUser.ID)
 	if err != nil {
+		log.Printf("error querying supabase: %s", err.Error())
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
