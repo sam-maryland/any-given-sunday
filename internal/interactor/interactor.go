@@ -1,16 +1,20 @@
 package interactor
 
-import "any-given-sunday/pkg/client/sleeper"
+import (
+	"any-given-sunday/internal/db"
+	"any-given-sunday/internal/dependency"
+)
 
 type interactor struct {
-	*sleeper.SleeperClient
+	*dependency.Chain
+	*db.Queries
 }
 
 type Interactor interface {
-	PlayerInteractor
-	ReportInteractor
+	StatsInteractor
 }
 
-func NewInteractor(sc *sleeper.SleeperClient) *interactor {
-	return &interactor{SleeperClient: sc}
+func NewInteractor(c *dependency.Chain) *interactor {
+	q := db.New(c.Pool)
+	return &interactor{Chain: c, Queries: q}
 }

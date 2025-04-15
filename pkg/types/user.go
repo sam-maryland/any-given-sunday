@@ -35,3 +35,5 @@ func (u User) TeamName() string {
 	}
 	return u.Metadata.TeamName
 }
+
+type UserMap map[string]User
