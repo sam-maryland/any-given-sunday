@@ -1,10 +1,10 @@
 -- name: GetLeagueByYear :one
 SELECT * FROM leagues WHERE year = $1;
 
--- name: GetLatestLeagueYear :one
-SELECT year FROM (
+-- name: GetLatestLeague :one
+SELECT * FROM (
     (
-        SELECT year
+        SELECT *
         FROM leagues
         WHERE status = 'IN_PROGRESS'
         ORDER BY year DESC
@@ -12,7 +12,7 @@ SELECT year FROM (
     )
     UNION ALL
     (
-        SELECT year
+        SELECT *
         FROM leagues
         WHERE status = 'COMPLETE'
         ORDER BY year DESC

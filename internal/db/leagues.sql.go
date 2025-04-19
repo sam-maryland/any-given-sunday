@@ -9,10 +9,10 @@ import (
 	"context"
 )
 
-const getLatestLeagueYear = `-- name: GetLatestLeagueYear :one
-SELECT year FROM (
+const getLatestLeague = `-- name: GetLatestLeague :one
+SELECT id, year, first_place, second_place, third_place, status FROM (
     (
-        SELECT year
+        SELECT id, year, first_place, second_place, third_place, status
         FROM leagues
         WHERE status = 'IN_PROGRESS'
         ORDER BY year DESC
@@ -20,7 +20,7 @@ SELECT year FROM (
     )
     UNION ALL
     (
-        SELECT year
+        SELECT id, year, first_place, second_place, third_place, status
         FROM leagues
         WHERE status = 'COMPLETE'
         ORDER BY year DESC
@@ -30,11 +30,18 @@ SELECT year FROM (
 LIMIT 1
 `
 
-func (q *Queries) GetLatestLeagueYear(ctx context.Context) (int32, error) {
-	row := q.db.QueryRow(ctx, getLatestLeagueYear)
-	var year int32
-	err := row.Scan(&year)
-	return year, err
+func (q *Queries) GetLatestLeague(ctx context.Context) (League, error) {
+	row := q.db.QueryRow(ctx, getLatestLeague)
+	var i League
+	err := row.Scan(
+		&i.ID,
+		&i.Year,
+		&i.FirstPlace,
+		&i.SecondPlace,
+		&i.ThirdPlace,
+		&i.Status,
+	)
+	return i, err
 }
 
 const getLeagueByYear = `-- name: GetLeagueByYear :one

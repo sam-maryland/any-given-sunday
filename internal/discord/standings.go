@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"any-given-sunday/pkg/types"
 	"context"
 	"log"
 
@@ -18,37 +19,42 @@ func (h *Handler) handleStandingsCommand(ctx context.Context, s *discordgo.Sessi
 	}
 
 	var err error
-	if year == 0 {
-		year, err = h.interactor.GetLatestLeagueYear(ctx)
-		if err != nil {
-			log.Printf("error getting latest league year: %v", err)
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Hmm... I couldn't get the latest league year." + err.Error(),
-				},
-			})
-			return
-		}
+	var league types.League
+	if year != 0 {
+		league, err = h.interactor.GetLeagueByYear(ctx, year)
+	} else {
+		league, err = h.interactor.GetLatestLeague(ctx)
 	}
-	standings, err := h.interactor.GetStandingsForYear(ctx, year)
+	if err != nil {
+		log.Printf("error getting league: %v", err)
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Hmm... I couldn't get the league.",
+			},
+		})
+		return
+	}
+
+	standings, err := h.interactor.GetStandingsForLeague(ctx, league)
 	if err != nil {
 		log.Printf("error getting standings for year [%d]: %v", year, err)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "Hmm... I couldn't get standings for that year." + err.Error(),
+				Content: "Hmm... I couldn't get standings for that year.",
 			},
 		})
 		return
 	}
+
 	users, err := h.interactor.GetUsers(ctx)
 	if err != nil {
 		log.Printf("error getting users: %v", err)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "Hmm... I couldn't get users." + err.Error(),
+				Content: "Hmm... I couldn't get users.",
 			},
 		})
 		return
@@ -56,7 +62,7 @@ func (h *Handler) handleStandingsCommand(ctx context.Context, s *discordgo.Sessi
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: standings.ToDiscordMessage(year, users),
+			Content: standings.ToDiscordMessage(league, users),
 		},
 	})
 }

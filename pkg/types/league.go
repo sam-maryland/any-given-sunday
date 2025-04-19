@@ -17,7 +17,7 @@ type League struct {
 	Status      string
 }
 
-func FromLeagueRow(league db.League) League {
+func FromDBLeague(league db.League) League {
 	return League{
 		ID:          league.ID,
 		Year:        int(league.Year),

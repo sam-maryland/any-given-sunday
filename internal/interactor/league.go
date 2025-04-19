@@ -7,29 +7,36 @@ import (
 )
 
 type LeagueInteractor interface {
-	GetLatestLeagueYear(ctx context.Context) (int, error)
-	GetStandingsForYear(ctx context.Context, year int) (types.Standings, error)
+	GetLatestLeague(ctx context.Context) (types.League, error)
+	GetLeagueByYear(ctx context.Context, year int) (types.League, error)
+	GetStandingsForLeague(ctx context.Context, league types.League) (types.Standings, error)
 }
 
-func (i *interactor) GetLatestLeagueYear(ctx context.Context) (int, error) {
-	year, err := i.Queries.GetLatestLeagueYear(ctx)
+// GetLatestLeague retrieves the latest league from the database.
+// The latest league is either the in-progress league or the most recent completed league if there is no in-progress league.
+func (i *interactor) GetLatestLeague(ctx context.Context) (types.League, error) {
+	league, err := i.Queries.GetLatestLeague(ctx)
 	if err != nil {
-		return 0, err
+		return types.League{}, err
 	}
-	return int(year), nil
+	return types.FromDBLeague(league), nil
 }
 
-func (i *interactor) GetStandingsForYear(ctx context.Context, year int) (types.Standings, error) {
+// GetLeagueByYear retrieves a league by its year from the database.
+func (i *interactor) GetLeagueByYear(ctx context.Context, year int) (types.League, error) {
 	league, err := i.Queries.GetLeagueByYear(ctx, int32(year))
 	if err != nil {
-		return types.Standings{}, err
+		return types.League{}, err
 	}
+	return types.FromDBLeague(league), nil
+}
 
+func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.League) (types.Standings, error) {
 	if league.Status == types.LeagueStatusPending {
 		return types.Standings{}, errors.New("league year has not started yet")
 	}
 
-	matchups, err := i.Queries.GetMatchupsByYear(ctx, int32(year))
+	matchups, err := i.Queries.GetMatchupsByYear(ctx, int32(league.Year))
 	if err != nil {
 		return types.Standings{}, err
 	}
