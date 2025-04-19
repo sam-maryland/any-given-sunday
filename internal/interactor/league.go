@@ -55,6 +55,7 @@ func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.Lea
 			matchupsByRound[m.PlayoffRound] = append(matchupsByRound[m.PlayoffRound], m)
 		}
 
+		// First and Second Place are the finals winners and losers
 		finals, ok := matchupsByRound[types.PlayoffRoundFinals]
 		if !ok || len(finals) != 1 {
 			return types.Standings{}, errors.New("invalid finals data")
@@ -62,6 +63,7 @@ func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.Lea
 		finalsWinner, finalsLoser := finals[0].WinnerAndLoser()
 		first, second := standingsMap[finalsWinner], standingsMap[finalsLoser]
 
+		// Third and Fourth Place are the third place game winners and losers
 		thirdPlaceGame, ok := matchupsByRound[types.PlayoffRoundThirdPlace]
 		if !ok || len(thirdPlaceGame) != 1 {
 			return types.Standings{}, errors.New("invalid third place game data")
@@ -69,6 +71,7 @@ func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.Lea
 		thirdPlaceGameWinner, thirdPlaceGameLoser := thirdPlaceGame[0].WinnerAndLoser()
 		third, fourth := standingsMap[thirdPlaceGameWinner], standingsMap[thirdPlaceGameLoser]
 
+		// Fifth and Sixth Place are the losers of the quarterfinals
 		quarterfinals, ok := matchupsByRound[types.PlayoffRoundQuarterfinals]
 		if !ok || len(quarterfinals) != 2 {
 			return types.Standings{}, errors.New("invalid quarterfinals data")
@@ -79,6 +82,7 @@ func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.Lea
 		}
 		sortedQuarterfinalLosers := types.Standings{standingsMap[quarterfinalLosers[0]], standingsMap[quarterfinalLosers[1]]}.SortStandings()
 
+		// 7th thru 12th place are the remaining teams
 		finalStandings := append(
 			types.Standings{first, second, third, fourth, sortedQuarterfinalLosers[0], sortedQuarterfinalLosers[1]},
 			sortedStandings[6:]...,
