@@ -27,42 +27,50 @@ func (h *Handler) handleStandingsCommand(ctx context.Context, s *discordgo.Sessi
 	}
 	if err != nil {
 		log.Printf("error getting league: %v", err)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Hmm... I couldn't get the league.",
 			},
-		})
+		}); err != nil {
+			log.Printf("error responding to interaction: %s", err.Error())
+		}
 		return
 	}
 
 	standings, err := h.interactor.GetStandingsForLeague(ctx, league)
 	if err != nil {
 		log.Printf("error getting standings for year [%d]: %v", year, err)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Hmm... I couldn't get standings for that year.",
 			},
-		})
+		}); err != nil {
+			log.Printf("error responding to interaction: %s", err.Error())
+		}
 		return
 	}
 
 	users, err := h.interactor.GetUsers(ctx)
 	if err != nil {
 		log.Printf("error getting users: %v", err)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Hmm... I couldn't get users.",
 			},
-		})
+		}); err != nil {
+			log.Printf("error responding to interaction: %s", err.Error())
+		}
 		return
 	}
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: standings.ToDiscordMessage(league, users),
 		},
-	})
+	}); err != nil {
+		log.Printf("error responding to interaction: %s", err.Error())
+	}
 }

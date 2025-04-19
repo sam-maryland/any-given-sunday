@@ -76,7 +76,7 @@ func registerDiscordCommands(cfg *config.Config, c *dependency.Chain) {
 	}
 
 	for _, command := range commands {
-		_, err := c.Discord.ApplicationCommandCreate(cfg.Discord.AppID, cfg.Discord.GuildID, command)
+		_, err := c.Discord.ApplicationCommandCreate(cfg.AppID, cfg.GuildID, command)
 		if err != nil {
 			log.Fatalf("cannot create command %s: %v", command.Name, err)
 		}

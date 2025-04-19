@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"log"
 	"net/http"
 )
 
@@ -31,7 +33,12 @@ func JSONResponder(res *http.Response, err error, v any) error {
 	if res == nil {
 		return errors.New("error in JSONReponder: incoming response was nil")
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}(res.Body)
 	if res.StatusCode >= 300 {
 		return err
 	}

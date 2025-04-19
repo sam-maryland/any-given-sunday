@@ -69,7 +69,7 @@ func Test_Matchup_Winner_Loser(t *testing.T) {
 		assert.Equal(t, m.HomeUserID, m.Loser())
 	}
 	if m.AwayScore == m.HomeScore {
-		assert.Equal(t, "", m.Winner())
-		assert.Equal(t, "", m.Loser())
+		assert.Empty(t, m.Winner())
+		assert.Empty(t, m.Loser())
 	}
 }

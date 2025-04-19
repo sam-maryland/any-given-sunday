@@ -37,7 +37,7 @@ func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.Lea
 		return types.Standings{}, errors.New("league year has not started yet")
 	}
 
-	matchups, err := i.Queries.GetMatchupsByYear(ctx, int32(league.Year))
+	matchups, err := i.GetMatchupsByYear(ctx, int32(league.Year))
 	if err != nil {
 		return types.Standings{}, err
 	}

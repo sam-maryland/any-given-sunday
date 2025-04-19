@@ -25,7 +25,7 @@ func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
 
 	sleeperClient := sleeper.NewSleeperClient(http.DefaultClient)
 
-	dg, err := discordgo.New("Bot " + cfg.Discord.Token)
+	dg, err := discordgo.New("Bot " + cfg.Token)
 	if err != nil {
 		log.Fatal("error creating Discord session:", err)
 	}

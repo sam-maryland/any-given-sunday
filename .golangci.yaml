@@ -1,0 +1,61 @@
+version: "2"
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gosec
+    - govet
+    - ineffassign
+    - makezero
+    - nilnil
+    - noctx
+    - protogetter
+    - revive
+    - staticcheck
+    - testifylint
+  settings:
+    gosec:
+      excludes:
+        - G102
+        - G112
+        - G115
+        - G404
+        - G204
+        - G306
+      severity: medium
+      confidence: medium
+    revive:
+      rules:
+        - name: blank-imports
+          disabled: true
+    staticcheck:
+      checks:
+        - -SA1029
+        - all
+    testifylint:
+      enable-all: true
+      disable:
+        - float-compare
+        - require-error
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - noctx
+        path: (.+)_test\.go
+      - linters:
+          - staticcheck
+        text: SA1029
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
