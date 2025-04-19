@@ -30,7 +30,7 @@ type CareerStats struct {
 	PlayoffAvgPoints           float64
 }
 
-func FromCareerStatDB(stat db.CareerStat) CareerStats {
+func FromCareerStatRow(stat db.CareerStat) CareerStats {
 	return CareerStats{
 		UserID:                     stat.UserID,
 		UserName:                   stat.UserName,

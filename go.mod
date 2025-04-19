@@ -6,6 +6,7 @@ toolchain go1.23.2
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/jackc/pgx/v5 v5.7.4
 )
 

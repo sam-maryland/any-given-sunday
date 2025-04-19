@@ -19,7 +19,6 @@ type Discord struct {
 }
 
 func InitConfig() *Config {
-
 	dbUrl := os.Getenv("DATABASE_URL")
 	if dbUrl == "" {
 		log.Fatal("DATABASE_URL environment variable not set")

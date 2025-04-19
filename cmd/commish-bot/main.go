@@ -61,6 +61,18 @@ func registerDiscordCommands(cfg *config.Config, c *dependency.Chain) {
 				},
 			},
 		},
+		{
+			Name:        "standings",
+			Description: "Get the standings for a specific year",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionNumber,
+					Name:        "year",
+					Description: "The year to get standings for",
+					Required:    false,
+				},
+			},
+		},
 	}
 
 	for _, command := range commands {

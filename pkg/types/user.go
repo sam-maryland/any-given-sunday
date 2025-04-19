@@ -1,39 +1,37 @@
 package types
 
-import "fmt"
+import "any-given-sunday/internal/db"
 
 type User struct {
-	ID          string       `json:"user_id"`
-	Username    string       `json:"username"`
-	DisplayName string       `json:"display_name"`
-	Avatar      string       `json:"avatar"`
-	Metadata    UserMetadata `json:"metadata"`
+	ID        string
+	Name      string
+	DiscordID string
 }
 
-type UserMetadata struct {
-	TeamName string `json:"team_name"`
+func FromDBUser(u db.User) User {
+	return User{
+		ID:        u.ID,
+		Name:      u.Name,
+		DiscordID: u.DiscordID,
+	}
 }
 
 type Users []User
 
-func (us Users) WithID(id string) User {
-	for _, u := range us {
-		if u.ID == id {
-			return u
-		}
+func FromDBUsers(users []db.User) Users {
+	var result Users
+	for _, u := range users {
+		result = append(result, FromDBUser(u))
 	}
-	return User{}
-}
-
-func (u User) String() {
-	fmt.Printf("%s - %s (%s)\n", u.TeamName(), u.DisplayName, u.ID)
-}
-
-func (u User) TeamName() string {
-	if u.Metadata.TeamName == "" {
-		return u.DisplayName
-	}
-	return u.Metadata.TeamName
+	return result
 }
 
 type UserMap map[string]User
+
+func DBUsersToUserMap(users []db.User) UserMap {
+	userMap := make(UserMap)
+	for _, u := range users {
+		userMap[u.ID] = FromDBUser(u)
+	}
+	return userMap
+}
