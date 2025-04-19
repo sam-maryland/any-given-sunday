@@ -34,6 +34,15 @@ type CareerStat struct {
 	PlayoffAvgPoints           interface{}
 }
 
+type League struct {
+	ID          string
+	Year        int32
+	FirstPlace  string
+	SecondPlace string
+	ThirdPlace  string
+	Status      string
+}
+
 type Matchup struct {
 	ID           pgtype.UUID
 	Year         int32

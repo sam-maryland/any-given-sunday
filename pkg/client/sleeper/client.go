@@ -14,9 +14,9 @@ var (
 )
 
 type ISleeperClient interface {
-	GetUser(ctx context.Context, userID string) (types.User, error)
+	GetUser(ctx context.Context, userID string) (types.SleeperUser, error)
 
-	GetLeague(ctx context.Context, leagueID string) (types.League, error)
+	GetLeague(ctx context.Context, leagueID string) (types.SleeperLeague, error)
 	GetUsersInLeague(ctx context.Context, leagueID string) (types.Users, error)
 	GetRostersInLeague(ctx context.Context, leagueID string) (types.Rosters, error)
 
@@ -34,37 +34,37 @@ func NewSleeperClient(c *http.Client) *SleeperClient {
 	return &SleeperClient{httpClient: c}
 }
 
-func (c *SleeperClient) GetUser(ctx context.Context, userID string) (types.User, error) {
+func (c *SleeperClient) GetUser(ctx context.Context, userID string) (types.SleeperUser, error) {
 	u := fmt.Sprintf("%s/user/%s", baseURL, userID)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return types.User{}, err
+		return types.SleeperUser{}, err
 	}
 
 	res, err := c.httpClient.Do(req)
 
-	user := &types.User{}
+	user := &types.SleeperUser{}
 	if err := chttp.JSONResponder(res, err, user); err != nil {
-		return types.User{}, err
+		return types.SleeperUser{}, err
 	}
 
 	return *user, nil
 }
 
-func (c *SleeperClient) GetLeague(ctx context.Context, leagueID string) (types.League, error) {
+func (c *SleeperClient) GetLeague(ctx context.Context, leagueID string) (types.SleeperLeague, error) {
 	u := fmt.Sprintf("%s/league/%s", baseURL, leagueID)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return types.League{}, err
+		return types.SleeperLeague{}, err
 	}
 
 	res, err := c.httpClient.Do(req)
 
-	league := &types.League{}
+	league := &types.SleeperLeague{}
 	if err := chttp.JSONResponder(res, err, league); err != nil {
-		return types.League{}, err
+		return types.SleeperLeague{}, err
 	}
 
 	return *league, nil

@@ -30,7 +30,7 @@ type CareerStats struct {
 	PlayoffAvgPoints           float64
 }
 
-func FromCareerStatDB(stat db.CareerStat) CareerStats {
+func FromDBCareerStat(stat db.CareerStat) CareerStats {
 	return CareerStats{
 		UserID:                     stat.UserID,
 		UserName:                   stat.UserName,
@@ -98,7 +98,7 @@ func (c CareerStats) ToDiscordMessage(username string) string {
 
 	// 🎯 Playoffs
 	if c.PlayoffAppearances == 0 {
-		fmt.Fprintln(&b, "🎯 **Playoffs:** 🫡 Hasn't made the playoffs... yet.\n")
+		fmt.Fprintf(&b, "🎯 **Playoffs:** 🫡 Hasn't made the playoffs... yet.\n\n")
 	} else {
 		fmt.Fprintf(&b, "🎯 **Playoffs:** %s (%d appearances)\n",
 			c.PlayoffRecord, c.PlayoffAppearances)

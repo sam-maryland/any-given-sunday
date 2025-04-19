@@ -1,6 +1,34 @@
 package types
 
+import "any-given-sunday/internal/db"
+
+const (
+	LeagueStatusInProgress = "IN_PROGRESS"
+	LeagueStatusComplete   = "COMPLETE"
+	LeagueStatusPending    = "PENDING"
+)
+
 type League struct {
+	ID          string
+	Year        int
+	FirstPlace  string
+	SecondPlace string
+	ThirdPlace  string
+	Status      string
+}
+
+func FromDBLeague(league db.League) League {
+	return League{
+		ID:          league.ID,
+		Year:        int(league.Year),
+		FirstPlace:  league.FirstPlace,
+		SecondPlace: league.SecondPlace,
+		ThirdPlace:  league.ThirdPlace,
+		Status:      league.Status,
+	}
+}
+
+type SleeperLeague struct {
 	ID                    string          `json:"league_id"`
 	TotalRosters          int             `json:"total_rosters"`
 	RosterPositions       []string        `json:"roster_positions"`

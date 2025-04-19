@@ -19,6 +19,15 @@ CREATE TABLE IF NOT EXISTS matchups (
                                         away_score FLOAT NOT NULL                               -- Total score for the away team
 );
 
+create table if not exists leagues (
+                                       id text primary key,                                          -- Sleeper League ID
+                                       year integer not null,                                        -- Year that league started (e.g., 2023 or 2024)
+                                       first_place text default '' not null,    -- User ID for the first place team
+                                       second_place text default '' not null,   -- User ID for the second place team
+                                       third_place text default '' not null,    -- User ID for the third place team
+                                       status text default '' not null          -- Status of the league (e.g., 'IN_PROGRESS', 'COMPLETE', 'PENDING')
+);
+
 CREATE OR REPLACE VIEW career_stats with (security_invoker = on) AS
 SELECT
     u.id AS user_id,

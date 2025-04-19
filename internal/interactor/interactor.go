@@ -11,7 +11,9 @@ type interactor struct {
 }
 
 type Interactor interface {
+	LeagueInteractor
 	StatsInteractor
+	UsersInteractor
 }
 
 func NewInteractor(c *dependency.Chain) *interactor {
