@@ -15,5 +15,5 @@ func (i *interactor) GetCareerStatsForDiscordUser(ctx context.Context, userID st
 		return types.CareerStats{}, err
 	}
 
-	return types.FromCareerStatRow(stat), nil
+	return types.FromDBCareerStat(stat), nil
 }

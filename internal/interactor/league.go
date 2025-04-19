@@ -31,6 +31,7 @@ func (i *interactor) GetLeagueByYear(ctx context.Context, year int) (types.Leagu
 	return types.FromDBLeague(league), nil
 }
 
+// GetStandingsForLeague retrieves the sorted standings for a given league.
 func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.League) (types.Standings, error) {
 	if league.Status == types.LeagueStatusPending {
 		return types.Standings{}, errors.New("league year has not started yet")

@@ -95,7 +95,7 @@ func (s Standings) ToDiscordMessage(league League, users UserMap) string {
 		// If the league is in progress, check for the top 6 teams
 		if league.Status == LeagueStatusInProgress && i == 6 {
 			// Add the "Playoff Line" separator
-			fmt.Fprintln(&b, "\n────────────── **Playoffs** ──────────────\n")
+			fmt.Fprintf(&b, "\n────────────── **Playoffs** ──────────────\n\n")
 		}
 
 		name := users[st.UserID].Name

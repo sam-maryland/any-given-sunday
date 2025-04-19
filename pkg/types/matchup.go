@@ -24,12 +24,7 @@ type Matchup struct {
 }
 
 func (m Matchup) WinnerAndLoser() (string, string) {
-	if m.HomeScore > m.AwayScore {
-		return m.HomeUserID, m.AwayUserID
-	} else if m.AwayScore > m.HomeScore {
-		return m.AwayUserID, m.HomeUserID
-	}
-	return "", ""
+	return m.Winner(), m.Loser()
 }
 
 func (m Matchup) Winner() string {
