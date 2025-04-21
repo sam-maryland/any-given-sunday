@@ -1,10 +1,11 @@
 package types
 
 import (
-	"any-given-sunday/internal/db"
-	"any-given-sunday/pkg/config"
 	"fmt"
 	"strings"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/config"
+	"github.com/sam-maryland/any-given-sunday/pkg/db"
 )
 
 type CareerStats struct {

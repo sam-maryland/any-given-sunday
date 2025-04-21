@@ -1,12 +1,13 @@
 package sleeper
 
 import (
-	"any-given-sunday/pkg/chttp"
-	"any-given-sunday/pkg/types"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/chttp"
+	"github.com/sam-maryland/any-given-sunday/pkg/types"
 )
 
 var (

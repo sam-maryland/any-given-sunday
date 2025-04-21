@@ -1,9 +1,10 @@
 package interactor
 
 import (
-	"any-given-sunday/pkg/types"
 	"context"
 	"errors"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/types"
 )
 
 type LeagueInteractor interface {
@@ -15,7 +16,7 @@ type LeagueInteractor interface {
 // GetLatestLeague retrieves the latest league from the database.
 // The latest league is either the in-progress league or the most recent completed league if there is no in-progress league.
 func (i *interactor) GetLatestLeague(ctx context.Context) (types.League, error) {
-	league, err := i.Queries.GetLatestLeague(ctx)
+	league, err := i.DB.GetLatestLeague(ctx)
 	if err != nil {
 		return types.League{}, err
 	}
@@ -24,7 +25,7 @@ func (i *interactor) GetLatestLeague(ctx context.Context) (types.League, error) 
 
 // GetLeagueByYear retrieves a league by its year from the database.
 func (i *interactor) GetLeagueByYear(ctx context.Context, year int) (types.League, error) {
-	league, err := i.Queries.GetLeagueByYear(ctx, int32(year))
+	league, err := i.DB.GetLeagueByYear(ctx, int32(year))
 	if err != nil {
 		return types.League{}, err
 	}
@@ -37,7 +38,7 @@ func (i *interactor) GetStandingsForLeague(ctx context.Context, league types.Lea
 		return types.Standings{}, errors.New("league year has not started yet")
 	}
 
-	matchups, err := i.GetMatchupsByYear(ctx, int32(league.Year))
+	matchups, err := i.DB.GetMatchupsByYear(ctx, int32(league.Year))
 	if err != nil {
 		return types.Standings{}, err
 	}

@@ -23,14 +23,7 @@ func (h *Handler) handleCareerStatsCommand(ctx context.Context, s *discordgo.Ses
 
 	member, err := s.GuildMember(i.GuildID, targetUser.ID)
 	if err != nil {
-		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "I couldn't find that user in this server.",
-			},
-		}); err != nil {
-			log.Printf("error responding to interaction: %s", err.Error())
-		}
+		h.Respond(s, i, "Hmm... I couldn't find that user in this server.")
 		return
 	}
 
@@ -44,22 +37,8 @@ func (h *Handler) handleCareerStatsCommand(ctx context.Context, s *discordgo.Ses
 	stats, err := h.interactor.GetCareerStatsForDiscordUser(ctx, targetUser.ID)
 	if err != nil {
 		log.Printf("error querying supabase: %s", err.Error())
-		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("Hmm... I couldn't find any stats for %s.", targetUser.Username),
-			},
-		}); err != nil {
-			log.Printf("error responding to interaction: %s", err.Error())
-		}
+		h.Respond(s, i, fmt.Sprintf("Hmm... I couldn't find any status for %s.", targetUser.Username))
 		return
 	}
-	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: stats.ToDiscordMessage(displayName),
-		},
-	}); err != nil {
-		log.Printf("error responding to interaction: %s", err.Error())
-	}
+	h.Respond(s, i, stats.ToDiscordMessage(displayName))
 }

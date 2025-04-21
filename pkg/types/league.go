@@ -1,6 +1,8 @@
 package types
 
-import "any-given-sunday/internal/db"
+import (
+	"github.com/sam-maryland/any-given-sunday/pkg/db"
+)
 
 const (
 	LeagueStatusInProgress = "IN_PROGRESS"
