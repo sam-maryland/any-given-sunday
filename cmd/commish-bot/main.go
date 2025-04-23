@@ -1,17 +1,16 @@
 package main
 
 import (
-	"any-given-sunday/internal/dependency"
-	"any-given-sunday/internal/discord"
-	"any-given-sunday/internal/interactor"
-	"any-given-sunday/pkg/config"
 	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/sam-maryland/any-given-sunday/internal/dependency"
+	"github.com/sam-maryland/any-given-sunday/internal/discord"
+	"github.com/sam-maryland/any-given-sunday/internal/interactor"
+	"github.com/sam-maryland/any-given-sunday/pkg/config"
 )
 
 func main() {
@@ -21,17 +20,7 @@ func main() {
 
 	i := interactor.NewInteractor(c)
 
-	registerDiscordCommands(cfg, c)
-
-	h := discord.NewHandler(c.Discord, i)
-
-	c.Discord.AddHandler(h.Handle)
-
-	// Open a connection to Discord
-	if err := c.Discord.Open(); err != nil {
-		log.Fatal("Error opening connection to Discord:", err)
-		return
-	}
+	_ = discord.NewHandler(cfg, c, i)
 
 	log.Println("commish-bot is online")
 
@@ -45,40 +34,4 @@ func main() {
 	// Close the database connection pool
 	c.Pool.Close()
 	log.Println("commish-bot has stopped.")
-}
-
-func registerDiscordCommands(cfg *config.Config, c *dependency.Chain) {
-	commands := []*discordgo.ApplicationCommand{
-		{
-			Name:        "career-stats",
-			Description: "Get career stats for a specific user",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user to get stats for",
-					Required:    true,
-				},
-			},
-		},
-		{
-			Name:        "standings",
-			Description: "Get the standings for a specific year",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionNumber,
-					Name:        "year",
-					Description: "The year to get standings for",
-					Required:    false,
-				},
-			},
-		},
-	}
-
-	for _, command := range commands {
-		_, err := c.Discord.ApplicationCommandCreate(cfg.AppID, cfg.GuildID, command)
-		if err != nil {
-			log.Fatalf("cannot create command %s: %v", command.Name, err)
-		}
-	}
 }

@@ -1,4 +1,4 @@
-module any-given-sunday
+module github.com/sam-maryland/any-given-sunday
 
 go 1.23.0
 

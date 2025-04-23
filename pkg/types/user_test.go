@@ -1,7 +1,7 @@
 package types
 
 import (
-	"any-given-sunday/internal/db"
+	"any-given-sunday/pkg/db"
 	"testing"
 
 	"github.com/google/uuid"

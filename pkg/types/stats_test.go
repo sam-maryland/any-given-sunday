@@ -1,8 +1,8 @@
 package types
 
 import (
-	"any-given-sunday/internal/db"
 	"any-given-sunday/pkg/config"
+	"any-given-sunday/pkg/db"
 	"fmt"
 	"math/rand/v2"
 	"testing"

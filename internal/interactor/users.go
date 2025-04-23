@@ -1,8 +1,9 @@
 package interactor
 
 import (
-	"any-given-sunday/pkg/types"
 	"context"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/types"
 )
 
 type UsersInteractor interface {
@@ -10,7 +11,7 @@ type UsersInteractor interface {
 }
 
 func (i *interactor) GetUsers(ctx context.Context) (types.UserMap, error) {
-	users, err := i.Queries.GetUsers(ctx)
+	users, err := i.DB.GetUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
