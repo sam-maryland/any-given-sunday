@@ -1,8 +1,9 @@
 package types
 
 import (
-	"any-given-sunday/pkg/db"
 	"testing"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/db"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

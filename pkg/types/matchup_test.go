@@ -1,9 +1,10 @@
 package types
 
 import (
-	"any-given-sunday/pkg/db"
 	"math/rand/v2"
 	"testing"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/db"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"

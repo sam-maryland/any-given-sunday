@@ -1,11 +1,12 @@
 package types
 
 import (
-	"any-given-sunday/pkg/config"
-	"any-given-sunday/pkg/db"
 	"fmt"
 	"math/rand/v2"
 	"testing"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/config"
+	"github.com/sam-maryland/any-given-sunday/pkg/db"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

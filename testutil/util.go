@@ -1,9 +1,10 @@
 package testutil
 
 import (
-	"any-given-sunday/pkg/types"
 	"math/rand/v2"
 	"testing"
+
+	"github.com/sam-maryland/any-given-sunday/pkg/types"
 
 	"github.com/google/uuid"
 )
