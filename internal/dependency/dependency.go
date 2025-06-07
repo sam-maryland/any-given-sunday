@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
 	"github.com/sam-maryland/any-given-sunday/pkg/config"
@@ -34,9 +35,27 @@ func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
 		log.Fatal("error creating Discord session:", err)
 	}
 
-	// Open a connection to Discord
-	if err := dg.Open(); err != nil {
-		log.Fatal("Error opening connection to Discord:", err)
+	// Set required intents for guild member events and message content
+	dg.Identify.Intents = discordgo.IntentsGuildMembers | discordgo.IntentsGuilds | discordgo.IntentsGuildMessages
+
+	// Add timeout configuration for HTTP client
+	dg.Client.Timeout = 30 * time.Second
+
+	// Open a connection to Discord with retry logic
+	for attempt := 1; attempt <= 3; attempt++ {
+		err = dg.Open()
+		if err == nil {
+			break
+		}
+		
+		if attempt < 3 {
+			waitTime := time.Duration(attempt*2) * time.Second
+			time.Sleep(waitTime)
+		}
+	}
+	
+	if err != nil {
+		log.Fatalf("Failed to connect to Discord: %v", err)
 	}
 
 	return &Chain{

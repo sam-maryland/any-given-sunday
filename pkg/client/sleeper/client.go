@@ -24,7 +24,7 @@ type ISleeperClient interface {
 	GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (types.Matchups, error)
 
 	GetNFLState(ctx context.Context) (types.NFLState, error)
-	FetchAllPlayers(ctx context.Context) (map[string]types.Player, error)
+	FetchAllPlayers(ctx context.Context) ([]byte, error)
 }
 
 type SleeperClient struct {

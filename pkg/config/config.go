@@ -13,9 +13,10 @@ type Config struct {
 }
 
 type Discord struct {
-	Token   string
-	AppID   string
-	GuildID string
+	Token            string
+	AppID            string
+	GuildID          string
+	WelcomeChannelID string
 }
 
 func InitConfig() *Config {
@@ -43,9 +44,15 @@ func initDiscordConfig() Discord {
 		log.Fatal("DISCORD_GUILD_ID environment variable not set")
 	}
 
+	wid := os.Getenv("DISCORD_WELCOME_CHANNEL_ID")
+	if wid == "" {
+		log.Fatal("DISCORD_WELCOME_CHANNEL_ID environment variable not set")
+	}
+
 	return Discord{
-		Token:   dt,
-		AppID:   aid,
-		GuildID: gid,
+		Token:            dt,
+		AppID:            aid,
+		GuildID:          gid,
+		WelcomeChannelID: wid,
 	}
 }

@@ -1,9 +1,13 @@
 CREATE TABLE IF NOT EXISTS users (
-                                     id TEXT PRIMARY KEY,                       -- Discord ID (this can be your user ID in Discord)
+                                     id TEXT PRIMARY KEY,                       -- Sleeper User ID (this can be your user ID in Sleeper)
                                      name TEXT NOT NULL,                        -- Name of the user
-                                     discord_id TEXT DEFAULT '' NOT NULL,       -- Discord username or ID
+                                     discord_id TEXT DEFAULT '' NOT NULL,       -- Discord user ID
+                                     onboarding_complete BOOLEAN DEFAULT FALSE, -- Whether user has completed Discord onboarding
                                      created_at TIMESTAMPTZ DEFAULT NOW()       -- Timestamp when the user joined
 );
+
+-- Create index for efficient Discord ID lookups
+CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);
 
 CREATE TABLE IF NOT EXISTS matchups (
                                         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,         -- Unique ID for each matchup

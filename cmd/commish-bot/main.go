@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/internal/discord"
 	"github.com/sam-maryland/any-given-sunday/internal/interactor"
@@ -14,6 +15,10 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
 	cfg := config.InitConfig()
 
 	c := dependency.NewDependencyChain(context.Background(), cfg)

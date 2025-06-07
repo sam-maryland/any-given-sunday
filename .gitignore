@@ -1,4 +1,6 @@
 .env
 .idea
-
+.claude
+CLAUDE.md
 build
+commish-bot

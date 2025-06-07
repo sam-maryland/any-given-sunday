@@ -25,6 +25,8 @@ func NewHandler(cfg *config.Config, chain *dependency.Chain, interactor interact
 		interactor: interactor,
 	}
 	chain.Discord.AddHandler(h.Handle)
+	chain.Discord.AddHandler(h.OnGuildMemberAdd)
+	chain.Discord.AddHandler(h.HandleComponentInteraction)
 	return h
 }
 
@@ -43,6 +45,8 @@ func (h *Handler) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		h.handleCareerStatsCommand(ctx, s, i)
 	case commandNameStandings:
 		h.handleStandingsCommand(ctx, s, i)
+	case commandNameWeeklySummary:
+		h.handleWeeklySummaryCommand(ctx, s, i)
 	default:
 		log.Printf("unknown command name: %s", i.ApplicationCommandData().Name)
 	}
@@ -51,8 +55,9 @@ func (h *Handler) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 const (
-	commandNameCareerStats = "career-stats"
-	commandNameStandings   = "standings"
+	commandNameCareerStats   = "career-stats"
+	commandNameStandings     = "standings"
+	commandNameWeeklySummary = "weekly-summary"
 )
 
 // registerCommands registers Discord bot commands that are accessible with slash commands (i.e. "/standings 2024")
@@ -78,6 +83,18 @@ func registerCommands(cfg *config.Config, c *dependency.Chain) {
 					Type:        discordgo.ApplicationCommandOptionNumber,
 					Name:        "year",
 					Description: "The year to get standings for",
+					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        commandNameWeeklySummary,
+			Description: "Generate weekly summary with high score winner and updated standings",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionNumber,
+					Name:        "year",
+					Description: "The year to generate summary for",
 					Required:    false,
 				},
 			},
