@@ -7,7 +7,7 @@ import (
 
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +47,7 @@ func (i *testableOnboardingInteractor) GetAvailableSleeperUsers(ctx context.Cont
 		}
 
 		// Find the roster owned by this user
-		var roster types.Roster
+		var roster sleeper.Roster
 		var found bool
 		for _, r := range rosters {
 			if r.OwnerID == user.ID {
@@ -128,8 +128,8 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 		name                string
 		mockUsers           []db.User
 		mockLeague          db.League
-		mockRosters         types.Rosters
-		mockSleeperUsers    map[string]types.SleeperUser
+		mockRosters         sleeper.Rosters
+		mockSleeperUsers    map[string]sleeper.SleeperUser
 		dbError             error
 		leagueError         error
 		rostersError        error
@@ -157,7 +157,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 				ID:   "league123",
 				Year: 2024,
 			},
-			mockRosters: types.Rosters{
+			mockRosters: sleeper.Rosters{
 				{
 					ID:      1,
 					OwnerID: "sleeper_user_1",
@@ -167,18 +167,18 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 					OwnerID: "sleeper_user_2",
 				},
 			},
-			mockSleeperUsers: map[string]types.SleeperUser{
+			mockSleeperUsers: map[string]sleeper.SleeperUser{
 				"sleeper_user_1": {
 					ID:          "sleeper_user_1",
 					DisplayName: "John Doe",
 					Username:    "johndoe123",
-					Metadata:    types.UserMetadata{TeamName: "Dynasty Kings"},
+					Metadata:    sleeper.UserMetadata{TeamName: "Dynasty Kings"},
 				},
 				"sleeper_user_2": {
 					ID:          "sleeper_user_2",
 					DisplayName: "Jane Smith", 
 					Username:    "janesmith456",
-					Metadata:    types.UserMetadata{TeamName: "Thunder Bolts"},
+					Metadata:    sleeper.UserMetadata{TeamName: "Thunder Bolts"},
 				},
 			},
 			expectedUsers: []AvailableSleeperUser{
@@ -212,19 +212,19 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 				ID:   "league123",
 				Year: 2024,
 			},
-			mockRosters: types.Rosters{
+			mockRosters: sleeper.Rosters{
 				{
 					ID:       1,
 					OwnerID:  "sleeper_user_main",
 					CoOwners: []string{"sleeper_user_3"}, // Our user is a co-owner
 				},
 			},
-			mockSleeperUsers: map[string]types.SleeperUser{
+			mockSleeperUsers: map[string]sleeper.SleeperUser{
 				"sleeper_user_3": {
 					ID:          "sleeper_user_3",
 					DisplayName: "Co Owner",
 					Username:    "coowner789",
-					Metadata:    types.UserMetadata{TeamName: "Shared Team"},
+					Metadata:    sleeper.UserMetadata{TeamName: "Shared Team"},
 				},
 			},
 			expectedUsers: []AvailableSleeperUser{
@@ -244,7 +244,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 				ID:   "league123",
 				Year: 2024,
 			},
-			mockRosters:   types.Rosters{},
+			mockRosters:   sleeper.Rosters{},
 			expectedUsers: []AvailableSleeperUser{},
 		},
 		{
@@ -286,17 +286,17 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 			}
 
 			mockSleeperClient := &dependency.MockSleeperClient{
-				GetRostersInLeagueFunc: func(ctx context.Context, leagueID string) (types.Rosters, error) {
+				GetRostersInLeagueFunc: func(ctx context.Context, leagueID string) (sleeper.Rosters, error) {
 					if tt.leagueError == nil {
 						assert.Equal(t, tt.mockLeague.ID, leagueID)
 					}
 					return tt.mockRosters, tt.rostersError
 				},
-				GetUserFunc: func(ctx context.Context, userID string) (types.SleeperUser, error) {
+				GetUserFunc: func(ctx context.Context, userID string) (sleeper.SleeperUser, error) {
 					if user, ok := tt.mockSleeperUsers[userID]; ok {
 						return user, nil
 					}
-					return types.SleeperUser{}, tt.sleeperUserError
+					return sleeper.SleeperUser{}, tt.sleeperUserError
 				},
 			}
 

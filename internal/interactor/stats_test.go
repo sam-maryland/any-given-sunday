@@ -7,7 +7,8 @@ import (
 
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/converters"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,13 +18,13 @@ type testableStatsInteractor struct {
 	chain *dependency.TestChain
 }
 
-func (i *testableStatsInteractor) GetCareerStatsForDiscordUser(ctx context.Context, userID string) (types.CareerStats, error) {
+func (i *testableStatsInteractor) GetCareerStatsForDiscordUser(ctx context.Context, userID string) (domain.CareerStats, error) {
 	stat, err := i.chain.DB.GetCareerStatsByDiscordID(ctx, userID)
 	if err != nil {
-		return types.CareerStats{}, err
+		return domain.CareerStats{}, err
 	}
 
-	return types.FromDBCareerStat(stat), nil
+	return converters.CareerStatsFromDB(stat), nil
 }
 
 func newTestableStatsInteractor(chain *dependency.TestChain) *testableStatsInteractor {
@@ -36,7 +37,7 @@ func TestGetCareerStatsForDiscordUser(t *testing.T) {
 		inputDiscordID    string
 		mockCareerStat    db.CareerStat
 		dbError           error
-		expectedStats     types.CareerStats
+		expectedStats     domain.CareerStats
 		expectedError     string
 	}{
 		{
@@ -67,7 +68,7 @@ func TestGetCareerStatsForDiscordUser(t *testing.T) {
 				PlayoffPointsAgainst:       float64(1156.7),
 				PlayoffAvgPoints:           float64(154.3),
 			},
-			expectedStats: types.CareerStats{
+			expectedStats: domain.CareerStats{
 				UserID:                     "user456",
 				UserName:                   "John Doe",
 				SeasonsPlayed:              3,
@@ -118,7 +119,7 @@ func TestGetCareerStatsForDiscordUser(t *testing.T) {
 				PlayoffPointsAgainst:       float64(289.1),
 				PlayoffAvgPoints:           float64(133.7),
 			},
-			expectedStats: types.CareerStats{
+			expectedStats: domain.CareerStats{
 				UserID:                     "user789",
 				UserName:                   "Jane Smith",
 				SeasonsPlayed:              1,
@@ -169,7 +170,7 @@ func TestGetCareerStatsForDiscordUser(t *testing.T) {
 				PlayoffPointsAgainst:       float64(0.0),
 				PlayoffAvgPoints:           float64(0.0),
 			},
-			expectedStats: types.CareerStats{
+			expectedStats: domain.CareerStats{
 				UserID:                     "user000",
 				UserName:                   "New Player",
 				SeasonsPlayed:              0,
@@ -229,7 +230,7 @@ func TestGetCareerStatsForDiscordUser(t *testing.T) {
 			if tt.expectedError != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedError)
-				assert.Equal(t, types.CareerStats{}, result)
+				assert.Equal(t, domain.CareerStats{}, result)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedStats, result)
@@ -262,7 +263,7 @@ func TestGetCareerStatsForDiscordUser_ContextCancellation(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Equal(t, context.Canceled, err)
-	assert.Equal(t, types.CareerStats{}, result)
+	assert.Equal(t, domain.CareerStats{}, result)
 }
 
 func TestGetCareerStatsForDiscordUser_EmptyDiscordID(t *testing.T) {
@@ -281,5 +282,5 @@ func TestGetCareerStatsForDiscordUser_EmptyDiscordID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid discord ID")
-	assert.Equal(t, types.CareerStats{}, result)
+	assert.Equal(t, domain.CareerStats{}, result)
 }

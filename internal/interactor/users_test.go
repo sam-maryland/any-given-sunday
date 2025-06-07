@@ -8,7 +8,8 @@ import (
 
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/converters"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
@@ -19,12 +20,12 @@ type testableUsersInteractor struct {
 	chain *dependency.TestChain
 }
 
-func (i *testableUsersInteractor) GetUsers(ctx context.Context) (types.UserMap, error) {
+func (i *testableUsersInteractor) GetUsers(ctx context.Context) (domain.UserMap, error) {
 	users, err := i.chain.DB.GetUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return types.DBUsersToUserMap(users), nil
+	return converters.UsersToUserMap(users), nil
 }
 
 func newTestableUsersInteractor(chain *dependency.TestChain) *testableUsersInteractor {
@@ -36,7 +37,7 @@ func TestGetUsers(t *testing.T) {
 		name             string
 		mockUsers        []db.User
 		dbError          error
-		expectedUserMap  types.UserMap
+		expectedUserMap  domain.UserMap
 		expectedError    string
 	}{
 		{
@@ -61,18 +62,18 @@ func TestGetUsers(t *testing.T) {
 					CreatedAt: pgtype.Timestamptz{Valid: true},
 				},
 			},
-			expectedUserMap: types.UserMap{
-				"user123": types.User{
+			expectedUserMap: domain.UserMap{
+				"user123": domain.User{
 					ID:        "user123",
 					Name:      "John Doe",
 					DiscordID: "discord123",
 				},
-				"user456": types.User{
+				"user456": domain.User{
 					ID:        "user456",
 					Name:      "Jane Smith",
 					DiscordID: "discord456",
 				},
-				"user789": types.User{
+				"user789": domain.User{
 					ID:        "user789",
 					Name:      "Bob Johnson",
 					DiscordID: "discord789",
@@ -89,8 +90,8 @@ func TestGetUsers(t *testing.T) {
 					CreatedAt: pgtype.Timestamptz{Valid: true},
 				},
 			},
-			expectedUserMap: types.UserMap{
-				"user001": types.User{
+			expectedUserMap: domain.UserMap{
+				"user001": domain.User{
 					ID:        "user001",
 					Name:      "Solo Player",
 					DiscordID: "discord001",
@@ -100,7 +101,7 @@ func TestGetUsers(t *testing.T) {
 		{
 			name:            "successful users retrieval with no users",
 			mockUsers:       []db.User{},
-			expectedUserMap: types.UserMap{},
+			expectedUserMap: domain.UserMap{},
 		},
 		{
 			name: "users with special characters in names",
@@ -118,13 +119,13 @@ func TestGetUsers(t *testing.T) {
 					CreatedAt: pgtype.Timestamptz{Valid: true},
 				},
 			},
-			expectedUserMap: types.UserMap{
-				"user_special": types.User{
+			expectedUserMap: domain.UserMap{
+				"user_special": domain.User{
 					ID:        "user_special",
 					Name:      "José María O'Connor-Smith",
 					DiscordID: "discord_special",
 				},
-				"user_emoji": types.User{
+				"user_emoji": domain.User{
 					ID:        "user_emoji",
 					Name:      "Player 🏈⚡",
 					DiscordID: "discord_emoji",
@@ -141,8 +142,8 @@ func TestGetUsers(t *testing.T) {
 					CreatedAt: pgtype.Timestamptz{Valid: true},
 				},
 			},
-			expectedUserMap: types.UserMap{
-				"user_empty": types.User{
+			expectedUserMap: domain.UserMap{
+				"user_empty": domain.User{
 					ID:        "user_empty",
 					Name:      "",
 					DiscordID: "",
@@ -233,7 +234,7 @@ func TestGetUsers_LargeDataSet(t *testing.T) {
 	// Test with a large number of users to verify performance characteristics
 	const numUsers = 1000
 	mockUsers := make([]db.User, numUsers)
-	expectedUserMap := make(types.UserMap)
+	expectedUserMap := make(domain.UserMap)
 
 	for i := 0; i < numUsers; i++ {
 		userID := fmt.Sprintf("user%04d", i)
@@ -247,7 +248,7 @@ func TestGetUsers_LargeDataSet(t *testing.T) {
 			CreatedAt: pgtype.Timestamptz{Valid: true},
 		}
 		
-		expectedUserMap[userID] = types.User{
+		expectedUserMap[userID] = domain.User{
 			ID:        userID,
 			Name:      userName,
 			DiscordID: discordID,

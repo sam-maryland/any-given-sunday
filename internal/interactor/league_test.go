@@ -7,7 +7,8 @@ import (
 
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/converters"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -19,70 +20,70 @@ type testableInteractor struct {
 	chain *dependency.TestChain
 }
 
-func (i *testableInteractor) GetLatestLeague(ctx context.Context) (types.League, error) {
+func (i *testableInteractor) GetLatestLeague(ctx context.Context) (domain.League, error) {
 	league, err := i.chain.DB.GetLatestLeague(ctx)
 	if err != nil {
-		return types.League{}, err
+		return domain.League{}, err
 	}
-	return types.FromDBLeague(league), nil
+	return converters.LeagueFromDB(league), nil
 }
 
-func (i *testableInteractor) GetLeagueByYear(ctx context.Context, year int) (types.League, error) {
+func (i *testableInteractor) GetLeagueByYear(ctx context.Context, year int) (domain.League, error) {
 	league, err := i.chain.DB.GetLeagueByYear(ctx, int32(year))
 	if err != nil {
-		return types.League{}, err
+		return domain.League{}, err
 	}
-	return types.FromDBLeague(league), nil
+	return converters.LeagueFromDB(league), nil
 }
 
-func (i *testableInteractor) GetStandingsForLeague(ctx context.Context, league types.League) (types.Standings, error) {
-	if league.Status == types.LeagueStatusPending {
-		return types.Standings{}, errors.New("league year has not started yet")
+func (i *testableInteractor) GetStandingsForLeague(ctx context.Context, league domain.League) (domain.Standings, error) {
+	if league.Status == domain.LeagueStatusPending {
+		return domain.Standings{}, errors.New("league year has not started yet")
 	}
 
 	matchups, err := i.chain.DB.GetMatchupsByYear(ctx, int32(league.Year))
 	if err != nil {
-		return types.Standings{}, err
+		return domain.Standings{}, err
 	}
-	allMatchups := types.FromDBMatchups(matchups)
-	standingsMap := types.MatchupsToStandingsMap(allMatchups)
+	allMatchups := converters.MatchupsFromDB(matchups)
+	standingsMap := domain.MatchupsToStandingsMap(allMatchups)
 	sortedStandings := standingsMap.SortStandingsMap()
 
-	if league.Status == types.LeagueStatusComplete {
-		matchupsByRound := map[string]types.Matchups{}
+	if league.Status == domain.LeagueStatusComplete {
+		matchupsByRound := map[string]domain.Matchups{}
 		for _, m := range allMatchups {
-			if !m.IsPlayoff {
+			if !m.IsPlayoff || m.PlayoffRound == nil {
 				continue
 			}
-			matchupsByRound[m.PlayoffRound] = append(matchupsByRound[m.PlayoffRound], m)
+			matchupsByRound[*m.PlayoffRound] = append(matchupsByRound[*m.PlayoffRound], m)
 		}
 
-		finals, ok := matchupsByRound[types.PlayoffRoundFinals]
+		finals, ok := matchupsByRound[domain.PlayoffRoundFinals]
 		if !ok || len(finals) != 1 {
-			return types.Standings{}, errors.New("invalid finals data")
+			return domain.Standings{}, errors.New("invalid finals data")
 		}
 		finalsWinner, finalsLoser := finals[0].WinnerAndLoser()
 		first, second := standingsMap[finalsWinner], standingsMap[finalsLoser]
 
-		thirdPlaceGame, ok := matchupsByRound[types.PlayoffRoundThirdPlace]
+		thirdPlaceGame, ok := matchupsByRound[domain.PlayoffRoundThirdPlace]
 		if !ok || len(thirdPlaceGame) != 1 {
-			return types.Standings{}, errors.New("invalid third place game data")
+			return domain.Standings{}, errors.New("invalid third place game data")
 		}
 		thirdPlaceGameWinner, thirdPlaceGameLoser := thirdPlaceGame[0].WinnerAndLoser()
 		third, fourth := standingsMap[thirdPlaceGameWinner], standingsMap[thirdPlaceGameLoser]
 
-		quarterfinals, ok := matchupsByRound[types.PlayoffRoundQuarterfinals]
+		quarterfinals, ok := matchupsByRound[domain.PlayoffRoundQuarterfinals]
 		if !ok || len(quarterfinals) != 2 {
-			return types.Standings{}, errors.New("invalid quarterfinals data")
+			return domain.Standings{}, errors.New("invalid quarterfinals data")
 		}
 		var quarterfinalLosers []string
 		for _, q := range quarterfinals {
 			quarterfinalLosers = append(quarterfinalLosers, q.Loser())
 		}
-		sortedQuarterfinalLosers := types.Standings{standingsMap[quarterfinalLosers[0]], standingsMap[quarterfinalLosers[1]]}.SortStandings()
+		sortedQuarterfinalLosers := domain.Standings{standingsMap[quarterfinalLosers[0]], standingsMap[quarterfinalLosers[1]]}.SortStandings()
 
 		finalStandings := append(
-			types.Standings{first, second, third, fourth, sortedQuarterfinalLosers[0], sortedQuarterfinalLosers[1]},
+			domain.Standings{first, second, third, fourth, sortedQuarterfinalLosers[0], sortedQuarterfinalLosers[1]},
 			sortedStandings[6:]...,
 		)
 
@@ -101,7 +102,7 @@ func TestGetLatestLeague(t *testing.T) {
 		name           string
 		mockLeague     db.League
 		mockError      error
-		expectedLeague types.League
+		expectedLeague domain.League
 		expectedError  string
 	}{
 		{
@@ -112,15 +113,15 @@ func TestGetLatestLeague(t *testing.T) {
 				FirstPlace:  "user1",
 				SecondPlace: "user2",
 				ThirdPlace:  "user3",
-				Status:      types.LeagueStatusComplete,
+				Status:      domain.LeagueStatusComplete,
 			},
-			expectedLeague: types.League{
+			expectedLeague: domain.League{
 				ID:          "league-123",
 				Year:        2024,
 				FirstPlace:  "user1",
 				SecondPlace: "user2",
 				ThirdPlace:  "user3",
-				Status:      types.LeagueStatusComplete,
+				Status:      domain.LeagueStatusComplete,
 			},
 		},
 		{
@@ -160,7 +161,7 @@ func TestGetLeagueByYear(t *testing.T) {
 		inputYear      int
 		mockLeague     db.League
 		mockError      error
-		expectedLeague types.League
+		expectedLeague domain.League
 		expectedError  string
 	}{
 		{
@@ -172,15 +173,15 @@ func TestGetLeagueByYear(t *testing.T) {
 				FirstPlace:  "user1",
 				SecondPlace: "user2",
 				ThirdPlace:  "user3",
-				Status:      types.LeagueStatusComplete,
+				Status:      domain.LeagueStatusComplete,
 			},
-			expectedLeague: types.League{
+			expectedLeague: domain.League{
 				ID:          "league-2024",
 				Year:        2024,
 				FirstPlace:  "user1",
 				SecondPlace: "user2",
 				ThirdPlace:  "user3",
-				Status:      types.LeagueStatusComplete,
+				Status:      domain.LeagueStatusComplete,
 			},
 		},
 		{
@@ -189,12 +190,12 @@ func TestGetLeagueByYear(t *testing.T) {
 			mockLeague: db.League{
 				ID:     "league-2023",
 				Year:   2023,
-				Status: types.LeagueStatusInProgress,
+				Status: domain.LeagueStatusInProgress,
 			},
-			expectedLeague: types.League{
+			expectedLeague: domain.League{
 				ID:     "league-2023",
 				Year:   2023,
-				Status: types.LeagueStatusInProgress,
+				Status: domain.LeagueStatusInProgress,
 			},
 		},
 		{
@@ -233,37 +234,37 @@ func TestGetLeagueByYear(t *testing.T) {
 func TestGetStandingsForLeague(t *testing.T) {
 	tests := []struct {
 		name             string
-		inputLeague      types.League
+		inputLeague      domain.League
 		mockMatchups     []db.Matchup
 		mockError        error
 		expectedError    string
-		validateStandings func(t *testing.T, standings types.Standings)
+		validateStandings func(t *testing.T, standings domain.Standings)
 	}{
 		{
 			name: "pending league returns error",
-			inputLeague: types.League{
+			inputLeague: domain.League{
 				ID:     "league-pending",
 				Year:   2024,
-				Status: types.LeagueStatusPending,
+				Status: domain.LeagueStatusPending,
 			},
 			expectedError: "league year has not started yet",
 		},
 		{
 			name: "database error",
-			inputLeague: types.League{
+			inputLeague: domain.League{
 				ID:     "league-error",
 				Year:   2024,
-				Status: types.LeagueStatusInProgress,
+				Status: domain.LeagueStatusInProgress,
 			},
 			mockError:     errors.New("database error"),
 			expectedError: "database error",
 		},
 		{
 			name: "in progress league with regular season matchups",
-			inputLeague: types.League{
+			inputLeague: domain.League{
 				ID:     "league-in-progress",
 				Year:   2024,
-				Status: types.LeagueStatusInProgress,
+				Status: domain.LeagueStatusInProgress,
 			},
 			mockMatchups: []db.Matchup{
 				{
@@ -287,7 +288,7 @@ func TestGetStandingsForLeague(t *testing.T) {
 					IsPlayoff:  pgtype.Bool{Bool: false, Valid: true},
 				},
 			},
-			validateStandings: func(t *testing.T, standings types.Standings) {
+			validateStandings: func(t *testing.T, standings domain.Standings) {
 				assert.Greater(t, len(standings), 0)
 				for i := 1; i < len(standings); i++ {
 					assert.True(t, standings[i-1].Wins >= standings[i].Wins || 
@@ -298,13 +299,13 @@ func TestGetStandingsForLeague(t *testing.T) {
 		},
 		{
 			name: "completed league with playoff results",
-			inputLeague: types.League{
+			inputLeague: domain.League{
 				ID:     "league-complete",
 				Year:   2024,
-				Status: types.LeagueStatusComplete,
+				Status: domain.LeagueStatusComplete,
 			},
 			mockMatchups: createCompleteLeagueMatchups(),
-			validateStandings: func(t *testing.T, standings types.Standings) {
+			validateStandings: func(t *testing.T, standings domain.Standings) {
 				assert.Len(t, standings, 6)
 			},
 		},
@@ -351,7 +352,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			HomeScore:    150.0,
 			AwayScore:    140.0,
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
-			PlayoffRound: pgtype.Text{String: types.PlayoffRoundFinals, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundFinals, Valid: true},
 		},
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
@@ -362,7 +363,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			HomeScore:    130.0,
 			AwayScore:    125.0,
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
-			PlayoffRound: pgtype.Text{String: types.PlayoffRoundThirdPlace, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundThirdPlace, Valid: true},
 		},
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
@@ -373,7 +374,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			HomeScore:    145.0,
 			AwayScore:    135.0,
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
-			PlayoffRound: pgtype.Text{String: types.PlayoffRoundQuarterfinals, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundQuarterfinals, Valid: true},
 		},
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
@@ -384,7 +385,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			HomeScore:    140.0,
 			AwayScore:    130.0,
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
-			PlayoffRound: pgtype.Text{String: types.PlayoffRoundQuarterfinals, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundQuarterfinals, Valid: true},
 		},
 		{
 			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},

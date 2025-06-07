@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
 	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 )
@@ -60,10 +61,89 @@ func (i *interactor) SyncLatestData(ctx context.Context, year int) error {
 
 // syncWeekData syncs matchup data for a specific week
 func (i *interactor) syncWeekData(ctx context.Context, leagueID string, year, week int) error {
-	// TODO: Fix this function after type consolidation
-	// Need to convert sleeper.Matchup (individual roster data) to domain.Matchup (head-to-head matchups)
-	// This requires grouping sleeper matchups by MatchupID and constructing complete matchups
-	return fmt.Errorf("syncWeekData needs to be reimplemented after type consolidation")
+	// Fetch matchups from Sleeper API
+	sleeperMatchups, err := i.SleeperClient.GetMatchupsForWeek(ctx, leagueID, week)
+	if err != nil {
+		return fmt.Errorf("failed to fetch matchups from Sleeper for week %d: %w", week, err)
+	}
+
+	// Get rosters to map RosterID -> OwnerID
+	rosters, err := i.SleeperClient.GetRostersInLeague(ctx, leagueID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch rosters from Sleeper: %w", err)
+	}
+
+	// Create roster ID to owner ID mapping
+	rosterToOwner := make(map[int]string)
+	for _, roster := range rosters {
+		rosterToOwner[roster.ID] = roster.OwnerID
+	}
+
+	// Convert sleeper matchups to domain matchups
+	domainMatchups, err := i.convertSleeperMatchupsToDomain(sleeperMatchups, rosterToOwner)
+	if err != nil {
+		return fmt.Errorf("failed to convert sleeper matchups to domain: %w", err)
+	}
+
+	// Process each domain matchup
+	for _, matchup := range domainMatchups {
+		err := i.upsertMatchup(ctx, matchup, year, week)
+		if err != nil {
+			return fmt.Errorf("failed to upsert matchup: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// convertSleeperMatchupsToDomain converts sleeper API matchups to domain matchups
+// Sleeper returns individual team data per matchup, we need to group them into head-to-head games
+func (i *interactor) convertSleeperMatchupsToDomain(sleeperMatchups sleeper.Matchups, rosterToOwner map[int]string) ([]domain.Matchup, error) {
+	// Group matchups by MatchupID
+	matchupGroups := make(map[int][]sleeper.Matchup)
+	for _, sm := range sleeperMatchups {
+		// Skip bye weeks (matchup_id is null/0)
+		if sm.MatchupID == 0 {
+			continue
+		}
+		matchupGroups[sm.MatchupID] = append(matchupGroups[sm.MatchupID], sm)
+	}
+
+	var domainMatchups []domain.Matchup
+	for matchupID, matchups := range matchupGroups {
+		// Each matchup should have exactly 2 teams
+		if len(matchups) != 2 {
+			return nil, fmt.Errorf("expected 2 teams for matchup %d, got %d", matchupID, len(matchups))
+		}
+
+		// Get owner IDs for both teams
+		team1 := matchups[0]
+		team2 := matchups[1]
+
+		owner1, ok := rosterToOwner[team1.RosterID]
+		if !ok {
+			return nil, fmt.Errorf("roster %d not found in roster mapping", team1.RosterID)
+		}
+
+		owner2, ok := rosterToOwner[team2.RosterID]
+		if !ok {
+			return nil, fmt.Errorf("roster %d not found in roster mapping", team2.RosterID)
+		}
+
+		// Create domain matchup (team1 = home, team2 = away by convention)
+		domainMatchup := domain.Matchup{
+			ID:         fmt.Sprintf("%d", matchupID), // Use matchup ID as string ID
+			HomeUserID: owner1,
+			AwayUserID: owner2,
+			HomeScore:  team1.Points,
+			AwayScore:  team2.Points,
+			IsPlayoff:  false, // We'll determine playoff status elsewhere if needed
+		}
+
+		domainMatchups = append(domainMatchups, domainMatchup)
+	}
+
+	return domainMatchups, nil
 }
 
 // upsertMatchup inserts or updates a single matchup
