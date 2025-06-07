@@ -7,7 +7,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sam-maryland/any-given-sunday/internal/interactor"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 )
 
 // handleWeeklySummaryCommand handles the /weekly-summary Discord command
@@ -63,7 +63,7 @@ func (h *Handler) handleWeeklySummaryCommand(ctx context.Context, s *discordgo.S
 }
 
 // formatWeeklySummary formats the weekly summary for Discord
-func (h *Handler) formatWeeklySummary(summary *interactor.WeeklySummary, users types.UserMap) string {
+func (h *Handler) formatWeeklySummary(summary *interactor.WeeklySummary, users domain.UserMap) string {
 	var response string
 
 	// Header

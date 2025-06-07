@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/sam-maryland/any-given-sunday/pkg/chttp"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
 )
 
 var (
@@ -15,15 +14,15 @@ var (
 )
 
 type ISleeperClient interface {
-	GetUser(ctx context.Context, userID string) (types.SleeperUser, error)
+	GetUser(ctx context.Context, userID string) (SleeperUser, error)
 
-	GetLeague(ctx context.Context, leagueID string) (types.SleeperLeague, error)
-	GetUsersInLeague(ctx context.Context, leagueID string) (types.Users, error)
-	GetRostersInLeague(ctx context.Context, leagueID string) (types.Rosters, error)
+	GetLeague(ctx context.Context, leagueID string) (SleeperLeague, error)
+	GetUsersInLeague(ctx context.Context, leagueID string) (SleeperUsers, error)
+	GetRostersInLeague(ctx context.Context, leagueID string) (Rosters, error)
 
-	GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (types.Matchups, error)
+	GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (Matchups, error)
 
-	GetNFLState(ctx context.Context) (types.NFLState, error)
+	GetNFLState(ctx context.Context) (NFLState, error)
 	FetchAllPlayers(ctx context.Context) ([]byte, error)
 }
 
@@ -35,43 +34,43 @@ func NewSleeperClient(c *http.Client) *SleeperClient {
 	return &SleeperClient{httpClient: c}
 }
 
-func (c *SleeperClient) GetUser(ctx context.Context, userID string) (types.SleeperUser, error) {
+func (c *SleeperClient) GetUser(ctx context.Context, userID string) (SleeperUser, error) {
 	u := fmt.Sprintf("%s/user/%s", baseURL, userID)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return types.SleeperUser{}, err
+		return SleeperUser{}, err
 	}
 
 	res, err := c.httpClient.Do(req)
 
-	user := &types.SleeperUser{}
+	user := &SleeperUser{}
 	if err := chttp.JSONResponder(res, err, user); err != nil {
-		return types.SleeperUser{}, err
+		return SleeperUser{}, err
 	}
 
 	return *user, nil
 }
 
-func (c *SleeperClient) GetLeague(ctx context.Context, leagueID string) (types.SleeperLeague, error) {
+func (c *SleeperClient) GetLeague(ctx context.Context, leagueID string) (SleeperLeague, error) {
 	u := fmt.Sprintf("%s/league/%s", baseURL, leagueID)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return types.SleeperLeague{}, err
+		return SleeperLeague{}, err
 	}
 
 	res, err := c.httpClient.Do(req)
 
-	league := &types.SleeperLeague{}
+	league := &SleeperLeague{}
 	if err := chttp.JSONResponder(res, err, league); err != nil {
-		return types.SleeperLeague{}, err
+		return SleeperLeague{}, err
 	}
 
 	return *league, nil
 }
 
-func (c *SleeperClient) GetUsersInLeague(ctx context.Context, leagueID string) (types.Users, error) {
+func (c *SleeperClient) GetUsersInLeague(ctx context.Context, leagueID string) (SleeperUsers, error) {
 	u := fmt.Sprintf("%s/league/%s/users", baseURL, leagueID)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
@@ -81,7 +80,7 @@ func (c *SleeperClient) GetUsersInLeague(ctx context.Context, leagueID string) (
 
 	res, err := c.httpClient.Do(req)
 
-	users := types.Users{}
+	users := SleeperUsers{}
 	if err := chttp.JSONResponder(res, err, &users); err != nil {
 		return nil, err
 	}
@@ -89,7 +88,7 @@ func (c *SleeperClient) GetUsersInLeague(ctx context.Context, leagueID string) (
 	return users, nil
 }
 
-func (c *SleeperClient) GetRostersInLeague(ctx context.Context, leagueID string) (types.Rosters, error) {
+func (c *SleeperClient) GetRostersInLeague(ctx context.Context, leagueID string) (Rosters, error) {
 	u := fmt.Sprintf("%s/league/%s/rosters", baseURL, leagueID)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
@@ -99,7 +98,7 @@ func (c *SleeperClient) GetRostersInLeague(ctx context.Context, leagueID string)
 
 	res, err := c.httpClient.Do(req)
 
-	rosters := types.Rosters{}
+	rosters := Rosters{}
 	if err := chttp.JSONResponder(res, err, &rosters); err != nil {
 		return nil, err
 	}
@@ -107,7 +106,7 @@ func (c *SleeperClient) GetRostersInLeague(ctx context.Context, leagueID string)
 	return rosters, nil
 }
 
-func (c *SleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (types.Matchups, error) {
+func (c *SleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (Matchups, error) {
 	u := fmt.Sprintf("%s/league/%s/matchups/%d", baseURL, leagueID, week)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
@@ -117,7 +116,7 @@ func (c *SleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string,
 
 	res, err := c.httpClient.Do(req)
 
-	matchups := types.Matchups{}
+	matchups := Matchups{}
 	if err := chttp.JSONResponder(res, err, &matchups); err != nil {
 		return nil, err
 	}
@@ -125,19 +124,19 @@ func (c *SleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string,
 	return matchups, nil
 }
 
-func (c *SleeperClient) GetNFLState(ctx context.Context) (types.NFLState, error) {
+func (c *SleeperClient) GetNFLState(ctx context.Context) (NFLState, error) {
 	u := fmt.Sprintf("%s/state/nfl", baseURL)
 
 	req, err := chttp.NewJSONRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return types.NFLState{}, err
+		return NFLState{}, err
 	}
 
 	res, err := c.httpClient.Do(req)
 
-	state := &types.NFLState{}
+	state := &NFLState{}
 	if err := chttp.JSONResponder(res, err, state); err != nil {
-		return types.NFLState{}, err
+		return NFLState{}, err
 	}
 
 	return *state, nil

@@ -6,7 +6,6 @@ toolchain go1.23.2
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/joho/godotenv v1.5.1

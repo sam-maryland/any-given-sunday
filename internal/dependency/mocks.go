@@ -3,8 +3,8 @@ package dependency
 import (
 	"context"
 
+	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -153,55 +153,55 @@ func (m *MockDatabase) CheckSleeperUserClaimed(ctx context.Context, id string) (
 
 // MockSleeperClient provides a mock implementation for testing
 type MockSleeperClient struct {
-	GetUserFunc               func(ctx context.Context, userID string) (types.SleeperUser, error)
-	GetLeagueFunc             func(ctx context.Context, leagueID string) (types.SleeperLeague, error)
-	GetUsersInLeagueFunc      func(ctx context.Context, leagueID string) (types.Users, error)
-	GetRostersInLeagueFunc    func(ctx context.Context, leagueID string) (types.Rosters, error)
-	GetMatchupsForWeekFunc    func(ctx context.Context, leagueID string, week int) (types.Matchups, error)
-	GetNFLStateFunc           func(ctx context.Context) (types.NFLState, error)
+	GetUserFunc               func(ctx context.Context, userID string) (sleeper.SleeperUser, error)
+	GetLeagueFunc             func(ctx context.Context, leagueID string) (sleeper.SleeperLeague, error)
+	GetUsersInLeagueFunc      func(ctx context.Context, leagueID string) (sleeper.SleeperUsers, error)
+	GetRostersInLeagueFunc    func(ctx context.Context, leagueID string) (sleeper.Rosters, error)
+	GetMatchupsForWeekFunc    func(ctx context.Context, leagueID string, week int) (sleeper.Matchups, error)
+	GetNFLStateFunc           func(ctx context.Context) (sleeper.NFLState, error)
 	FetchAllPlayersFunc       func(ctx context.Context) ([]byte, error)
 }
 
-func (m *MockSleeperClient) GetUser(ctx context.Context, userID string) (types.SleeperUser, error) {
+func (m *MockSleeperClient) GetUser(ctx context.Context, userID string) (sleeper.SleeperUser, error) {
 	if m.GetUserFunc != nil {
 		return m.GetUserFunc(ctx, userID)
 	}
-	return types.SleeperUser{}, nil
+	return sleeper.SleeperUser{}, nil
 }
 
-func (m *MockSleeperClient) GetLeague(ctx context.Context, leagueID string) (types.SleeperLeague, error) {
+func (m *MockSleeperClient) GetLeague(ctx context.Context, leagueID string) (sleeper.SleeperLeague, error) {
 	if m.GetLeagueFunc != nil {
 		return m.GetLeagueFunc(ctx, leagueID)
 	}
-	return types.SleeperLeague{}, nil
+	return sleeper.SleeperLeague{}, nil
 }
 
-func (m *MockSleeperClient) GetUsersInLeague(ctx context.Context, leagueID string) (types.Users, error) {
+func (m *MockSleeperClient) GetUsersInLeague(ctx context.Context, leagueID string) (sleeper.SleeperUsers, error) {
 	if m.GetUsersInLeagueFunc != nil {
 		return m.GetUsersInLeagueFunc(ctx, leagueID)
 	}
-	return types.Users{}, nil
+	return sleeper.SleeperUsers{}, nil
 }
 
-func (m *MockSleeperClient) GetRostersInLeague(ctx context.Context, leagueID string) (types.Rosters, error) {
+func (m *MockSleeperClient) GetRostersInLeague(ctx context.Context, leagueID string) (sleeper.Rosters, error) {
 	if m.GetRostersInLeagueFunc != nil {
 		return m.GetRostersInLeagueFunc(ctx, leagueID)
 	}
-	return types.Rosters{}, nil
+	return sleeper.Rosters{}, nil
 }
 
-func (m *MockSleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (types.Matchups, error) {
+func (m *MockSleeperClient) GetMatchupsForWeek(ctx context.Context, leagueID string, week int) (sleeper.Matchups, error) {
 	if m.GetMatchupsForWeekFunc != nil {
 		return m.GetMatchupsForWeekFunc(ctx, leagueID, week)
 	}
-	return types.Matchups{}, nil
+	return sleeper.Matchups{}, nil
 }
 
-func (m *MockSleeperClient) GetNFLState(ctx context.Context) (types.NFLState, error) {
+func (m *MockSleeperClient) GetNFLState(ctx context.Context) (sleeper.NFLState, error) {
 	if m.GetNFLStateFunc != nil {
 		return m.GetNFLStateFunc(ctx)
 	}
-	return types.NFLState{}, nil
+	return sleeper.NFLState{}, nil
 }
 
 func (m *MockSleeperClient) FetchAllPlayers(ctx context.Context) ([]byte, error) {
