@@ -1,6 +1,8 @@
 package converters
 
 import (
+	"fmt"
+
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
 	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 )
@@ -92,19 +94,21 @@ func MatchupsFromDB(matchups []db.Matchup) domain.Matchups {
 // CareerStats conversions with safe type handling
 func CareerStatsFromDB(stat db.CareerStat) domain.CareerStats {
 	stats := domain.CareerStats{
-		UserID:                    stat.UserID,
-		UserName:                  stat.UserName,
-		SeasonsPlayed:             stat.SeasonsPlayed,
-		RegularSeasonAvgPoints:    stat.RegularSeasonAvgPoints,
-		HighestRegularSeasonScore: stat.HighestRegularSeasonScore,
-		WeeklyHighScores:          stat.WeeklyHighScores,
-		PlayoffAppearances:        stat.PlayoffAppearances,
-		QuarterfinalAppearances:   stat.QuarterfinalAppearances,
-		SemifinalAppearances:      stat.SemifinalAppearances,
-		FinalsAppearances:         stat.FinalsAppearances,
-		FirstPlaceFinishes:        stat.FirstPlaceFinishes,
-		SecondPlaceFinishes:       stat.SecondPlaceFinishes,
-		ThirdPlaceFinishes:        stat.ThirdPlaceFinishes,
+		UserID:                     stat.UserID,
+		UserName:                   stat.UserName,
+		SeasonsPlayed:              stat.SeasonsPlayed,
+		RegularSeasonRecord:        fmt.Sprintf("%d-%d", stat.RegularSeasonWins, stat.RegularSeasonLosses),
+		RegularSeasonAvgPoints:     stat.RegularSeasonAvgPoints,
+		HighestRegularSeasonScore:  stat.HighestRegularSeasonScore,
+		WeeklyHighScores:           stat.WeeklyHighScores,
+		PlayoffAppearances:         stat.PlayoffAppearances,
+		PlayoffRecord:              fmt.Sprintf("%d-%d", stat.PlayoffWins, stat.PlayoffLosses),
+		QuarterfinalAppearances:    stat.QuarterfinalAppearances,
+		SemifinalAppearances:       stat.SemifinalAppearances,
+		FinalsAppearances:          stat.FinalsAppearances,
+		FirstPlaceFinishes:         stat.FirstPlaceFinishes,
+		SecondPlaceFinishes:        stat.SecondPlaceFinishes,
+		ThirdPlaceFinishes:         stat.ThirdPlaceFinishes,
 	}
 
 	// Safely handle interface{} fields with type assertions

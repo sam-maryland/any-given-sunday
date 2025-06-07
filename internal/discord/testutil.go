@@ -77,7 +77,40 @@ func TestMember(userID, username, nickname string) *discordgo.Member {
 
 // TestCareerStatsInteraction creates a mock interaction for the career-stats command
 func TestCareerStatsInteraction(userID, guildID string) *discordgo.Interaction {
-	return TestInteraction("career-stats", userID, guildID, nil)
+	// Create a user option that would contain the target user
+	options := []*discordgo.ApplicationCommandInteractionDataOption{
+		{
+			Name: "user",
+			Type: discordgo.ApplicationCommandOptionUser,
+			Value: userID,
+		},
+	}
+	
+	// Create interaction data with resolved users
+	data := TestInteractionData("career-stats", options)
+	data.Resolved = &discordgo.ApplicationCommandInteractionDataResolved{
+		Users: map[string]*discordgo.User{
+			userID: TestUser(userID, "testuser"),
+		},
+	}
+	
+	return &discordgo.Interaction{
+		ID:      "test-interaction-id",
+		AppID:   "test-app-id",
+		Type:    discordgo.InteractionApplicationCommand,
+		GuildID: guildID,
+		User: &discordgo.User{
+			ID:       userID,
+			Username: "testuser",
+		},
+		Member: &discordgo.Member{
+			User: &discordgo.User{
+				ID:       userID,
+				Username: "testuser",
+			},
+		},
+		Data: data,
+	}
 }
 
 // TestStandingsInteraction creates a mock interaction for the standings command

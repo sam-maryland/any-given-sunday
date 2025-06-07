@@ -69,7 +69,9 @@ type Standings []*Standing
 func (s Standings) SortStandings() Standings {
 	sm := StandingsMap{}
 	for _, standing := range s {
-		sm[standing.UserID] = standing
+		if standing != nil {
+			sm[standing.UserID] = standing
+		}
 	}
 	return sm.SortStandingsMap()
 }
