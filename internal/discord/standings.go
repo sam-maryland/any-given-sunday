@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -20,7 +20,7 @@ func (h *Handler) handleStandingsCommand(ctx context.Context, s *discordgo.Sessi
 	}
 
 	var err error
-	var league types.League
+	var league domain.League
 	if year != 0 {
 		league, err = h.interactor.GetLeagueByYear(ctx, year)
 	} else {

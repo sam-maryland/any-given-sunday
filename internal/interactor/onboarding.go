@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
 )
 
 type OnboardingInteractor interface {
@@ -53,7 +53,7 @@ func (i *interactor) GetAvailableSleeperUsers(ctx context.Context) ([]AvailableS
 		}
 
 		// Find the roster owned by this user
-		var roster types.Roster
+		var roster sleeper.Roster
 		var found bool
 		for _, r := range rosters {
 			if r.OwnerID == user.ID {

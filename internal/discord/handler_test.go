@@ -6,7 +6,7 @@ import (
 
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/internal/interactor"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/assert"
@@ -14,36 +14,36 @@ import (
 
 // mockInteractor provides a testable implementation of the interactor interface
 type mockInteractor struct {
-	handleCareerStatsFunc   func(ctx context.Context, userID string) (types.CareerStats, error)
-	handleStandingsFunc     func(ctx context.Context, league types.League) (types.Standings, error)
+	handleCareerStatsFunc   func(ctx context.Context, userID string) (domain.CareerStats, error)
+	handleStandingsFunc     func(ctx context.Context, league domain.League) (domain.Standings, error)
 	handleWeeklySummaryFunc func(ctx context.Context, year int) (*interactor.WeeklySummary, error)
 }
 
 // LeagueInteractor methods
-func (m *mockInteractor) GetLatestLeague(ctx context.Context) (types.League, error) { 
-	return types.League{}, nil 
+func (m *mockInteractor) GetLatestLeague(ctx context.Context) (domain.League, error) { 
+	return domain.League{}, nil 
 }
-func (m *mockInteractor) GetLeagueByYear(ctx context.Context, year int) (types.League, error) { 
-	return types.League{}, nil 
+func (m *mockInteractor) GetLeagueByYear(ctx context.Context, year int) (domain.League, error) { 
+	return domain.League{}, nil 
 }
-func (m *mockInteractor) GetStandingsForLeague(ctx context.Context, league types.League) (types.Standings, error) {
+func (m *mockInteractor) GetStandingsForLeague(ctx context.Context, league domain.League) (domain.Standings, error) {
 	if m.handleStandingsFunc != nil {
 		return m.handleStandingsFunc(ctx, league)
 	}
-	return types.Standings{}, nil
+	return domain.Standings{}, nil
 }
 
 // StatsInteractor methods
-func (m *mockInteractor) GetCareerStatsForDiscordUser(ctx context.Context, userID string) (types.CareerStats, error) {
+func (m *mockInteractor) GetCareerStatsForDiscordUser(ctx context.Context, userID string) (domain.CareerStats, error) {
 	if m.handleCareerStatsFunc != nil {
 		return m.handleCareerStatsFunc(ctx, userID)
 	}
-	return types.CareerStats{}, nil
+	return domain.CareerStats{}, nil
 }
 
 // UsersInteractor methods
-func (m *mockInteractor) GetUsers(ctx context.Context) (types.UserMap, error) { 
-	return types.UserMap{}, nil 
+func (m *mockInteractor) GetUsers(ctx context.Context) (domain.UserMap, error) { 
+	return domain.UserMap{}, nil 
 }
 
 // WeeklyJobInteractor methods
@@ -226,10 +226,10 @@ func TestHandler_Handle(t *testing.T) {
 			}
 
 			mockInteractor := &mockInteractor{
-				handleCareerStatsFunc: func(ctx context.Context, userID string) (types.CareerStats, error) {
+				handleCareerStatsFunc: func(ctx context.Context, userID string) (domain.CareerStats, error) {
 					careerStatsCallCount++
 					assert.NotEmpty(t, userID)
-					return types.CareerStats{}, nil
+					return domain.CareerStats{}, nil
 				},
 				handleWeeklySummaryFunc: func(ctx context.Context, year int) (*interactor.WeeklySummary, error) {
 					weeklySummaryCallCount++
@@ -318,10 +318,10 @@ func TestHandler_Handle_ContextPropagation(t *testing.T) {
 	}
 
 	mockInteractor := &mockInteractor{
-		handleCareerStatsFunc: func(ctx context.Context, userID string) (types.CareerStats, error) {
+		handleCareerStatsFunc: func(ctx context.Context, userID string) (domain.CareerStats, error) {
 			contextReceived = true
 			assert.NotNil(t, ctx)
-			return types.CareerStats{}, nil
+			return domain.CareerStats{}, nil
 		},
 	}
 

@@ -3,18 +3,19 @@ package interactor
 import (
 	"context"
 
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/converters"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 )
 
 type StatsInteractor interface {
-	GetCareerStatsForDiscordUser(ctx context.Context, userID string) (types.CareerStats, error)
+	GetCareerStatsForDiscordUser(ctx context.Context, userID string) (domain.CareerStats, error)
 }
 
-func (i *interactor) GetCareerStatsForDiscordUser(ctx context.Context, userID string) (types.CareerStats, error) {
+func (i *interactor) GetCareerStatsForDiscordUser(ctx context.Context, userID string) (domain.CareerStats, error) {
 	stat, err := i.DB.GetCareerStatsByDiscordID(ctx, userID)
 	if err != nil {
-		return types.CareerStats{}, err
+		return domain.CareerStats{}, err
 	}
 
-	return types.FromDBCareerStat(stat), nil
+	return converters.CareerStatsFromDB(stat), nil
 }

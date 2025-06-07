@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
-	"github.com/sam-maryland/any-given-sunday/pkg/types"
+	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 )
 
 type WeeklyJobInteractor interface {
@@ -28,7 +28,7 @@ type WeeklySummary struct {
 	Year           int
 	Week           int
 	HighScore      *WeeklyHighScore
-	Standings      types.Standings
+	Standings      domain.Standings
 	DataSyncStatus string
 }
 
@@ -60,25 +60,14 @@ func (i *interactor) SyncLatestData(ctx context.Context, year int) error {
 
 // syncWeekData syncs matchup data for a specific week
 func (i *interactor) syncWeekData(ctx context.Context, leagueID string, year, week int) error {
-	// Fetch matchups from Sleeper API
-	sleeperMatchups, err := i.SleeperClient.GetMatchupsForWeek(ctx, leagueID, week)
-	if err != nil {
-		return fmt.Errorf("failed to fetch matchups from Sleeper for week %d: %w", week, err)
-	}
-
-	// Process each matchup from Sleeper
-	for _, matchup := range sleeperMatchups {
-		err := i.upsertMatchup(ctx, matchup, year, week)
-		if err != nil {
-			return fmt.Errorf("failed to upsert matchup: %w", err)
-		}
-	}
-
-	return nil
+	// TODO: Fix this function after type consolidation
+	// Need to convert sleeper.Matchup (individual roster data) to domain.Matchup (head-to-head matchups)
+	// This requires grouping sleeper matchups by MatchupID and constructing complete matchups
+	return fmt.Errorf("syncWeekData needs to be reimplemented after type consolidation")
 }
 
 // upsertMatchup inserts or updates a single matchup
-func (i *interactor) upsertMatchup(ctx context.Context, matchup types.Matchup, year, week int) error {
+func (i *interactor) upsertMatchup(ctx context.Context, matchup domain.Matchup, year, week int) error {
 	// Check if the matchup already exists
 	existing, err := i.DB.GetMatchupByYearWeekUsers(ctx, db.GetMatchupByYearWeekUsersParams{
 		Year:       int32(year),
@@ -94,18 +83,18 @@ func (i *interactor) upsertMatchup(ctx context.Context, matchup types.Matchup, y
 			Week:      int32(week),
 			IsPlayoff: pgtype.Bool{Bool: matchup.IsPlayoff, Valid: true},
 			PlayoffRound: pgtype.Text{
-				String: matchup.PlayoffRound,
-				Valid:  matchup.PlayoffRound != "",
+				String: func() string { if matchup.PlayoffRound != nil { return *matchup.PlayoffRound }; return "" }(),
+				Valid:  matchup.PlayoffRound != nil && *matchup.PlayoffRound != "",
 			},
 			HomeUserID: matchup.HomeUserID,
 			AwayUserID: matchup.AwayUserID,
 			HomeSeed: pgtype.Int4{
-				Int32: int32(matchup.HomeSeed),
-				Valid: matchup.HomeSeed > 0,
+				Int32: func() int32 { if matchup.HomeSeed != nil { return int32(*matchup.HomeSeed) }; return 0 }(),
+				Valid: matchup.HomeSeed != nil && *matchup.HomeSeed > 0,
 			},
 			AwaySeed: pgtype.Int4{
-				Int32: int32(matchup.AwaySeed),
-				Valid: matchup.AwaySeed > 0,
+				Int32: func() int32 { if matchup.AwaySeed != nil { return int32(*matchup.AwaySeed) }; return 0 }(),
+				Valid: matchup.AwaySeed != nil && *matchup.AwaySeed > 0,
 			},
 			HomeScore: matchup.HomeScore,
 			AwayScore: matchup.AwayScore,
