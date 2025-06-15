@@ -97,7 +97,7 @@ func (d *DiscordWrapper) ChannelMessageSendComplex(channelID string, data *disco
 	return d.Session.ChannelMessageSendComplex(channelID, data)
 }
 
-// ChannelMessageSend wraps the Discord session method 
+// ChannelMessageSend wraps the Discord session method
 func (d *DiscordWrapper) ChannelMessageSend(channelID, content string) (*discordgo.Message, error) {
 	return d.Session.ChannelMessageSend(channelID, content)
 }

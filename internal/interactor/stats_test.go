@@ -33,12 +33,12 @@ func newTestableStatsInteractor(chain *dependency.TestChain) *testableStatsInter
 
 func TestGetCareerStatsForDiscordUser(t *testing.T) {
 	tests := []struct {
-		name              string
-		inputDiscordID    string
-		mockCareerStat    db.CareerStat
-		dbError           error
-		expectedStats     domain.CareerStats
-		expectedError     string
+		name           string
+		inputDiscordID string
+		mockCareerStat db.CareerStat
+		dbError        error
+		expectedStats  domain.CareerStats
+		expectedError  string
 	}{
 		{
 			name:           "successful career stats retrieval",

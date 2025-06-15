@@ -80,12 +80,12 @@ func TestCareerStatsInteraction(userID, guildID string) *discordgo.Interaction {
 	// Create a user option that would contain the target user
 	options := []*discordgo.ApplicationCommandInteractionDataOption{
 		{
-			Name: "user",
-			Type: discordgo.ApplicationCommandOptionUser,
+			Name:  "user",
+			Type:  discordgo.ApplicationCommandOptionUser,
 			Value: userID,
 		},
 	}
-	
+
 	// Create interaction data with resolved users
 	data := TestInteractionData("career-stats", options)
 	data.Resolved = &discordgo.ApplicationCommandInteractionDataResolved{
@@ -93,7 +93,7 @@ func TestCareerStatsInteraction(userID, guildID string) *discordgo.Interaction {
 			userID: TestUser(userID, "testuser"),
 		},
 	}
-	
+
 	return &discordgo.Interaction{
 		ID:      "test-interaction-id",
 		AppID:   "test-app-id",

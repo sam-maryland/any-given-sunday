@@ -172,11 +172,11 @@ func (r Roster) GetPointsFor() float32 {
 
 // Matchup represents a weekly matchup from Sleeper API
 type Matchup struct {
-	MatchupID   int                    `json:"matchup_id"`
-	RosterID    int                    `json:"roster_id"`
-	Points      float64                `json:"points"`
-	Players     []string               `json:"players"`
-	Starters    []string               `json:"starters"`
+	MatchupID        int                `json:"matchup_id"`
+	RosterID         int                `json:"roster_id"`
+	Points           float64            `json:"points"`
+	Players          []string           `json:"players"`
+	Starters         []string           `json:"starters"`
 	PlayersPointsMap map[string]float64 `json:"players_points,omitempty"`
 }
 
@@ -184,59 +184,59 @@ type Matchups []Matchup
 
 // SleeperLeague represents the complete league data from Sleeper API
 type SleeperLeague struct {
-	TotalRosters  int    `json:"total_rosters"`
-	Status        string `json:"status"`
-	Sport         string `json:"sport"`
-	Settings      LeagueSettings `json:"settings"`
-	SeasonType    string `json:"season_type"`
-	Season        string `json:"season"`
-	ScoringSettings ScoringSettings `json:"scoring_settings"`
-	RosterPositions []string `json:"roster_positions"`
-	PreviousLeagueID string `json:"previous_league_id"`
-	Name          string `json:"name"`
-	LeagueID      string `json:"league_id"`
-	DraftID       string `json:"draft_id"`
-	Avatar        string `json:"avatar"`
+	TotalRosters     int             `json:"total_rosters"`
+	Status           string          `json:"status"`
+	Sport            string          `json:"sport"`
+	Settings         LeagueSettings  `json:"settings"`
+	SeasonType       string          `json:"season_type"`
+	Season           string          `json:"season"`
+	ScoringSettings  ScoringSettings `json:"scoring_settings"`
+	RosterPositions  []string        `json:"roster_positions"`
+	PreviousLeagueID string          `json:"previous_league_id"`
+	Name             string          `json:"name"`
+	LeagueID         string          `json:"league_id"`
+	DraftID          string          `json:"draft_id"`
+	Avatar           string          `json:"avatar"`
 }
 
 type LeagueSettings struct {
-	MaxKeepers            int `json:"max_keepers"`
-	DraftRounds           int `json:"draft_rounds"`
-	TradeDeadline         int `json:"trade_deadline"`
-	ReserveSlots          int `json:"reserve_slots"`
-	TaxiSlots             int `json:"taxi_slots"`
-	TaxiDeadline          int `json:"taxi_deadline"`
-	TaxiYearsExp          int `json:"taxi_years_exp"`
-	PlayoffWeekStart      int `json:"playoff_week_start"`
-	PlayoffTeams          int `json:"playoff_teams"`
-	PlayoffRounds         int `json:"playoff_rounds"`
-	PlayoffSeedType       int `json:"playoff_seed_type"`
-	PlayoffType           int `json:"playoff_type"`
-	BenchSlots            int `json:"bench_slots"`
-	WaiverType            int `json:"waiver_type"`
-	WaiverClearDays       int `json:"waiver_clear_days"`
-	WaiverDayOfWeek       int `json:"waiver_day_of_week"`
-	WaiverBudget          int `json:"waiver_budget"`
-	StartWeek             int `json:"start_week"`
-	LastScoredLeg         int `json:"last_scored_leg"`
-	Leg                   int `json:"leg"`
-	DisableAdds           int `json:"disable_adds"`
-	DisableTrades         int `json:"disable_trades"`
-	TradingDeadline       int `json:"trading_deadline"`
-	CapitalizeNames       int `json:"capitalize_names"`
-	PlatformType          int `json:"type"`
-	BestBall              int `json:"best_ball"`
+	MaxKeepers       int `json:"max_keepers"`
+	DraftRounds      int `json:"draft_rounds"`
+	TradeDeadline    int `json:"trade_deadline"`
+	ReserveSlots     int `json:"reserve_slots"`
+	TaxiSlots        int `json:"taxi_slots"`
+	TaxiDeadline     int `json:"taxi_deadline"`
+	TaxiYearsExp     int `json:"taxi_years_exp"`
+	PlayoffWeekStart int `json:"playoff_week_start"`
+	PlayoffTeams     int `json:"playoff_teams"`
+	PlayoffRounds    int `json:"playoff_rounds"`
+	PlayoffSeedType  int `json:"playoff_seed_type"`
+	PlayoffType      int `json:"playoff_type"`
+	BenchSlots       int `json:"bench_slots"`
+	WaiverType       int `json:"waiver_type"`
+	WaiverClearDays  int `json:"waiver_clear_days"`
+	WaiverDayOfWeek  int `json:"waiver_day_of_week"`
+	WaiverBudget     int `json:"waiver_budget"`
+	StartWeek        int `json:"start_week"`
+	LastScoredLeg    int `json:"last_scored_leg"`
+	Leg              int `json:"leg"`
+	DisableAdds      int `json:"disable_adds"`
+	DisableTrades    int `json:"disable_trades"`
+	TradingDeadline  int `json:"trading_deadline"`
+	CapitalizeNames  int `json:"capitalize_names"`
+	PlatformType     int `json:"type"`
+	BestBall         int `json:"best_ball"`
 }
 
 type ScoringSettings struct {
-	PassYd         float64 `json:"pass_yd"`
-	PassTd         float64 `json:"pass_td"`
-	PassInt        float64 `json:"pass_int"`
-	RushYd         float64 `json:"rush_yd"`
-	RushTd         float64 `json:"rush_td"`
-	RecYd          float64 `json:"rec_yd"`
-	RecTd          float64 `json:"rec_td"`
-	Rec            float64 `json:"rec"`
-	FumLost        float64 `json:"fum_lost"`
+	PassYd  float64 `json:"pass_yd"`
+	PassTd  float64 `json:"pass_td"`
+	PassInt float64 `json:"pass_int"`
+	RushYd  float64 `json:"rush_yd"`
+	RushTd  float64 `json:"rush_td"`
+	RecYd   float64 `json:"rec_yd"`
+	RecTd   float64 `json:"rec_td"`
+	Rec     float64 `json:"rec"`
+	FumLost float64 `json:"fum_lost"`
 	// Add other scoring settings as needed
 }

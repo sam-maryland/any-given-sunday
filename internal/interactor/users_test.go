@@ -34,11 +34,11 @@ func newTestableUsersInteractor(chain *dependency.TestChain) *testableUsersInter
 
 func TestGetUsers(t *testing.T) {
 	tests := []struct {
-		name             string
-		mockUsers        []db.User
-		dbError          error
-		expectedUserMap  domain.UserMap
-		expectedError    string
+		name            string
+		mockUsers       []db.User
+		dbError         error
+		expectedUserMap domain.UserMap
+		expectedError   string
 	}{
 		{
 			name: "successful users retrieval with multiple users",
@@ -188,10 +188,10 @@ func TestGetUsers(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
 				assert.Equal(t, tt.expectedUserMap, result)
-				
+
 				// Verify the map has the correct number of entries
 				assert.Len(t, result, len(tt.mockUsers))
-				
+
 				// Verify that all expected users are present with correct data
 				for userID, expectedUser := range tt.expectedUserMap {
 					actualUser, exists := result[userID]
@@ -240,14 +240,14 @@ func TestGetUsers_LargeDataSet(t *testing.T) {
 		userID := fmt.Sprintf("user%04d", i)
 		userName := fmt.Sprintf("User %d", i)
 		discordID := fmt.Sprintf("discord%04d", i)
-		
+
 		mockUsers[i] = db.User{
 			ID:        userID,
 			Name:      userName,
 			DiscordID: discordID,
 			CreatedAt: pgtype.Timestamptz{Valid: true},
 		}
-		
+
 		expectedUserMap[userID] = domain.User{
 			ID:        userID,
 			Name:      userName,
@@ -302,7 +302,7 @@ func TestGetUsers_DuplicateUserIDs(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	
+
 	// The second user should overwrite the first due to map behavior
 	assert.Len(t, result, 1)
 	user, exists := result["duplicate_id"]

@@ -47,10 +47,10 @@ func LeagueFromDB(l db.League) domain.League {
 // Matchup conversions
 func MatchupFromDB(m db.Matchup) domain.Matchup {
 	matchup := domain.Matchup{
-		Year:      int(m.Year), // Convert int32 to int
-		Week:      int(m.Week), // Convert int32 to int
-		HomeScore: m.HomeScore,
-		AwayScore: m.AwayScore,
+		Year:       int(m.Year), // Convert int32 to int
+		Week:       int(m.Week), // Convert int32 to int
+		HomeScore:  m.HomeScore,
+		AwayScore:  m.AwayScore,
 		HomeUserID: m.HomeUserID,
 		AwayUserID: m.AwayUserID,
 	}
@@ -94,21 +94,21 @@ func MatchupsFromDB(matchups []db.Matchup) domain.Matchups {
 // CareerStats conversions with safe type handling
 func CareerStatsFromDB(stat db.CareerStat) domain.CareerStats {
 	stats := domain.CareerStats{
-		UserID:                     stat.UserID,
-		UserName:                   stat.UserName,
-		SeasonsPlayed:              stat.SeasonsPlayed,
-		RegularSeasonRecord:        fmt.Sprintf("%d-%d", stat.RegularSeasonWins, stat.RegularSeasonLosses),
-		RegularSeasonAvgPoints:     stat.RegularSeasonAvgPoints,
-		HighestRegularSeasonScore:  stat.HighestRegularSeasonScore,
-		WeeklyHighScores:           stat.WeeklyHighScores,
-		PlayoffAppearances:         stat.PlayoffAppearances,
-		PlayoffRecord:              fmt.Sprintf("%d-%d", stat.PlayoffWins, stat.PlayoffLosses),
-		QuarterfinalAppearances:    stat.QuarterfinalAppearances,
-		SemifinalAppearances:       stat.SemifinalAppearances,
-		FinalsAppearances:          stat.FinalsAppearances,
-		FirstPlaceFinishes:         stat.FirstPlaceFinishes,
-		SecondPlaceFinishes:        stat.SecondPlaceFinishes,
-		ThirdPlaceFinishes:         stat.ThirdPlaceFinishes,
+		UserID:                    stat.UserID,
+		UserName:                  stat.UserName,
+		SeasonsPlayed:             stat.SeasonsPlayed,
+		RegularSeasonRecord:       fmt.Sprintf("%d-%d", stat.RegularSeasonWins, stat.RegularSeasonLosses),
+		RegularSeasonAvgPoints:    stat.RegularSeasonAvgPoints,
+		HighestRegularSeasonScore: stat.HighestRegularSeasonScore,
+		WeeklyHighScores:          stat.WeeklyHighScores,
+		PlayoffAppearances:        stat.PlayoffAppearances,
+		PlayoffRecord:             fmt.Sprintf("%d-%d", stat.PlayoffWins, stat.PlayoffLosses),
+		QuarterfinalAppearances:   stat.QuarterfinalAppearances,
+		SemifinalAppearances:      stat.SemifinalAppearances,
+		FinalsAppearances:         stat.FinalsAppearances,
+		FirstPlaceFinishes:        stat.FirstPlaceFinishes,
+		SecondPlaceFinishes:       stat.SecondPlaceFinishes,
+		ThirdPlaceFinishes:        stat.ThirdPlaceFinishes,
 	}
 
 	// Safely handle interface{} fields with type assertions

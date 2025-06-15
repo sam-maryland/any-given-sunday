@@ -26,7 +26,7 @@ func (h *testableOnboardingHandler) OnGuildMemberAdd(m *discordgo.GuildMemberAdd
 	}
 
 	ctx := context.Background()
-	
+
 	isOnboarded, err := h.mockInteractor.IsUserOnboarded(ctx, m.User.ID)
 	if err != nil {
 		return
@@ -147,15 +147,15 @@ type mockFullInteractor struct {
 
 func TestOnGuildMemberAdd(t *testing.T) {
 	tests := []struct {
-		name                    string
-		member                  *discordgo.GuildMemberAdd
-		isUserOnboarded         bool
-		onboardingCheckError    error
-		availableUsers          []interactor.AvailableSleeperUser
-		getAvailableUsersError  error
-		sendMessageError        error
-		expectWelcomeMessage    bool
-		expectNoAvailableMsg    bool
+		name                   string
+		member                 *discordgo.GuildMemberAdd
+		isUserOnboarded        bool
+		onboardingCheckError   error
+		availableUsers         []interactor.AvailableSleeperUser
+		getAvailableUsersError error
+		sendMessageError       error
+		expectWelcomeMessage   bool
+		expectNoAvailableMsg   bool
 	}{
 		{
 			name: "new user gets welcome message with available sleeper users",
@@ -279,9 +279,9 @@ func TestOnGuildMemberAdd(t *testing.T) {
 
 func TestCreateSleeperUserSelectMenu(t *testing.T) {
 	tests := []struct {
-		name          string
-		users         []interactor.AvailableSleeperUser
-		expectedCount int
+		name             string
+		users            []interactor.AvailableSleeperUser
+		expectedCount    int
 		expectTruncation bool
 	}{
 		{
@@ -323,18 +323,18 @@ func TestCreateSleeperUserSelectMenu(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := &Handler{}
-			
+
 			selectMenu := handler.createSleeperUserSelectMenu(tt.users)
-			
+
 			assert.Equal(t, componentIDSleeperUserSelect, selectMenu.CustomID)
 			assert.Equal(t, "Select your Sleeper account...", selectMenu.Placeholder)
 			assert.Equal(t, 1, *selectMenu.MinValues)
 			assert.Equal(t, 1, selectMenu.MaxValues)
 			assert.Len(t, selectMenu.Options, tt.expectedCount)
-			
+
 			for i, option := range selectMenu.Options {
 				assert.Equal(t, tt.users[i].SleeperUserID, option.Value)
-				
+
 				if tt.expectTruncation {
 					assert.LessOrEqual(t, len(option.Label), 80)
 					if option.Description != "" {
@@ -355,12 +355,12 @@ func TestCreateSleeperUserSelectMenu(t *testing.T) {
 
 func TestHandleSleeperUserSelection(t *testing.T) {
 	tests := []struct {
-		name                string
-		interactionData     discordgo.MessageComponentInteractionData
-		member              *discordgo.Member
-		linkError           error
-		expectError         bool
-		expectSuccess       bool
+		name            string
+		interactionData discordgo.MessageComponentInteractionData
+		member          *discordgo.Member
+		linkError       error
+		expectError     bool
+		expectSuccess   bool
 	}{
 		{
 			name: "successful account linking",
@@ -441,7 +441,7 @@ func TestHandleSleeperUserSelection(t *testing.T) {
 			testHandler.handleSleeperUserSelection(context.Background(), interaction, tt.interactionData)
 
 			assert.True(t, mockSession.InteractionRespondCalled)
-			
+
 			if len(tt.interactionData.Values) > 0 {
 				assert.True(t, linkCalled)
 			}

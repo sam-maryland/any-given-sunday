@@ -47,13 +47,13 @@ func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
 		if err == nil {
 			break
 		}
-		
+
 		if attempt < 3 {
 			waitTime := time.Duration(attempt*2) * time.Second
 			time.Sleep(waitTime)
 		}
 	}
-	
+
 	if err != nil {
 		log.Fatalf("Failed to connect to Discord: %v", err)
 	}
