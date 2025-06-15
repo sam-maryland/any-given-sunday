@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
-	"github.com/sam-maryland/any-given-sunday/pkg/db"
 	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
+	"github.com/sam-maryland/any-given-sunday/pkg/db"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
@@ -125,17 +125,17 @@ func newTestableOnboardingInteractor(chain *dependency.TestChain) *testableOnboa
 
 func TestGetAvailableSleeperUsers(t *testing.T) {
 	tests := []struct {
-		name                string
-		mockUsers           []db.User
-		mockLeague          db.League
-		mockRosters         sleeper.Rosters
-		mockSleeperUsers    map[string]sleeper.SleeperUser
-		dbError             error
-		leagueError         error
-		rostersError        error
-		sleeperUserError    error
-		expectedUsers       []AvailableSleeperUser
-		expectedError       string
+		name             string
+		mockUsers        []db.User
+		mockLeague       db.League
+		mockRosters      sleeper.Rosters
+		mockSleeperUsers map[string]sleeper.SleeperUser
+		dbError          error
+		leagueError      error
+		rostersError     error
+		sleeperUserError error
+		expectedUsers    []AvailableSleeperUser
+		expectedError    string
 	}{
 		{
 			name: "successful retrieval with multiple available users",
@@ -147,7 +147,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 					OnboardingComplete: pgtype.Bool{Bool: false, Valid: true},
 				},
 				{
-					ID:                 "sleeper_user_2", 
+					ID:                 "sleeper_user_2",
 					Name:               "Jane Smith",
 					DiscordID:          "", // Not claimed
 					OnboardingComplete: pgtype.Bool{Bool: false, Valid: true},
@@ -176,7 +176,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 				},
 				"sleeper_user_2": {
 					ID:          "sleeper_user_2",
-					DisplayName: "Jane Smith", 
+					DisplayName: "Jane Smith",
 					Username:    "janesmith456",
 					Metadata:    sleeper.UserMetadata{TeamName: "Thunder Bolts"},
 				},
@@ -185,7 +185,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 				{
 					SleeperUserID: "sleeper_user_1",
 					DisplayName:   "John Doe",
-					Username:      "johndoe123", 
+					Username:      "johndoe123",
 					TeamName:      "Dynasty Kings",
 					RosterID:      1,
 				},
@@ -193,7 +193,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 					SleeperUserID: "sleeper_user_2",
 					DisplayName:   "Jane Smith",
 					Username:      "janesmith456",
-					TeamName:      "Thunder Bolts", 
+					TeamName:      "Thunder Bolts",
 					RosterID:      2,
 				},
 			},
@@ -238,7 +238,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 			},
 		},
 		{
-			name: "no available users",
+			name:      "no available users",
 			mockUsers: []db.User{}, // No unclaimed users
 			mockLeague: db.League{
 				ID:   "league123",
@@ -311,7 +311,7 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, len(tt.expectedUsers), len(result))
-				
+
 				// Check that all expected users are present
 				for i, expected := range tt.expectedUsers {
 					if i < len(result) {
@@ -329,37 +329,37 @@ func TestGetAvailableSleeperUsers(t *testing.T) {
 
 func TestLinkDiscordToSleeperUser(t *testing.T) {
 	tests := []struct {
-		name               string
-		discordID          string
-		sleeperUserID      string
-		sleeperUserClaimed bool
+		name                 string
+		discordID            string
+		sleeperUserID        string
+		sleeperUserClaimed   bool
 		discordUserOnboarded bool
-		claimedCheckError  error
-		onboardedCheckError error
-		updateError        error
-		expectedError      string
+		claimedCheckError    error
+		onboardedCheckError  error
+		updateError          error
+		expectedError        string
 	}{
 		{
-			name:          "successful linking",
-			discordID:     "discord123",
-			sleeperUserID: "sleeper456",
-			sleeperUserClaimed: false,
+			name:                 "successful linking",
+			discordID:            "discord123",
+			sleeperUserID:        "sleeper456",
+			sleeperUserClaimed:   false,
 			discordUserOnboarded: false,
 		},
 		{
-			name:          "sleeper user already claimed",
-			discordID:     "discord123",
-			sleeperUserID: "sleeper456",
+			name:               "sleeper user already claimed",
+			discordID:          "discord123",
+			sleeperUserID:      "sleeper456",
 			sleeperUserClaimed: true,
-			expectedError: "this Sleeper account has already been claimed",
+			expectedError:      "this Sleeper account has already been claimed",
 		},
 		{
-			name:          "discord user already onboarded",
-			discordID:     "discord123", 
-			sleeperUserID: "sleeper456",
-			sleeperUserClaimed: false,
+			name:                 "discord user already onboarded",
+			discordID:            "discord123",
+			sleeperUserID:        "sleeper456",
+			sleeperUserClaimed:   false,
 			discordUserOnboarded: true,
-			expectedError: "this Discord user is already linked",
+			expectedError:        "this Discord user is already linked",
 		},
 		{
 			name:              "error checking if sleeper user claimed",
@@ -377,13 +377,13 @@ func TestLinkDiscordToSleeperUser(t *testing.T) {
 			expectedError:       "database error",
 		},
 		{
-			name:          "error updating database",
-			discordID:     "discord123",
-			sleeperUserID: "sleeper456",
-			sleeperUserClaimed: false,
+			name:                 "error updating database",
+			discordID:            "discord123",
+			sleeperUserID:        "sleeper456",
+			sleeperUserClaimed:   false,
 			discordUserOnboarded: false,
-			updateError:   errors.New("update failed"),
-			expectedError: "update failed",
+			updateError:          errors.New("update failed"),
+			expectedError:        "update failed",
 		},
 	}
 

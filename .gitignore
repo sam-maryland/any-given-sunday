@@ -1,6 +1,8 @@
 .env
 .idea
 .claude
+.vscode
+bin
 CLAUDE.md
 build
 commish-bot

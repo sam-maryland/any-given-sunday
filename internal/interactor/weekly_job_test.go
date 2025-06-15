@@ -187,8 +187,8 @@ func (i *testableWeeklyJobInteractor) GenerateWeeklySummary(ctx context.Context,
 
 	// Get current standings
 	league := converters.LeagueFromDB(db.League{
-		ID:   "test-league",
-		Year: int32(year),
+		ID:     "test-league",
+		Year:   int32(year),
 		Status: domain.LeagueStatusInProgress,
 	})
 
@@ -374,16 +374,16 @@ func TestGetWeeklyHighScore(t *testing.T) {
 
 func TestGenerateWeeklySummary(t *testing.T) {
 	tests := []struct {
-		name               string
-		inputYear          int
-		mockLatestWeek     int32
-		mockHighScore      db.GetWeeklyHighScoreRow
-		mockMatchups       []db.Matchup
-		latestWeekError    error
-		highScoreError     error
-		matchupsError      error
-		expectedSummary    *WeeklySummary
-		expectedError      string
+		name            string
+		inputYear       int
+		mockLatestWeek  int32
+		mockHighScore   db.GetWeeklyHighScoreRow
+		mockMatchups    []db.Matchup
+		latestWeekError error
+		highScoreError  error
+		matchupsError   error
+		expectedSummary *WeeklySummary
+		expectedError   string
 	}{
 		{
 			name:           "successful generation",

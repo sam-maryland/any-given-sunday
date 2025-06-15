@@ -12,11 +12,11 @@ type Matchup struct {
 	Year         int
 	Week         int
 	IsPlayoff    bool
-	PlayoffRound *string  // Nullable
+	PlayoffRound *string // Nullable
 	HomeUserID   string
 	AwayUserID   string
-	HomeSeed     *int     // Nullable
-	AwaySeed     *int     // Nullable
+	HomeSeed     *int // Nullable
+	AwaySeed     *int // Nullable
 	HomeScore    float64
 	AwayScore    float64
 }

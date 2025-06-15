@@ -163,17 +163,32 @@ func (i *interactor) upsertMatchup(ctx context.Context, matchup domain.Matchup, 
 			Week:      int32(week),
 			IsPlayoff: pgtype.Bool{Bool: matchup.IsPlayoff, Valid: true},
 			PlayoffRound: pgtype.Text{
-				String: func() string { if matchup.PlayoffRound != nil { return *matchup.PlayoffRound }; return "" }(),
-				Valid:  matchup.PlayoffRound != nil && *matchup.PlayoffRound != "",
+				String: func() string {
+					if matchup.PlayoffRound != nil {
+						return *matchup.PlayoffRound
+					}
+					return ""
+				}(),
+				Valid: matchup.PlayoffRound != nil && *matchup.PlayoffRound != "",
 			},
 			HomeUserID: matchup.HomeUserID,
 			AwayUserID: matchup.AwayUserID,
 			HomeSeed: pgtype.Int4{
-				Int32: func() int32 { if matchup.HomeSeed != nil { return int32(*matchup.HomeSeed) }; return 0 }(),
+				Int32: func() int32 {
+					if matchup.HomeSeed != nil {
+						return int32(*matchup.HomeSeed)
+					}
+					return 0
+				}(),
 				Valid: matchup.HomeSeed != nil && *matchup.HomeSeed > 0,
 			},
 			AwaySeed: pgtype.Int4{
-				Int32: func() int32 { if matchup.AwaySeed != nil { return int32(*matchup.AwaySeed) }; return 0 }(),
+				Int32: func() int32 {
+					if matchup.AwaySeed != nil {
+						return int32(*matchup.AwaySeed)
+					}
+					return 0
+				}(),
 				Valid: matchup.AwaySeed != nil && *matchup.AwaySeed > 0,
 			},
 			HomeScore: matchup.HomeScore,

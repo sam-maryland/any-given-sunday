@@ -20,11 +20,11 @@ type mockInteractor struct {
 }
 
 // LeagueInteractor methods
-func (m *mockInteractor) GetLatestLeague(ctx context.Context) (domain.League, error) { 
-	return domain.League{}, nil 
+func (m *mockInteractor) GetLatestLeague(ctx context.Context) (domain.League, error) {
+	return domain.League{}, nil
 }
-func (m *mockInteractor) GetLeagueByYear(ctx context.Context, year int) (domain.League, error) { 
-	return domain.League{}, nil 
+func (m *mockInteractor) GetLeagueByYear(ctx context.Context, year int) (domain.League, error) {
+	return domain.League{}, nil
 }
 func (m *mockInteractor) GetStandingsForLeague(ctx context.Context, league domain.League) (domain.Standings, error) {
 	if m.handleStandingsFunc != nil {
@@ -42,8 +42,8 @@ func (m *mockInteractor) GetCareerStatsForDiscordUser(ctx context.Context, userI
 }
 
 // UsersInteractor methods
-func (m *mockInteractor) GetUsers(ctx context.Context) (domain.UserMap, error) { 
-	return domain.UserMap{}, nil 
+func (m *mockInteractor) GetUsers(ctx context.Context) (domain.UserMap, error) {
+	return domain.UserMap{}, nil
 }
 
 // WeeklyJobInteractor methods
@@ -101,7 +101,7 @@ func (h *testableHandler) handleCareerStatsCommand(ctx context.Context, s *disco
 		userID := options[0].UserValue(s).ID
 		h.interactor.GetCareerStatsForDiscordUser(ctx, userID)
 	}
-	
+
 	// Respond to Discord
 	h.session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -128,9 +128,9 @@ func (h *testableHandler) handleWeeklySummaryCommand(ctx context.Context, s *dis
 	if len(options) > 0 && options[0].Name == "year" {
 		year = int(options[0].IntValue())
 	}
-	
+
 	h.interactor.GenerateWeeklySummary(ctx, year)
-	
+
 	// Respond to Discord
 	h.session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,

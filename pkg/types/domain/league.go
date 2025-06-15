@@ -14,4 +14,3 @@ type League struct {
 	ThirdPlace  string
 	Status      string
 }
-

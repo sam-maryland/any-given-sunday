@@ -13,20 +13,20 @@ import (
 // MockDatabase provides a mock implementation of IDatabase for testing
 type MockDatabase struct {
 	// Leagues
-	GetLatestLeagueFunc     func(ctx context.Context) (db.League, error)
-	GetLeagueByYearFunc    func(ctx context.Context, year int32) (db.League, error)
+	GetLatestLeagueFunc func(ctx context.Context) (db.League, error)
+	GetLeagueByYearFunc func(ctx context.Context, year int32) (db.League, error)
 
 	// Users
 	GetUserByIDFunc func(ctx context.Context, id string) (db.User, error)
 	GetUsersFunc    func(ctx context.Context) ([]db.User, error)
 
 	// Matchups
-	GetLatestCompletedWeekFunc     func(ctx context.Context, year int32) (int32, error)
-	GetMatchupByYearWeekUsersFunc  func(ctx context.Context, arg db.GetMatchupByYearWeekUsersParams) (db.Matchup, error)
-	GetMatchupsByYearFunc          func(ctx context.Context, year int32) ([]db.Matchup, error)
-	GetWeeklyHighScoreFunc         func(ctx context.Context, arg db.GetWeeklyHighScoreParams) (db.GetWeeklyHighScoreRow, error)
-	InsertMatchupFunc              func(ctx context.Context, arg db.InsertMatchupParams) (pgtype.UUID, error)
-	UpdateMatchupScoresFunc        func(ctx context.Context, arg db.UpdateMatchupScoresParams) error
+	GetLatestCompletedWeekFunc    func(ctx context.Context, year int32) (int32, error)
+	GetMatchupByYearWeekUsersFunc func(ctx context.Context, arg db.GetMatchupByYearWeekUsersParams) (db.Matchup, error)
+	GetMatchupsByYearFunc         func(ctx context.Context, year int32) ([]db.Matchup, error)
+	GetWeeklyHighScoreFunc        func(ctx context.Context, arg db.GetWeeklyHighScoreParams) (db.GetWeeklyHighScoreRow, error)
+	InsertMatchupFunc             func(ctx context.Context, arg db.InsertMatchupParams) (pgtype.UUID, error)
+	UpdateMatchupScoresFunc       func(ctx context.Context, arg db.UpdateMatchupScoresParams) error
 
 	// Team stats
 	GetCareerStatsByDiscordIDFunc func(ctx context.Context, discordID string) (db.CareerStat, error)
@@ -153,13 +153,13 @@ func (m *MockDatabase) CheckSleeperUserClaimed(ctx context.Context, id string) (
 
 // MockSleeperClient provides a mock implementation for testing
 type MockSleeperClient struct {
-	GetUserFunc               func(ctx context.Context, userID string) (sleeper.SleeperUser, error)
-	GetLeagueFunc             func(ctx context.Context, leagueID string) (sleeper.SleeperLeague, error)
-	GetUsersInLeagueFunc      func(ctx context.Context, leagueID string) (sleeper.SleeperUsers, error)
-	GetRostersInLeagueFunc    func(ctx context.Context, leagueID string) (sleeper.Rosters, error)
-	GetMatchupsForWeekFunc    func(ctx context.Context, leagueID string, week int) (sleeper.Matchups, error)
-	GetNFLStateFunc           func(ctx context.Context) (sleeper.NFLState, error)
-	FetchAllPlayersFunc       func(ctx context.Context) ([]byte, error)
+	GetUserFunc            func(ctx context.Context, userID string) (sleeper.SleeperUser, error)
+	GetLeagueFunc          func(ctx context.Context, leagueID string) (sleeper.SleeperLeague, error)
+	GetUsersInLeagueFunc   func(ctx context.Context, leagueID string) (sleeper.SleeperUsers, error)
+	GetRostersInLeagueFunc func(ctx context.Context, leagueID string) (sleeper.Rosters, error)
+	GetMatchupsForWeekFunc func(ctx context.Context, leagueID string, week int) (sleeper.Matchups, error)
+	GetNFLStateFunc        func(ctx context.Context) (sleeper.NFLState, error)
+	FetchAllPlayersFunc    func(ctx context.Context) ([]byte, error)
 }
 
 func (m *MockSleeperClient) GetUser(ctx context.Context, userID string) (sleeper.SleeperUser, error) {
@@ -213,19 +213,19 @@ func (m *MockSleeperClient) FetchAllPlayers(ctx context.Context) ([]byte, error)
 
 // MockDiscordSession provides a mock implementation of IDiscordSession for testing
 type MockDiscordSession struct {
-	InteractionRespondFunc         func(interaction *discordgo.Interaction, resp *discordgo.InteractionResponse, options ...discordgo.RequestOption) error
-	GuildMemberFunc                func(guildID, userID string, options ...discordgo.RequestOption) (*discordgo.Member, error)
-	ApplicationCommandCreateFunc   func(appID string, guildID string, cmd *discordgo.ApplicationCommand, options ...discordgo.RequestOption) (*discordgo.ApplicationCommand, error)
-	AddHandlerFunc                 func(handler interface{}) func()
-	OpenFunc                       func() error
-	CloseFunc                      func() error
-	ChannelMessageSendComplexFunc  func(channelID string, data *discordgo.MessageSend) (*discordgo.Message, error)
-	ChannelMessageSendFunc         func(channelID, content string) (*discordgo.Message, error)
-	
+	InteractionRespondFunc        func(interaction *discordgo.Interaction, resp *discordgo.InteractionResponse, options ...discordgo.RequestOption) error
+	GuildMemberFunc               func(guildID, userID string, options ...discordgo.RequestOption) (*discordgo.Member, error)
+	ApplicationCommandCreateFunc  func(appID string, guildID string, cmd *discordgo.ApplicationCommand, options ...discordgo.RequestOption) (*discordgo.ApplicationCommand, error)
+	AddHandlerFunc                func(handler interface{}) func()
+	OpenFunc                      func() error
+	CloseFunc                     func() error
+	ChannelMessageSendComplexFunc func(channelID string, data *discordgo.MessageSend) (*discordgo.Message, error)
+	ChannelMessageSendFunc        func(channelID, content string) (*discordgo.Message, error)
+
 	// Call tracking for tests
-	InteractionRespondCalled       bool
+	InteractionRespondCalled        bool
 	ChannelMessageSendComplexCalled bool
-	ChannelMessageSendCalled       bool
+	ChannelMessageSendCalled        bool
 }
 
 func (m *MockDiscordSession) InteractionRespond(interaction *discordgo.Interaction, resp *discordgo.InteractionResponse, options ...discordgo.RequestOption) error {

@@ -30,7 +30,6 @@ type CareerStats struct {
 	PlayoffAvgPoints           float64
 }
 
-
 func (c CareerStats) ToDiscordMessage(username string) string {
 	var b strings.Builder
 

@@ -23,7 +23,7 @@ func (h *Handler) OnGuildMemberAdd(s *discordgo.Session, m *discordgo.GuildMembe
 	}
 
 	ctx := context.Background()
-	
+
 	// Check if user is already onboarded
 	isOnboarded, err := h.interactor.IsUserOnboarded(ctx, m.User.ID)
 	if err != nil {
@@ -86,16 +86,16 @@ func (h *Handler) sendWelcomeMessage(ctx context.Context, s *discordgo.Session, 
 		return fmt.Errorf("failed to send welcome message: %w", err)
 	}
 
-	log.Printf("Sent welcome message to user %s (%s) with %d available Sleeper accounts", 
+	log.Printf("Sent welcome message to user %s (%s) with %d available Sleeper accounts",
 		user.Username, user.ID, len(availableUsers))
-	
+
 	return nil
 }
 
 // createSleeperUserSelectMenu creates a Discord select menu with available Sleeper users
 func (h *Handler) createSleeperUserSelectMenu(users []interactor.AvailableSleeperUser) *discordgo.SelectMenu {
 	options := make([]discordgo.SelectMenuOption, len(users))
-	
+
 	for i, user := range users {
 		// Create display label: "John Smith (johnsmith123) - Team: The Dynasty Kings"
 		label := fmt.Sprintf("%s (%s)", user.DisplayName, user.Username)
@@ -214,7 +214,7 @@ func (h *Handler) respondWithError(s *discordgo.Session, i *discordgo.Interactio
 			Flags:   discordgo.MessageFlagsEphemeral, // Only visible to the user
 		},
 	})
-	
+
 	if err != nil {
 		log.Printf("Failed to send error response: %v", err)
 	}

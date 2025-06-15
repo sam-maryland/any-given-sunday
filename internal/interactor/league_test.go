@@ -80,7 +80,7 @@ func (i *testableInteractor) GetStandingsForLeague(ctx context.Context, league d
 		for _, q := range quarterfinals {
 			quarterfinalLosers = append(quarterfinalLosers, q.Loser())
 		}
-		
+
 		// Build quarterfinal losers standings, skipping nil entries
 		var quarterfinalLoserStandings domain.Standings
 		for _, loserID := range quarterfinalLosers {
@@ -245,11 +245,11 @@ func TestGetLeagueByYear(t *testing.T) {
 
 func TestGetStandingsForLeague(t *testing.T) {
 	tests := []struct {
-		name             string
-		inputLeague      domain.League
-		mockMatchups     []db.Matchup
-		mockError        error
-		expectedError    string
+		name              string
+		inputLeague       domain.League
+		mockMatchups      []db.Matchup
+		mockError         error
+		expectedError     string
 		validateStandings func(t *testing.T, standings domain.Standings)
 	}{
 		{
@@ -303,7 +303,7 @@ func TestGetStandingsForLeague(t *testing.T) {
 			validateStandings: func(t *testing.T, standings domain.Standings) {
 				assert.Greater(t, len(standings), 0)
 				for i := 1; i < len(standings); i++ {
-					assert.True(t, standings[i-1].Wins >= standings[i].Wins || 
+					assert.True(t, standings[i-1].Wins >= standings[i].Wins ||
 						(standings[i-1].Wins == standings[i].Wins && standings[i-1].PointsFor >= standings[i].PointsFor),
 						"standings should be sorted by wins then points")
 				}
@@ -312,23 +312,23 @@ func TestGetStandingsForLeague(t *testing.T) {
 		// TODO: Fix this test - complex playoff standings logic needs debugging
 		// The test data doesn't match the expected standings structure
 		/*
-		{
-			name: "completed league with playoff results",
-			inputLeague: domain.League{
-				ID:     "league-complete",
-				Year:   2024,
-				Status: domain.LeagueStatusComplete,
+			{
+				name: "completed league with playoff results",
+				inputLeague: domain.League{
+					ID:     "league-complete",
+					Year:   2024,
+					Status: domain.LeagueStatusComplete,
+				},
+				mockMatchups: createCompleteLeagueMatchups(),
+				validateStandings: func(t *testing.T, standings domain.Standings) {
+					// Should have at least 4 standings (first, second, third, fourth places)
+					assert.GreaterOrEqual(t, len(standings), 4)
+					// All standings should be non-nil
+					for i, standing := range standings {
+						assert.NotNil(t, standing, "Standing at position %d should not be nil", i)
+					}
+				},
 			},
-			mockMatchups: createCompleteLeagueMatchups(),
-			validateStandings: func(t *testing.T, standings domain.Standings) {
-				// Should have at least 4 standings (first, second, third, fourth places)
-				assert.GreaterOrEqual(t, len(standings), 4)
-				// All standings should be non-nil
-				for i, standing := range standings {
-					assert.NotNil(t, standing, "Standing at position %d should not be nil", i)
-				}
-			},
-		},
 		*/
 	}
 
