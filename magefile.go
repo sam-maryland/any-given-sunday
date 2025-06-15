@@ -12,7 +12,7 @@ import (
 // Test runs all tests in the repository
 func Test() error {
 	fmt.Println("Running tests...")
-	return sh.RunV("go", "test", "./...")
+	return sh.RunV("go", "test", "-count=1", "./...")
 }
 
 // Build builds the commish-bot binary
