@@ -27,6 +27,15 @@ func Clean() error {
 	return os.RemoveAll("bin")
 }
 
+// Run builds and runs the commish-bot binary with .env
+func Run() error {
+	if err := Build(); err != nil {
+		return err
+	}
+	fmt.Println("Running commish-bot...")
+	return sh.RunWithV(map[string]string{}, "bin/commish-bot")
+}
+
 // Install installs mage if not present
 func Install() error {
 	return sh.RunV("go", "install", "github.com/magefile/mage@latest")
