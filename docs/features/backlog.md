@@ -10,8 +10,7 @@
 *Update this section with what you're actively working on*
 
 **Active Development:**
-- [ ] Feature currently being implemented
-- [ ] Another feature in progress
+- [ ] DB Sync Strategy
 
 **Next Up:**
 - [ ] Feature ready to start next
@@ -22,6 +21,13 @@
 ## High Priority Features
 *Critical features that should be implemented soon*
 
+### DB Sync Strategy
+- **Status**: In Progress
+- **Effort**: Medium
+- **Dependencies**: N/A
+- **Documentation**: Link to feature doc if exists (`docs/features/in-progress/db-sync-strategy.md`)
+
+
 ### Feature Name
 - **Status**: Not Started / Planning / In Progress / Testing / Complete
 - **Effort**: Small / Medium / Large
@@ -29,14 +35,6 @@
 - **Value**: Why this is high priority
 - **Dependencies**: Any features or work that must be done first
 - **Documentation**: Link to feature doc if exists (`docs/features/in-progress/feature-name.md`)
-
-### Example: Weekly Matchups Command
-- **Status**: Planning
-- **Effort**: Medium
-- **Description**: Add `/weekly-matchups` command to show current week's fantasy matchups
-- **Value**: Users frequently ask "who's playing who this week" in chat
-- **Dependencies**: None - uses existing Sleeper API integration
-- **Documentation**: `docs/features/ideas/weekly-matchups.md`
 
 ---
 
