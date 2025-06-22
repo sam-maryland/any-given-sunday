@@ -31,25 +31,9 @@ jobs:
     - name: Build weekly recap application
       run: mage build
 
-    - name: Resolve IPv4 address for Supabase
-      run: |
-        # Get IPv4 address for Supabase DB and update DATABASE_URL
-        IPV4_ADDR=$(getent ahostsv4 db.cwxyhiepisqvxxujoxln.supabase.co | head -n1 | awk '{print $1}')
-        if [ -n "$IPV4_ADDR" ]; then
-          echo "Resolved IPv4: $IPV4_ADDR"
-          # Replace hostname with IPv4 in DATABASE_URL
-          export DATABASE_URL_IPV4=$(echo "$DATABASE_URL" | sed "s/db\.cwxyhiepisqvxxujoxln\.supabase\.co/$IPV4_ADDR/g")
-          echo "DATABASE_URL_IPV4=$DATABASE_URL_IPV4" >> $GITHUB_ENV
-        else
-          echo "Could not resolve IPv4, using original URL"
-          echo "DATABASE_URL_IPV4=$DATABASE_URL" >> $GITHUB_ENV
-        fi
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
     - name: Run weekly recap
       env:
-        DATABASE_URL: ${{ env.DATABASE_URL_IPV4 }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         DISCORD_WEEKLY_RECAP_CHANNEL_ID: ${{ secrets.DISCORD_WEEKLY_RECAP_CHANNEL_ID }}
       run: ./bin/weekly-recap --mode=weekly-recap
