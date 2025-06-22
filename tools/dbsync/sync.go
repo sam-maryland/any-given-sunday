@@ -47,11 +47,12 @@ func ShowStatus() error {
 		fmt.Println("Status: 🔴 OUT OF SYNC")
 		
 		totalChanges := len(comparison.Differences.MissingTables) +
-			len(comparison.Differences.MissingViews) +
-			len(comparison.Differences.MissingIndexes) +
 			len(comparison.Differences.ExtraTables) +
+			len(comparison.Differences.MissingViews) +
 			len(comparison.Differences.ExtraViews) +
-			len(comparison.Differences.ExtraIndexes)
+			len(comparison.Differences.MissingIndexes) +
+			len(comparison.Differences.ExtraIndexes) +
+			len(comparison.Differences.TableDiffs)
 		
 		fmt.Printf("Pending Changes: %d\n", totalChanges)
 		fmt.Println()
@@ -235,8 +236,12 @@ func ApplyChanges() error {
 	fmt.Println()
 	
 	totalChanges := len(comparison.Differences.MissingTables) +
+		len(comparison.Differences.ExtraTables) +
 		len(comparison.Differences.MissingViews) +
-		len(comparison.Differences.MissingIndexes)
+		len(comparison.Differences.ExtraViews) +
+		len(comparison.Differences.MissingIndexes) +
+		len(comparison.Differences.ExtraIndexes) +
+		len(comparison.Differences.TableDiffs)
 	
 	fmt.Printf("Changes to apply: %d\n", totalChanges)
 	

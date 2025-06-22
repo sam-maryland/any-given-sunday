@@ -129,7 +129,7 @@ func generateCreateIndexSQL(index Index) string {
 // SaveMigrationToFile saves a migration to the migrations directory
 func SaveMigrationToFile(migration *Migration) (string, error) {
 	filename := fmt.Sprintf("%s.sql", migration.Version)
-	filepath := filepath.Join("migrations", filename)
+	filePath := filepath.Join("migrations", filename)
 	
 	var content strings.Builder
 	content.WriteString("-- +migrate Up\n")
@@ -137,12 +137,12 @@ func SaveMigrationToFile(migration *Migration) (string, error) {
 	content.WriteString("\n-- +migrate Down\n")
 	content.WriteString(migration.DownSQL)
 	
-	err := os.WriteFile(filepath, []byte(content.String()), 0644)
+	err := os.WriteFile(filePath, []byte(content.String()), 0644)
 	if err != nil {
 		return "", fmt.Errorf("failed to write migration file: %w", err)
 	}
 	
-	return filepath, nil
+	return filePath, nil
 }
 
 // EnsureMigrationsTable creates the schema_migrations table if it doesn't exist
