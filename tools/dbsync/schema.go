@@ -149,6 +149,7 @@ func parseCreateTable(stmt string, schema *Schema) error {
 
 		column, err := parseColumnDefinition(line)
 		if err != nil {
+			fmt.Printf("Warning: Skipping problematic column definition '%s': %v\n", line, err)
 			continue // Skip problematic column definitions for now
 		}
 		table.Columns = append(table.Columns, *column)
