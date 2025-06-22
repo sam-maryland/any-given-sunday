@@ -106,15 +106,21 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 
 // RunWeeklyRecap executes the complete weekly recap workflow
 func (a *WeeklyRecapApp) RunWeeklyRecap(ctx context.Context) error {
-	// Get the latest/active league
+	// Get the latest league
 	league, err := a.interactor.GetLatestLeague(ctx)
 	if err != nil {
-		// If no active league, exit gracefully
-		log.Printf("No active league found, skipping weekly recap: %v", err)
+		log.Printf("No league found, skipping weekly recap: %v", err)
 		return nil
 	}
 
-	log.Printf("Running weekly recap for league year %d", league.Year)
+	// Check if the league is IN_PROGRESS - only process active leagues
+	if league.Status != domain.LeagueStatusInProgress {
+		log.Printf("League year %d has status '%s' (not IN_PROGRESS), skipping weekly recap", 
+			league.Year, league.Status)
+		return nil
+	}
+
+	log.Printf("Running weekly recap for IN_PROGRESS league year %d", league.Year)
 
 	// 1. Sync latest data from Sleeper API
 	log.Println("Syncing latest data from Sleeper API...")
