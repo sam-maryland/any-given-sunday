@@ -2,8 +2,8 @@ name: Weekly Fantasy Recap
 
 on:
   schedule:
-    # Run every Tuesday at 4 AM ET (9 AM UTC)
-    - cron: '0 9 * * 2'
+    # Run every Tuesday at 7 AM ET (12 PM UTC)
+    - cron: '0 12 * * 2'
   workflow_dispatch:  # Allow manual triggering
 
 env:
@@ -25,16 +25,18 @@ jobs:
     - name: Install dependencies
       run: go mod download
 
+    - name: Install mage
+      run: go install github.com/magefile/mage@latest
+
     - name: Build weekly recap application
-      run: go build -o weekly-recap ./cmd/weekly-recap
+      run: mage build
 
     - name: Run weekly recap
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
         DISCORD_WEEKLY_RECAP_CHANNEL_ID: ${{ secrets.DISCORD_WEEKLY_RECAP_CHANNEL_ID }}
-      run: ./weekly-recap --mode=weekly-recap
+      run: ./bin/weekly-recap --mode=weekly-recap
 
     - name: Report status on failure
       if: failure()

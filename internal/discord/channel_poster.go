@@ -44,9 +44,14 @@ func (p *ChannelPoster) PostWeeklySummary(ctx context.Context, summary string) e
 		
 		lastErr = err
 		if attempt < maxRetries {
-			// Wait before retrying (exponential backoff)
+			// Wait before retrying (exponential backoff) with context awareness
 			waitTime := time.Duration(attempt) * time.Second
-			time.Sleep(waitTime)
+			select {
+			case <-time.After(waitTime):
+				// Continue to the next retry
+			case <-ctx.Done():
+				return fmt.Errorf("operation canceled: %w", ctx.Err())
+			}
 		}
 	}
 

@@ -66,13 +66,3 @@ func TestNewWeeklyRecapApp_MissingEnvironmentVariables(t *testing.T) {
 	}
 }
 
-func TestFormatWeeklySummary(t *testing.T) {
-	app := &WeeklyRecapApp{}
-
-	// Test data would go here, but since we're testing the formatting
-	// and it's already covered by the existing weekly summary tests,
-	// we'll keep this simple for now
-	
-	// This test ensures the app structure is working
-	assert.NotNil(t, app)
-}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -42,15 +43,33 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 		return nil, fmt.Errorf("DISCORD_WEEKLY_RECAP_CHANNEL_ID environment variable is required")
 	}
 
-	// Initialize database connection
-	pool, err := pgxpool.New(context.Background(), databaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database pool: %w", err)
+	// Initialize database connection with retry logic
+	var pool *pgxpool.Pool
+	var err error
+	maxRetries := 3
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		pool, err = pgxpool.New(context.Background(), databaseURL)
+		if err == nil {
+			// Test database connection
+			if pingErr := pool.Ping(context.Background()); pingErr == nil {
+				break // Success
+			} else {
+				pool.Close() // Close failed connection
+				err = pingErr
+			}
+		}
+		
+		if attempt < maxRetries {
+			waitTime := time.Duration(attempt*2) * time.Second
+			log.Printf("Database connection attempt %d/%d failed, retrying in %v: %v", 
+				attempt, maxRetries, waitTime, err)
+			time.Sleep(waitTime)
+		}
 	}
-
-	// Test database connection
-	if err := pool.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
 	}
 
 	// Initialize database queries

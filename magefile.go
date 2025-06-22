@@ -18,10 +18,13 @@ func Test() error {
 	return sh.RunV("go", "test", "-count=1", "./...")
 }
 
-// Build builds the commish-bot binary
+// Build builds all binaries
 func Build() error {
-	fmt.Println("Building commish-bot...")
-	return sh.RunV("go", "build", "-o", "bin/commish-bot", "./cmd/commish-bot")
+	fmt.Println("Building all binaries...")
+	if err := sh.RunV("go", "build", "-o", "bin/commish-bot", "./cmd/commish-bot"); err != nil {
+		return err
+	}
+	return sh.RunV("go", "build", "-o", "bin/weekly-recap", "./cmd/weekly-recap")
 }
 
 // Clean removes build artifacts
