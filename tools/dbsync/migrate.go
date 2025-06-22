@@ -215,8 +215,8 @@ func ApplyMigration(ctx context.Context, databaseURL string, migration *Migratio
 		return fmt.Errorf("failed to commit migration: %w", err)
 	}
 
-	migration.AppliedAt = &time.Time{}
-	*migration.AppliedAt = time.Now()
+	now := time.Now()
+	migration.AppliedAt = &now
 
 	return nil
 }
