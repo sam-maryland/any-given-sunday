@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: commish-bot
-  REGION: us-central1
+  REGION: us-east1
 
 jobs:
   deploy:
@@ -45,10 +45,10 @@ jobs:
           --timeout 300 \
           --update-env-vars="DATABASE_URL=${{ secrets.DATABASE_URL }}" \
           --update-env-vars="DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" \
-          --set-env-vars="DISCORD_APP_ID=${{ vars.DISCORD_APP_ID }}" \
-          --set-env-vars="DISCORD_GUILD_ID=${{ vars.DISCORD_GUILD_ID }}" \
-          --set-env-vars="DISCORD_WELCOME_CHANNEL_ID=${{ vars.DISCORD_WELCOME_CHANNEL_ID }}" \
-          --set-env-vars="DISCORD_WEEKLY_RECAP_CHANNEL_ID=${{ vars.DISCORD_WEEKLY_RECAP_CHANNEL_ID }}"
+          --update-env-vars="DISCORD_APP_ID=${{ secrets.DISCORD_APP_ID }}" \
+          --update-env-vars="DISCORD_GUILD_ID=${{ secrets.DISCORD_GUILD_ID }}" \
+          --update-env-vars="DISCORD_WELCOME_CHANNEL_ID=${{ secrets.DISCORD_WELCOME_CHANNEL_ID }}" \
+          --update-env-vars="DISCORD_WEEKLY_RECAP_CHANNEL_ID=${{ secrets.DISCORD_WEEKLY_RECAP_CHANNEL_ID }}"
 
     - name: Verify deployment
       run: |

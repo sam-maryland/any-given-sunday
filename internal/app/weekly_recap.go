@@ -104,7 +104,7 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 	}, nil
 }
 
-// RunWeeklyRecap executes the complete weekly recap workflow
+// RunWeeklyRecap executes the complete weekly recap workflow for IN_PROGRESS leagues only
 func (a *WeeklyRecapApp) RunWeeklyRecap(ctx context.Context) error {
 	// Get the latest league
 	league, err := a.interactor.GetLatestLeague(ctx)

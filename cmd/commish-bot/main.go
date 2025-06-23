@@ -41,12 +41,15 @@ func main() {
 	i := interactor.NewInteractor(c)
 
 	// Initialize Discord handler
-	_ = discord.NewHandler(cfg, c, i)
+	handler := discord.NewHandler(cfg, c, i)
+	if handler == nil {
+		log.Fatal("Failed to initialize Discord handler")
+	}
 
 	log.Printf("Bot is now running as %s. Press CTRL+C to exit.", c.Discord.State.User.Username)
 
 	// Start health check server for Cloud Run
-	go startHealthServer()
+	healthServer := startHealthServer()
 
 	// Handle SIGINT and SIGTERM signals to gracefully shutdown
 	stop := make(chan os.Signal, 1)
@@ -58,29 +61,38 @@ func main() {
 	log.Println("Gracefully shutting down...")
 	cancel()
 
+	// Shutdown health server
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := healthServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Health server shutdown error: %v", err)
+	}
+
 	// Give some time for cleanup
 	time.Sleep(2 * time.Second)
 	log.Println("Discord bot stopped")
 }
 
 // startHealthServer starts a simple HTTP server for Cloud Run health checks
-func startHealthServer() {
+func startHealthServer() *http.Server {
+	mux := http.NewServeMux()
+	
 	// Health check endpoint
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, `{"status":"healthy","service":"commish-bot","timestamp":"%s"}`, time.Now().Format(time.RFC3339))
 	})
 
 	// Readiness probe endpoint
-	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, `{"status":"ready","service":"commish-bot","timestamp":"%s"}`, time.Now().Format(time.RFC3339))
 	})
 
 	// Root endpoint for Cloud Run requirements
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, `{"service":"commish-bot","status":"running","timestamp":"%s"}`, time.Now().Format(time.RFC3339))
@@ -92,8 +104,17 @@ func startHealthServer() {
 		port = "8080" // Default port for Cloud Run
 	}
 
-	log.Printf("Health server starting on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Printf("Health server error: %v", err)
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
 	}
+
+	go func() {
+		log.Printf("Health server starting on port %s", port)
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Printf("Health server error: %v", err)
+		}
+	}()
+
+	return server
 }
