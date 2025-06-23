@@ -27,6 +27,7 @@ jobs:
       uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
@@ -34,6 +35,7 @@ jobs:
     - name: Deploy to Cloud Run
       run: |
         gcloud run deploy $SERVICE_NAME \
+          --project $PROJECT_ID \
           --source . \
           --region $REGION \
           --platform managed \
@@ -53,7 +55,7 @@ jobs:
     - name: Verify deployment
       run: |
         # Get the service URL
-        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)")
+        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --project $PROJECT_ID --region $REGION --format="value(status.url)")
         echo "Service deployed to: $SERVICE_URL"
         
         # Wait a moment for service to be ready
@@ -71,4 +73,4 @@ jobs:
     - name: Report deployment success
       run: |
         echo "🚀 Discord bot successfully deployed to Google Cloud Run!"
-        echo "Service URL: $(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)")"
+        echo "Service URL: $(gcloud run services describe $SERVICE_NAME --project $PROJECT_ID --region $REGION --format="value(status.url)")"
