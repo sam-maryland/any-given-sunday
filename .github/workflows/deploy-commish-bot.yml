@@ -13,7 +13,7 @@ on:
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: commish-bot
-  REGION: us-east1
+  REGION: us-central1
 
 jobs:
   deploy:
