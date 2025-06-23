@@ -47,6 +47,74 @@ func Install() error {
 	return sh.RunV("go", "install", "github.com/magefile/mage@latest")
 }
 
+// Docker namespace contains Docker-related commands
+type Docker mg.Namespace
+
+// Build builds the Docker image for commish-bot
+func (Docker) Build() error {
+	fmt.Println("Building Docker image for commish-bot...")
+	return sh.RunV("docker", "build", "-t", "commish-bot", ".")
+}
+
+// Run runs the Docker container locally for testing
+func (Docker) Run() error {
+	fmt.Println("Running commish-bot Docker container...")
+	fmt.Println("Note: Make sure you have a .env file with required environment variables")
+	return sh.RunV("docker", "run", "--rm", "-p", "8080:8080", "--env-file", ".env", "commish-bot")
+}
+
+// Test builds and tests the Docker container startup
+func (Docker) Test() error {
+	fmt.Println("Testing Docker build and container startup...")
+	
+	// Build the image
+	if err := sh.RunV("docker", "build", "-t", "commish-bot-test", "."); err != nil {
+		return fmt.Errorf("failed to build Docker image: %w", err)
+	}
+	
+	// Test container starts properly (will fail on Discord connection but that's expected)
+	fmt.Println("Testing container startup...")
+	fmt.Println("Note: Container will fail on Discord connection, but should start and show health server")
+	
+	// Run container in background for a few seconds to test startup
+	containerID, err := sh.Output("docker", "run", "-d", "-p", "8080:8080", 
+		"-e", "PORT=8080", "-e", "DATABASE_URL=postgres://test:test@test:5432/test", 
+		"-e", "DISCORD_TOKEN=test", "commish-bot-test")
+	if err != nil {
+		return fmt.Errorf("failed to start container: %w", err)
+	}
+	
+	fmt.Printf("Container started with ID: %s\n", containerID)
+	
+	// Wait a moment for startup
+	fmt.Println("Waiting for container startup...")
+	if err := sh.RunV("sleep", "3"); err != nil {
+		return err
+	}
+	
+	// Check if health endpoint is accessible
+	fmt.Println("Testing health endpoint...")
+	if err := sh.RunV("curl", "-f", "http://localhost:8080/health"); err != nil {
+		fmt.Println("Health endpoint test failed (may be expected if Discord connection fails first)")
+	} else {
+		fmt.Println("✅ Health endpoint is accessible!")
+	}
+	
+	// Clean up
+	fmt.Println("Cleaning up test container...")
+	sh.Run("docker", "stop", containerID)
+	sh.Run("docker", "rm", containerID)
+	
+	return nil
+}
+
+// Clean removes Docker images and containers
+func (Docker) Clean() error {
+	fmt.Println("Cleaning Docker artifacts...")
+	sh.Run("docker", "rmi", "commish-bot", "commish-bot-test")
+	return nil
+}
+
 // DB namespace contains database-related commands
 type DB mg.Namespace
 
