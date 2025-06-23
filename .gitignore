@@ -4,7 +4,6 @@
 .vscode
 .serena/
 .mcp.json
-bin
+.bin/
 CLAUDE.md
 build
-commish-bot

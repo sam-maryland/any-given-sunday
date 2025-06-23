@@ -21,16 +21,16 @@ func Test() error {
 // Build builds all binaries
 func Build() error {
 	fmt.Println("Building all binaries...")
-	if err := sh.RunV("go", "build", "-o", "bin/commish-bot", "./cmd/commish-bot"); err != nil {
+	if err := sh.RunV("go", "build", "-o", ".bin/commish-bot", "./cmd/commish-bot"); err != nil {
 		return err
 	}
-	return sh.RunV("go", "build", "-o", "bin/weekly-recap", "./cmd/weekly-recap")
+	return sh.RunV("go", "build", "-o", ".bin/weekly-recap", "./cmd/weekly-recap")
 }
 
 // Clean removes build artifacts
 func Clean() error {
 	fmt.Println("Cleaning build artifacts...")
-	return os.RemoveAll("bin")
+	return os.RemoveAll(".bin")
 }
 
 // Run builds and runs the commish-bot binary with .env
@@ -39,7 +39,7 @@ func Run() error {
 		return err
 	}
 	fmt.Println("Running commish-bot...")
-	return sh.RunWithV(map[string]string{}, "bin/commish-bot")
+	return sh.RunWithV(map[string]string{}, ".bin/commish-bot")
 }
 
 // Install installs mage if not present
