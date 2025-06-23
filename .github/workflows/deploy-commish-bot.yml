@@ -1,0 +1,74 @@
+name: Deploy Discord Bot to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'cmd/commish-bot/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - '.github/workflows/deploy-commish-bot.yml'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  SERVICE_NAME: commish-bot
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy $SERVICE_NAME \
+          --source . \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory 512Mi \
+          --cpu 1 \
+          --max-instances 1 \
+          --min-instances 0 \
+          --timeout 300 \
+          --update-env-vars="DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+          --update-env-vars="DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" \
+          --set-env-vars="DISCORD_APP_ID=${{ vars.DISCORD_APP_ID }}" \
+          --set-env-vars="DISCORD_GUILD_ID=${{ vars.DISCORD_GUILD_ID }}" \
+          --set-env-vars="DISCORD_WELCOME_CHANNEL_ID=${{ vars.DISCORD_WELCOME_CHANNEL_ID }}" \
+          --set-env-vars="DISCORD_WEEKLY_RECAP_CHANNEL_ID=${{ vars.DISCORD_WEEKLY_RECAP_CHANNEL_ID }}"
+
+    - name: Verify deployment
+      run: |
+        # Get the service URL
+        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)")
+        echo "Service deployed to: $SERVICE_URL"
+        
+        # Wait a moment for service to be ready
+        sleep 10
+        
+        # Basic health check
+        echo "Checking health endpoint..."
+        if curl -f -s "$SERVICE_URL/health" | grep -q "healthy"; then
+          echo "✅ Health check passed"
+        else
+          echo "❌ Health check failed"
+          exit 1
+        fi
+
+    - name: Report deployment success
+      run: |
+        echo "🚀 Discord bot successfully deployed to Google Cloud Run!"
+        echo "Service URL: $(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)")"
