@@ -66,3 +66,22 @@ func TestNewWeeklyRecapApp_MissingEnvironmentVariables(t *testing.T) {
 	}
 }
 
+func TestNewWeeklyRecapApp_ValidEnvironment(t *testing.T) {
+	// Set all required environment variables
+	os.Setenv("DATABASE_URL", "postgres://test")
+	os.Setenv("DISCORD_TOKEN", "test-token")
+	os.Setenv("DISCORD_WEEKLY_RECAP_CHANNEL_ID", "test-channel")
+	
+	defer func() {
+		os.Unsetenv("DATABASE_URL")
+		os.Unsetenv("DISCORD_TOKEN")
+		os.Unsetenv("DISCORD_WEEKLY_RECAP_CHANNEL_ID")
+	}()
+
+	// This will fail at database connection, but should pass environment validation
+	app, err := NewWeeklyRecapApp()
+	assert.Nil(t, app) // Will be nil due to DB connection failure
+	assert.Error(t, err) // Expected to fail at DB connection step
+	assert.Contains(t, err.Error(), "failed to connect to database") // Should fail at DB, not env validation
+}
+
