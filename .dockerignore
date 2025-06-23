@@ -1,0 +1,22 @@
+# Exclude weekly-recap app
+cmd/weekly-recap/
+
+# Exclude documentation
+docs/
+*.md
+
+# Exclude development files
+.git/
+.github/
+scripts/
+testutil/
+tools/
+
+# Exclude test files
+*_test.go
+**/*_test.go
+
+# Exclude build artifacts
+*.log
+.env
+.env.local
