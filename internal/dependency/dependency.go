@@ -2,6 +2,7 @@ package dependency
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -21,10 +22,10 @@ type Chain struct {
 	Discord       *discordgo.Session
 }
 
-func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
+func NewDependencyChain(ctx context.Context, cfg *config.Config) (*Chain, error) {
 	pool, err := pgxpool.New(ctx, cfg.DBUrl)
 	if err != nil {
-		log.Fatalf("failed to connect to db: %v", err)
+		return nil, fmt.Errorf("failed to connect to db: %w", err)
 	}
 	q := db.New(pool)
 
@@ -32,7 +33,8 @@ func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
 
 	dg, err := discordgo.New("Bot " + cfg.Token)
 	if err != nil {
-		log.Fatal("error creating Discord session:", err)
+		pool.Close()
+		return nil, fmt.Errorf("error creating Discord session: %w", err)
 	}
 
 	// Set required intents for guild member events and message content
@@ -43,19 +45,24 @@ func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
 
 	// Open a connection to Discord with retry logic
 	for attempt := 1; attempt <= 3; attempt++ {
+		log.Printf("Attempting Discord connection (attempt %d/3)...", attempt)
 		err = dg.Open()
 		if err == nil {
+			log.Printf("✅ Discord connection successful on attempt %d", attempt)
 			break
 		}
 
+		log.Printf("Discord connection attempt %d failed: %v", attempt, err)
 		if attempt < 3 {
 			waitTime := time.Duration(attempt*2) * time.Second
+			log.Printf("Retrying in %v...", waitTime)
 			time.Sleep(waitTime)
 		}
 	}
 
 	if err != nil {
-		log.Fatalf("Failed to connect to Discord: %v", err)
+		pool.Close()
+		return nil, fmt.Errorf("failed to connect to Discord after 3 attempts: %w", err)
 	}
 
 	return &Chain{
@@ -63,5 +70,5 @@ func NewDependencyChain(ctx context.Context, cfg *config.Config) *Chain {
 		Pool:          pool,
 		SleeperClient: sleeperClient,
 		Discord:       dg,
-	}
+	}, nil
 }
