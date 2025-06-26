@@ -6,8 +6,7 @@ import (
 	"log"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/sam-maryland/any-given-sunday/internal/interactor"
-	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
+	"github.com/sam-maryland/any-given-sunday/internal/format"
 )
 
 // handleWeeklySummaryCommand handles the /weekly-summary Discord command
@@ -30,15 +29,11 @@ func (h *Handler) handleWeeklySummaryCommand(ctx context.Context, s *discordgo.S
 		year = league.Year
 	}
 
-	// Sync latest data first
-	log.Printf("Syncing latest data for year %d", year)
-	if err := h.interactor.SyncLatestData(ctx, year); err != nil {
-		h.Respond(s, i, "⚠️ Warning: Failed to sync latest data from Sleeper API. Proceeding with existing data.")
-		log.Printf("Failed to sync latest data: %v", err)
-	}
+	// NOTE: Discord command does NOT sync data - only uses existing data
+	// Data sync is only done by the scheduled GitHub Actions job
 
-	// Generate weekly summary
-	log.Printf("Generating weekly summary for year %d", year)
+	// Generate weekly summary using shared logic
+	log.Printf("Generating weekly summary for year %d (Discord command)", year)
 	summary, err := h.interactor.GenerateWeeklySummary(ctx, year)
 	if err != nil {
 		h.Respond(s, i, fmt.Sprintf("❌ Failed to generate weekly summary: %v", err))
@@ -54,42 +49,10 @@ func (h *Handler) handleWeeklySummaryCommand(ctx context.Context, s *discordgo.S
 		return
 	}
 
-	// Format the response message
-	response := h.formatWeeklySummary(summary, users)
+	// Use shared formatting logic
+	response := format.WeeklySummary(summary, users)
 
 	// Send the response
 	h.Respond(s, i, response)
 	log.Printf("Successfully sent weekly summary for year %d, week %d", summary.Year, summary.Week)
-}
-
-// formatWeeklySummary formats the weekly summary for Discord
-func (h *Handler) formatWeeklySummary(summary *interactor.WeeklySummary, users domain.UserMap) string {
-	var response string
-
-	// Header
-	response += fmt.Sprintf("📊 **Week %d Summary (%d)** 📊\n\n", summary.Week, summary.Year)
-
-	// High Score Winner
-	if summary.HighScore != nil {
-		response += fmt.Sprintf("🏆 **High Score Winner**: %s - %.2f points\n",
-			summary.HighScore.UserName, summary.HighScore.Score)
-	} else {
-		response += "❌ No high score data available for this week\n\n"
-	}
-
-	// Updated Standings
-	response += "📈 **Current Standings:**\n"
-	for i, standing := range summary.Standings {
-		user, exists := users[standing.UserID]
-		name := standing.UserID // Fallback if no name
-		if exists {
-			name = user.Name
-		}
-		// Format: "1. Team Name (10-3)"
-		record := fmt.Sprintf("(%d-%d)", standing.Wins, standing.Losses)
-		response += fmt.Sprintf("%d. %s %s\n", i+1, name, record)
-	}
-	response += "\n"
-
-	return response
 }
