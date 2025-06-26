@@ -21,7 +21,6 @@ func main() {
 	log.Println("Starting Discord bot...")
 
 	// Start health check server for Cloud Run FIRST
-	// This ensures Cloud Run sees the service as ready immediately
 	healthServer := startHealthServer()
 	log.Println("Health server started - Cloud Run should see this as ready")
 
@@ -30,33 +29,45 @@ func main() {
 		log.Println("No .env file found (expected in production)")
 	}
 
-	// Channel to communicate Discord bot status
-	botReady := make(chan bool, 1)
-	
-	// Initialize Discord bot in a goroutine so health server stays responsive
-	go func() {
-		log.Println("Starting Discord bot initialization...")
-		if err := initializeDiscordBot(); err != nil {
-			log.Printf("Discord bot initialization failed: %v", err)
-			log.Println("Health server will continue running for Cloud Run")
-			botReady <- false
-		} else {
-			log.Println("Discord bot initialization succeeded")
-			botReady <- true
-		}
-	}()
+	// Initialize configuration
+	log.Println("Initializing configuration...")
+	cfg := config.InitConfig()
+	log.Println("✅ Configuration initialized")
 
-	log.Println("Discord bot initialization started in background")
+	// Create context for application lifecycle
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Wait for bot initialization to complete
-	<-botReady
-	log.Println("Discord bot initialization completed")
+	// Initialize dependency chain (database, Discord, etc.)
+	log.Println("Initializing dependency chain...")
+	c, err := dependency.NewDependencyChain(ctx, cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize dependency chain: %v", err)
+	}
+	defer c.Pool.Close()
+	defer c.Discord.Close()
+	log.Println("✅ Dependency chain initialized")
 
-	// Handle SIGINT and SIGTERM signals to gracefully shutdown
+	// Initialize business logic layer
+	log.Println("Initializing business logic layer...")
+	i := interactor.NewInteractor(c)
+	log.Println("✅ Business logic layer initialized")
+
+	// Initialize Discord handler
+	log.Println("Initializing Discord handler...")
+	handler := discord.NewHandler(cfg, c, i)
+	if handler == nil {
+		log.Fatal("Failed to initialize Discord handler")
+	}
+	log.Println("✅ Discord handler initialized")
+
+	log.Printf("🎉 Bot is now running as %s. Discord bot ready!", c.Discord.State.User.Username)
+
+	// Handle SIGINT and SIGTERM signals for graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	// Wait for signal
+	// Wait for shutdown signal
 	<-stop
 
 	log.Println("Gracefully shutting down...")
@@ -68,8 +79,6 @@ func main() {
 		log.Printf("Health server shutdown error: %v", err)
 	}
 
-	// Give some time for cleanup
-	time.Sleep(2 * time.Second)
 	log.Println("Discord bot stopped")
 }
 
@@ -117,63 +126,4 @@ func startHealthServer() *http.Server {
 	}()
 
 	return server
-}
-
-// initializeDiscordBot initializes the Discord bot components
-func initializeDiscordBot() error {
-	log.Println("Checking environment variables...")
-	
-	// Check required environment variables before proceeding
-	requiredEnvVars := []string{
-		"DATABASE_URL",
-		"DISCORD_TOKEN", 
-		"DISCORD_APP_ID",
-		"DISCORD_GUILD_ID",
-		"DISCORD_WELCOME_CHANNEL_ID",
-	}
-	
-	for _, envVar := range requiredEnvVars {
-		if os.Getenv(envVar) == "" {
-			return fmt.Errorf("required environment variable %s is not set", envVar)
-		}
-	}
-	log.Println("✅ All required environment variables are set")
-
-	// Initialize configuration
-	log.Println("Initializing configuration...")
-	cfg := config.InitConfig()
-	log.Println("✅ Configuration initialized")
-
-	// Create context for application lifecycle
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Initialize dependency chain
-	log.Println("Initializing dependency chain (database, Discord, etc.)...")
-	c, err := dependency.NewDependencyChain(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("failed to initialize dependency chain: %w", err)
-	}
-	defer c.Pool.Close()
-	defer c.Discord.Close()
-	log.Println("✅ Dependency chain initialized")
-
-	// Initialize business logic layer
-	log.Println("Initializing business logic layer...")
-	i := interactor.NewInteractor(c)
-	log.Println("✅ Business logic layer initialized")
-
-	// Initialize Discord handler
-	log.Println("Initializing Discord handler...")
-	handler := discord.NewHandler(cfg, c, i)
-	if handler == nil {
-		return fmt.Errorf("failed to initialize Discord handler")
-	}
-	log.Println("✅ Discord handler initialized")
-
-	log.Printf("🎉 Bot is now running as %s. Discord bot ready!", c.Discord.State.User.Username)
-
-	// Discord bot is now running - return to signal readiness
-	// The bot will continue running via the Discord session's goroutines
-	return nil
 }
