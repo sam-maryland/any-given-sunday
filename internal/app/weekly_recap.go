@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sam-maryland/any-given-sunday/internal/dependency"
 	"github.com/sam-maryland/any-given-sunday/internal/discord"
+	"github.com/sam-maryland/any-given-sunday/internal/format"
 	"github.com/sam-maryland/any-given-sunday/internal/interactor"
 	"github.com/sam-maryland/any-given-sunday/pkg/client/sleeper"
 	"github.com/sam-maryland/any-given-sunday/pkg/db"
@@ -129,79 +130,38 @@ func (a *WeeklyRecapApp) RunWeeklyRecap(ctx context.Context) error {
 	}
 	log.Println("✅ Data sync completed successfully")
 
-	// 2. Generate weekly summary
-	log.Println("Generating weekly summary...")
-	summary, err := a.weeklyJobInteractor.GenerateWeeklySummary(ctx, league.Year)
+	// 2. Generate and post weekly summary
+	message, err := a.GenerateWeeklySummaryMessage(ctx, league.Year)
 	if err != nil {
-		return fmt.Errorf("failed to generate weekly summary: %w", err)
-	}
-	log.Printf("✅ Weekly summary generated for week %d", summary.Week)
-
-	// 3. Get users for name formatting
-	users, err := a.interactor.GetUsers(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get users: %w", err)
+		return fmt.Errorf("failed to generate weekly summary message: %w", err)
 	}
 
-	// 4. Format the Discord message
-	message := a.formatWeeklySummary(summary, users)
-
-	// 5. Post to Discord channel
+	// 3. Post to Discord channel
 	log.Println("Posting weekly summary to Discord...")
 	if err := a.channelPoster.PostWeeklySummary(ctx, message); err != nil {
 		return fmt.Errorf("failed to post weekly summary to Discord: %w", err)
 	}
-	log.Printf("✅ Weekly summary posted to Discord for week %d", summary.Week)
+	log.Printf("✅ Weekly summary posted to Discord")
 
 	return nil
 }
 
-// formatWeeklySummary formats the weekly summary for Discord (reuses existing logic)
-func (a *WeeklyRecapApp) formatWeeklySummary(summary *interactor.WeeklySummary, users domain.UserMap) string {
-	var response string
+// GenerateWeeklySummaryMessage generates a formatted weekly summary message (shared logic)
+func (a *WeeklyRecapApp) GenerateWeeklySummaryMessage(ctx context.Context, year int) (string, error) {
+	// Generate weekly summary
+	log.Printf("Generating weekly summary for year %d", year)
+	summary, err := a.weeklyJobInteractor.GenerateWeeklySummary(ctx, year)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate weekly summary: %w", err)
+	}
+	log.Printf("✅ Weekly summary generated for week %d", summary.Week)
 
-	// Header
-	response += fmt.Sprintf("📊 **Week %d Summary (%d)** 📊\n\n", summary.Week, summary.Year)
-
-	// High Score Winner
-	if summary.HighScore != nil {
-		response += fmt.Sprintf("🏆 **High Score Winner**: %s - %.2f points\n",
-			summary.HighScore.UserName, summary.HighScore.Score)
-		response += "💰 Congrats! You've earned the $15 weekly high score bonus!\n\n"
-	} else {
-		response += "❌ No high score data available for this week\n\n"
+	// Get users for name formatting
+	users, err := a.interactor.GetUsers(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get users: %w", err)
 	}
 
-	// Current Standings
-	response += "📈 **Current Standings:**\n"
-	for i, standing := range summary.Standings {
-		user, exists := users[standing.UserID]
-		name := standing.UserID // Fallback if no name
-		if exists {
-			name = user.Name
-		}
-		
-		// Add medal emojis for top 3
-		var medal string
-		switch i {
-		case 0:
-			medal = " 🥇"
-		case 1:
-			medal = " 🥈"
-		case 2:
-			medal = " 🥉"
-		default:
-			medal = ""
-		}
-		
-		// Format: "1. Team Name (10-3) 🥇"
-		record := fmt.Sprintf("(%d-%d)", standing.Wins, standing.Losses)
-		response += fmt.Sprintf("%d. %s %s%s\n", i+1, name, record, medal)
-	}
-	response += "\n"
-
-	// Footer
-	response += fmt.Sprintf("Next update after Week %d games complete! 🏈", summary.Week+1)
-
-	return response
+	// Format the message using shared formatting logic
+	return format.WeeklySummary(summary, users), nil
 }
