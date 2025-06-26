@@ -30,15 +30,25 @@ func main() {
 		log.Println("No .env file found (expected in production)")
 	}
 
+	// Channel to communicate Discord bot status
+	botReady := make(chan bool, 1)
+	
 	// Initialize Discord bot in a goroutine so health server stays responsive
 	go func() {
 		if err := initializeDiscordBot(); err != nil {
 			log.Printf("Discord bot initialization failed: %v", err)
 			log.Println("Health server will continue running for Cloud Run")
+			botReady <- false
+		} else {
+			botReady <- true
 		}
 	}()
 
 	log.Println("Discord bot initialization started in background")
+
+	// Wait for bot initialization to complete
+	<-botReady
+	log.Println("Discord bot initialization completed")
 
 	// Handle SIGINT and SIGTERM signals to gracefully shutdown
 	stop := make(chan os.Signal, 1)
@@ -132,6 +142,7 @@ func initializeDiscordBot() error {
 
 	log.Printf("Bot is now running as %s. Discord bot ready!", c.Discord.State.User.Username)
 
-	// Keep the Discord bot running
-	select {} // Block forever
+	// Discord bot is now running - return to signal readiness
+	// The bot will continue running via the Discord session's goroutines
+	return nil
 }
