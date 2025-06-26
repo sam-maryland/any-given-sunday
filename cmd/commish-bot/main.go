@@ -17,6 +17,13 @@ import (
 	"github.com/sam-maryland/any-given-sunday/pkg/config"
 )
 
+// Global variables to keep Discord bot alive
+var (
+	globalDependencyChain *dependency.Chain
+	globalContext         context.Context
+	globalCancel          context.CancelFunc
+)
+
 func main() {
 	log.Println("Starting Discord bot...")
 
@@ -60,6 +67,18 @@ func main() {
 	<-stop
 
 	log.Println("Gracefully shutting down...")
+
+	// Clean up Discord bot resources if they exist
+	if globalDependencyChain != nil {
+		log.Println("Closing Discord connection...")
+		globalDependencyChain.Discord.Close()
+		log.Println("Closing database connection...")
+		globalDependencyChain.Pool.Close()
+	}
+	if globalCancel != nil {
+		log.Println("Cancelling context...")
+		globalCancel()
+	}
 
 	// Shutdown health server
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -146,16 +165,16 @@ func initializeDiscordBot() error {
 
 	// Create context for application lifecycle
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// NOTE: Do NOT defer cancel() here - we want the Discord session to stay alive
 
 	// Initialize dependency chain
 	log.Println("Initializing dependency chain (database, Discord, etc.)...")
 	c, err := dependency.NewDependencyChain(ctx, cfg)
 	if err != nil {
+		cancel() // Clean up context on error
 		return fmt.Errorf("failed to initialize dependency chain: %w", err)
 	}
-	defer c.Pool.Close()
-	defer c.Discord.Close()
+	// NOTE: Do NOT defer Close() here - we want the connections to stay alive for the main app
 	log.Println("✅ Dependency chain initialized")
 
 	// Initialize business logic layer
@@ -167,11 +186,19 @@ func initializeDiscordBot() error {
 	log.Println("Initializing Discord handler...")
 	handler := discord.NewHandler(cfg, c, i)
 	if handler == nil {
+		cancel() // Clean up context on error
+		c.Pool.Close()
+		c.Discord.Close()
 		return fmt.Errorf("failed to initialize Discord handler")
 	}
 	log.Println("✅ Discord handler initialized")
 
 	log.Printf("🎉 Bot is now running as %s. Discord bot ready!", c.Discord.State.User.Username)
+
+	// Store the dependency chain in a global variable so it doesn't get garbage collected
+	globalDependencyChain = c
+	globalContext = ctx
+	globalCancel = cancel
 
 	// Discord bot is now running - return to signal readiness
 	// The bot will continue running via the Discord session's goroutines
