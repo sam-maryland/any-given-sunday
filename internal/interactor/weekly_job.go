@@ -281,6 +281,28 @@ func (i *interactor) GenerateWeeklySummary(ctx context.Context, year int) (*Week
 		Week:           int(latestWeek),
 		HighScore:      highScore,
 		Standings:      standings,
-		DataSyncStatus: "✅ Current", // TODO: Update based on actual sync status
+		DataSyncStatus: i.calculateDataSyncStatus(ctx, year, int(latestWeek)),
 	}, nil
+}
+
+// calculateDataSyncStatus determines the current sync status between local data and Sleeper API
+func (i *interactor) calculateDataSyncStatus(ctx context.Context, year, latestWeek int) string {
+	// Get current NFL state to check the actual current week
+	nflState, err := i.SleeperClient.GetNFLState(ctx)
+	if err != nil {
+		return "⚠️ Unable to verify sync status"
+	}
+	
+	// If our latest week matches or exceeds the current NFL week, we're current
+	if latestWeek >= nflState.Week {
+		return "✅ Current"
+	}
+	
+	// Calculate how many weeks behind we are
+	weeksBehind := nflState.Week - latestWeek
+	if weeksBehind == 1 {
+		return "⏳ 1 week behind"
+	}
+	
+	return fmt.Sprintf("⚠️ %d weeks behind", weeksBehind)
 }

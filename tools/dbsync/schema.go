@@ -225,12 +225,39 @@ func parseCreateIndex(stmt string, schema *Schema) error {
 	index := Index{
 		Name:    matches[1],
 		Table:   matches[2],
-		Columns: make([]string, 0), // TODO: extract column names
+		Columns: parseIndexColumnsFromStatement(stmt),
 		Unique:  strings.Contains(strings.ToUpper(stmt), "UNIQUE"),
 	}
 
 	schema.Indexes = append(schema.Indexes, index)
 	return nil
+}
+
+// parseIndexColumnsFromStatement extracts column names from a CREATE INDEX statement
+func parseIndexColumnsFromStatement(stmt string) []string {
+	// Example stmt: "CREATE INDEX idx_name ON table_name (column1, column2)"
+	// or "CREATE UNIQUE INDEX idx_name ON table_name (column1)"
+	
+	// Find the part between parentheses
+	startParen := strings.Index(stmt, "(")
+	endParen := strings.LastIndex(stmt, ")")
+	
+	if startParen == -1 || endParen == -1 || startParen >= endParen {
+		return make([]string, 0)
+	}
+	
+	columnsStr := stmt[startParen+1 : endParen]
+	
+	// Split by comma and clean up
+	columns := make([]string, 0)
+	for _, col := range strings.Split(columnsStr, ",") {
+		col = strings.TrimSpace(col)
+		if col != "" {
+			columns = append(columns, col)
+		}
+	}
+	
+	return columns
 }
 
 // CompareSchemas compares two schemas and returns the differences
