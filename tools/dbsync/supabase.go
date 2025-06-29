@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
@@ -152,13 +153,14 @@ func isPrimaryKeyColumn(ctx context.Context, db *sql.DB, tableName, columnName s
 			AND kcu.table_name = $1
 			AND kcu.column_name = $2
 	`
-	
+
 	var count int
 	err := db.QueryRowContext(ctx, query, tableName, columnName).Scan(&count)
 	if err != nil {
+		fmt.Printf("Error checking if column %s is a primary key in table %s: %v\n", columnName, tableName, err)
 		return false
 	}
-	
+
 	return count > 0
 }
 
@@ -236,20 +238,17 @@ func getIndexes(ctx context.Context, db *sql.DB) ([]Index, error) {
 	return indexes, rows.Err()
 }
 
-// parseIndexColumns extracts column names from PostgreSQL index definition
-func parseIndexColumns(indexDef string) []string {
-	// Example indexDef: "CREATE INDEX idx_name ON table_name USING btree (column1, column2)"
-	// or "CREATE UNIQUE INDEX idx_name ON table_name USING btree (column1)"
-	
+// extractIndexColumns extracts column names from a string containing a parenthesized list of columns
+func extractIndexColumns(stmt string) []string {
 	// Find the part between parentheses
-	startParen := strings.Index(indexDef, "(")
-	endParen := strings.LastIndex(indexDef, ")")
+	startParen := strings.Index(stmt, "(")
+	endParen := strings.LastIndex(stmt, ")")
 	
 	if startParen == -1 || endParen == -1 || startParen >= endParen {
 		return make([]string, 0)
 	}
 	
-	columnsStr := indexDef[startParen+1 : endParen]
+	columnsStr := stmt[startParen+1 : endParen]
 	
 	// Split by comma and clean up
 	columns := make([]string, 0)
@@ -265,6 +264,11 @@ func parseIndexColumns(indexDef string) []string {
 	}
 	
 	return columns
+}
+
+// parseIndexColumns extracts column names from PostgreSQL index definition
+func parseIndexColumns(indexDef string) []string {
+	return extractIndexColumns(indexDef)
 }
 
 // parseIndexUnique determines if an index is unique from its definition

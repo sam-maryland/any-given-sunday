@@ -288,6 +288,8 @@ func (i *interactor) GenerateWeeklySummary(ctx context.Context, year int) (*Week
 // calculateDataSyncStatus determines the current sync status between local data and Sleeper API
 func (i *interactor) calculateDataSyncStatus(ctx context.Context, year, latestWeek int) string {
 	// Get current NFL state to check the actual current week
+	// Note: Sleeper's week definition is consistently used throughout the codebase 
+	// (see SyncLatestData which uses the same nflState.Week for syncing)
 	nflState, err := i.SleeperClient.GetNFLState(ctx)
 	if err != nil {
 		return "⚠️ Unable to verify sync status"
