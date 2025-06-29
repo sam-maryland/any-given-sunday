@@ -225,13 +225,21 @@ func parseCreateIndex(stmt string, schema *Schema) error {
 	index := Index{
 		Name:    matches[1],
 		Table:   matches[2],
-		Columns: make([]string, 0), // TODO: extract column names
+		Columns: parseIndexColumnsFromStatement(stmt),
 		Unique:  strings.Contains(strings.ToUpper(stmt), "UNIQUE"),
 	}
 
 	schema.Indexes = append(schema.Indexes, index)
 	return nil
 }
+
+// parseIndexColumnsFromStatement extracts column names from a CREATE INDEX statement
+func parseIndexColumnsFromStatement(stmt string) []string {
+	// Use the shared helper for consistency
+	return extractIndexColumns(stmt)
+}
+
+
 
 // CompareSchemas compares two schemas and returns the differences
 func CompareSchemas(local, remote *Schema) *SchemaComparison {

@@ -309,9 +309,6 @@ func TestGetStandingsForLeague(t *testing.T) {
 				}
 			},
 		},
-		// TODO: Fix this test - complex playoff standings logic needs debugging
-		// The test data doesn't match the expected standings structure
-		/*
 			{
 				name: "completed league with playoff results",
 				inputLeague: domain.League{
@@ -329,7 +326,6 @@ func TestGetStandingsForLeague(t *testing.T) {
 					}
 				},
 			},
-		*/
 	}
 
 	for _, tt := range tests {
@@ -364,6 +360,7 @@ func TestGetStandingsForLeague(t *testing.T) {
 
 func createCompleteLeagueMatchups() []db.Matchup {
 	return []db.Matchup{
+		// Finals - Week 15
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
 			Year:         2024,
@@ -375,6 +372,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
 			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundFinals, Valid: true},
 		},
+		// Third Place Game - Week 15
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
 			Year:         2024,
@@ -386,6 +384,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
 			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundThirdPlace, Valid: true},
 		},
+		// Semifinals - Week 14 (winners advance to finals)
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
 			Year:         2024,
@@ -395,7 +394,7 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			HomeScore:    145.0,
 			AwayScore:    135.0,
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
-			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundQuarterfinals, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundSemifinals, Valid: true},
 		},
 		{
 			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
@@ -406,14 +405,38 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			HomeScore:    140.0,
 			AwayScore:    130.0,
 			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundSemifinals, Valid: true},
+		},
+		// Quarterfinals - Week 13 (losers become 5th and 6th place)
+		{
+			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
+			Year:         2024,
+			Week:         13,
+			HomeUserID:   "user1",
+			AwayUserID:   "user5",
+			HomeScore:    135.0,
+			AwayScore:    120.0,
+			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
 			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundQuarterfinals, Valid: true},
 		},
+		{
+			ID:           pgtype.UUID{Bytes: uuid.New(), Valid: true},
+			Year:         2024,
+			Week:         13,
+			HomeUserID:   "user2",
+			AwayUserID:   "user6",
+			HomeScore:    125.0,
+			AwayScore:    115.0,
+			IsPlayoff:    pgtype.Bool{Bool: true, Valid: true},
+			PlayoffRound: pgtype.Text{String: domain.PlayoffRoundQuarterfinals, Valid: true},
+		},
+		// Regular season matchups for standings calculation
 		{
 			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
 			Year:       2024,
 			Week:       1,
 			HomeUserID: "user1",
-			AwayUserID: "user5",
+			AwayUserID: "user7",
 			HomeScore:  120.0,
 			AwayScore:  110.0,
 			IsPlayoff:  pgtype.Bool{Bool: false, Valid: true},
@@ -422,10 +445,30 @@ func createCompleteLeagueMatchups() []db.Matchup {
 			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
 			Year:       2024,
 			Week:       1,
-			HomeUserID: "user6",
-			AwayUserID: "user7",
-			HomeScore:  100.0,
-			AwayScore:  90.0,
+			HomeUserID: "user2",
+			AwayUserID: "user8",
+			HomeScore:  115.0,
+			AwayScore:  105.0,
+			IsPlayoff:  pgtype.Bool{Bool: false, Valid: true},
+		},
+		{
+			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+			Year:       2024,
+			Week:       1,
+			HomeUserID: "user3",
+			AwayUserID: "user9",
+			HomeScore:  110.0,
+			AwayScore:  100.0,
+			IsPlayoff:  pgtype.Bool{Bool: false, Valid: true},
+		},
+		{
+			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+			Year:       2024,
+			Week:       1,
+			HomeUserID: "user4",
+			AwayUserID: "user10",
+			HomeScore:  105.0,
+			AwayScore:  95.0,
 			IsPlayoff:  pgtype.Bool{Bool: false, Valid: true},
 		},
 	}

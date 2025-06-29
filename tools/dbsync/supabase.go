@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
@@ -83,7 +84,7 @@ func getTables(ctx context.Context, db *sql.DB) ([]Table, error) {
 		table := Table{
 			Name:        tableName,
 			Columns:     columns,
-			Constraints: make([]Constraint, 0), // TODO: implement constraints
+			Constraints: make([]Constraint, 0), // Constraints not currently used in schema comparison
 		}
 
 		tables = append(tables, table)
@@ -126,7 +127,7 @@ func getTableColumns(ctx context.Context, db *sql.DB, tableName string) ([]Colum
 			Type:         dataType,
 			NotNull:      isNullable == "NO",
 			DefaultValue: nil,
-			IsPrimaryKey: false, // TODO: check for primary key
+			IsPrimaryKey: isPrimaryKeyColumn(ctx, db, tableName, columnName),
 		}
 
 		if columnDefault.Valid {
@@ -137,6 +138,30 @@ func getTableColumns(ctx context.Context, db *sql.DB, tableName string) ([]Colum
 	}
 
 	return columns, rows.Err()
+}
+
+// isPrimaryKeyColumn checks if a column is part of the primary key
+func isPrimaryKeyColumn(ctx context.Context, db *sql.DB, tableName, columnName string) bool {
+	query := `
+		SELECT COUNT(*)
+		FROM information_schema.key_column_usage kcu
+		JOIN information_schema.table_constraints tc
+			ON kcu.constraint_name = tc.constraint_name
+			AND kcu.table_schema = tc.table_schema
+		WHERE tc.constraint_type = 'PRIMARY KEY'
+			AND kcu.table_schema = 'public'
+			AND kcu.table_name = $1
+			AND kcu.column_name = $2
+	`
+
+	var count int
+	err := db.QueryRowContext(ctx, query, tableName, columnName).Scan(&count)
+	if err != nil {
+		fmt.Printf("Error checking if column %s is a primary key in table %s: %v\n", columnName, tableName, err)
+		return false
+	}
+
+	return count > 0
 }
 
 // getViews retrieves all views from the database
@@ -203,12 +228,50 @@ func getIndexes(ctx context.Context, db *sql.DB) ([]Index, error) {
 		index := Index{
 			Name:    indexName,
 			Table:   tableName,
-			Columns: make([]string, 0), // TODO: parse columns from indexDef
-			Unique:  false,             // TODO: determine if unique from indexDef
+			Columns: parseIndexColumns(indexDef),
+			Unique:  parseIndexUnique(indexDef),
 		}
 
 		indexes = append(indexes, index)
 	}
 
 	return indexes, rows.Err()
+}
+
+// extractIndexColumns extracts column names from a string containing a parenthesized list of columns
+func extractIndexColumns(stmt string) []string {
+	// Find the part between parentheses
+	startParen := strings.Index(stmt, "(")
+	endParen := strings.LastIndex(stmt, ")")
+	
+	if startParen == -1 || endParen == -1 || startParen >= endParen {
+		return make([]string, 0)
+	}
+	
+	columnsStr := stmt[startParen+1 : endParen]
+	
+	// Split by comma and clean up
+	columns := make([]string, 0)
+	for _, col := range strings.Split(columnsStr, ",") {
+		col = strings.TrimSpace(col)
+		// Remove any function calls or expressions, just get the column name
+		if spaceIdx := strings.Index(col, " "); spaceIdx != -1 {
+			col = col[:spaceIdx]
+		}
+		if col != "" {
+			columns = append(columns, col)
+		}
+	}
+	
+	return columns
+}
+
+// parseIndexColumns extracts column names from PostgreSQL index definition
+func parseIndexColumns(indexDef string) []string {
+	return extractIndexColumns(indexDef)
+}
+
+// parseIndexUnique determines if an index is unique from its definition
+func parseIndexUnique(indexDef string) bool {
+	return strings.Contains(strings.ToUpper(indexDef), "UNIQUE INDEX")
 }
