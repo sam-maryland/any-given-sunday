@@ -28,6 +28,7 @@ type WeeklyRecapApp struct {
 	interactor          interactor.Interactor
 	emailClient         *email.Client
 	queries             *db.Queries
+	sleeperClient       sleeper.ISleeperClient
 }
 
 // NewWeeklyRecapApp creates a new weekly recap application with all dependencies
@@ -127,6 +128,7 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 		interactor:          inter,
 		emailClient:         emailClient,
 		queries:             queries,
+		sleeperClient:       sleeperClient,
 	}, nil
 }
 
@@ -178,21 +180,37 @@ func (a *WeeklyRecapApp) RunWeeklyRecap(ctx context.Context) error {
 			log.Printf("⚠️  Failed to generate summary for emails: %v", err)
 			log.Println("Skipping email notifications")
 		} else {
-			// Get users with email addresses
-			dbUsers, err := a.queries.GetUsersWithEmail(ctx)
+			// Get users with email addresses (for sending)
+			dbUsersWithEmail, err := a.queries.GetUsersWithEmail(ctx)
 			if err != nil {
 				log.Printf("⚠️  Failed to get users with email addresses: %v", err)
 				log.Println("Skipping email notifications")
 			} else {
-				// Convert db users to domain users
-				users := converters.UsersFromDB(dbUsers)
-
-				// Send emails
-				if err := a.emailClient.SendWeeklyRecap(ctx, summary, users); err != nil {
-					log.Printf("⚠️  Email sending encountered errors: %v", err)
-					log.Println("Some or all emails may have failed, but job continues")
+				// Fetch team names from Sleeper API
+				sleeperUsers, err := a.sleeperClient.GetUsersInLeague(ctx, league.ID)
+				if err != nil {
+					log.Printf("⚠️  Failed to fetch Sleeper users for team names: %v", err)
+					log.Println("Skipping email notifications")
 				} else {
-					log.Printf("✅ Weekly recap emails sent successfully")
+					// Create a map of UserID -> Team Name from Sleeper
+					teamNames := make(domain.UserMap)
+					for _, sleeperUser := range sleeperUsers {
+						teamNames[sleeperUser.ID] = domain.User{
+							ID:   sleeperUser.ID,
+							Name: sleeperUser.TeamName(), // Use Sleeper team name
+						}
+					}
+
+					// Convert recipients to domain users
+					usersWithEmail := converters.UsersFromDB(dbUsersWithEmail)
+
+					// Send emails (with recipients and team names for display)
+					if err := a.emailClient.SendWeeklyRecap(ctx, summary, usersWithEmail, teamNames); err != nil {
+						log.Printf("⚠️  Email sending encountered errors: %v", err)
+						log.Println("Some or all emails may have failed, but job continues")
+					} else {
+						log.Printf("✅ Weekly recap emails sent successfully")
+					}
 				}
 			}
 		}

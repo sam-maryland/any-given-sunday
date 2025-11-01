@@ -26,6 +26,7 @@ type WeeklyHighScore struct {
 }
 
 type WeeklySummary struct {
+	LeagueID       string
 	Year           int
 	Week           int
 	HighScore      *WeeklyHighScore
@@ -277,6 +278,7 @@ func (i *interactor) GenerateWeeklySummary(ctx context.Context, year int) (*Week
 	}
 
 	return &WeeklySummary{
+		LeagueID:       league.ID,
 		Year:           year,
 		Week:           int(latestWeek),
 		HighScore:      highScore,

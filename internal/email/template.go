@@ -33,7 +33,7 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
                     <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #0a3d0c 0%%, #1a5d1a 100%%); padding: 30px 20px; text-align: center;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">🏈 WEEKLY RECAP 🏈</h1>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">ANY GIVEN SUNDAY</h1>
                             <p style="color: #e0e0e0; margin: 10px 0 0 0; font-size: 18px;">Week %d • %d</p>
                         </td>
                     </tr>
@@ -41,6 +41,12 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
 
 	// High Score Winner Section
 	if summary.HighScore != nil {
+		user, exists := users[summary.HighScore.UserID]
+		name := summary.HighScore.UserName
+		if exists {
+			name = user.Name
+		}
+
 		html.WriteString(fmt.Sprintf(`
                     <!-- High Score Winner -->
                     <tr>
@@ -48,10 +54,9 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
                             <p style="color: #333; margin: 0 0 10px 0; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">💰 High Score Winner 💰</p>
                             <h2 style="color: #000; margin: 10px 0; font-size: 32px; font-weight: bold;">%s</h2>
                             <p style="color: #333; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">%.2f points</p>
-                            <p style="color: #555; margin: 15px 0 0 0; font-size: 16px;">Earned the $15 bonus!</p>
                         </td>
                     </tr>
-`, summary.HighScore.UserName, summary.HighScore.Score))
+`, name, summary.HighScore.Score))
 	} else {
 		html.WriteString(`
                     <!-- No High Score Available -->
@@ -80,15 +85,15 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
 			name = user.Name
 		}
 
-		// Medal for top 3
-		medal := ""
-		switch i {
-		case 0:
-			medal = " 🥇"
-		case 1:
-			medal = " 🥈"
-		case 2:
-			medal = " 🥉"
+		// Add playoff separator after 6th team
+		if i == 6 {
+			html.WriteString(`
+                                <tr>
+                                    <td style="padding: 10px 15px; background-color: #e8f5e9; text-align: center; border-top: 2px solid #0a3d0c; border-bottom: 2px solid #0a3d0c;">
+                                        <span style="color: #0a3d0c; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">━━━ Playoff Line ━━━</span>
+                                    </td>
+                                </tr>
+`)
 		}
 
 		// Alternating row colors for readability
@@ -100,10 +105,10 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
 		html.WriteString(fmt.Sprintf(`
                                 <tr>
                                     <td style="padding: 12px 15px; background-color: %s; border-bottom: 1px solid #e0e0e0;">
-                                        <span style="color: #333; font-size: 16px; font-weight: %s;">%d. %s <span style="color: #666;">(%d-%d)</span>%s</span>
+                                        <span style="color: #333; font-size: 16px; font-weight: %s;">%d. %s <span style="color: #666;">(%d-%d)</span></span>
                                     </td>
                                 </tr>
-`, bgColor, getBoldWeight(i), i+1, name, standing.Wins, standing.Losses, medal))
+`, bgColor, getBoldWeight(i), i+1, name, standing.Wins, standing.Losses))
 	}
 
 	html.WriteString(`
@@ -118,10 +123,10 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
                     <tr>
                         <td style="background-color: #f8f8f8; padding: 25px 20px; text-align: center; border-top: 2px solid #e0e0e0;">
                             <p style="color: #555; margin: 0 0 15px 0; font-size: 14px;">Next update after Week %d games complete! 🏈</p>
-                            <a href="https://sleeper.com" style="display: inline-block; background-color: #0a3d0c; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold;">View on Sleeper →</a>
+                            <a href="https://sleeper.com/leagues/%s/league" style="display: inline-block; background-color: #0a3d0c; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold;">View on Sleeper →</a>
                         </td>
                     </tr>
-`, summary.Week+1))
+`, summary.Week+1, summary.LeagueID))
 
 	// Close HTML
 	html.WriteString(`
@@ -137,7 +142,7 @@ func GenerateWeeklyRecapHTML(summary *interactor.WeeklySummary, users domain.Use
 
 // getBoldWeight returns bold for top 3, normal for others
 func getBoldWeight(position int) string {
-	if position < 3 {
+	if position < 6 {
 		return "bold"
 	}
 	return "normal"

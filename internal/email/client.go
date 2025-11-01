@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/resend/resend-go/v2"
 	"github.com/sam-maryland/any-given-sunday/internal/interactor"
@@ -33,28 +34,34 @@ func NewClient(apiKey string, fromEmail string) (*Client, error) {
 	}, nil
 }
 
-// SendWeeklyRecap sends the weekly recap email to all users with email addresses
-func (c *Client) SendWeeklyRecap(ctx context.Context, summary *interactor.WeeklySummary, users []domain.User) error {
-	if len(users) == 0 {
+// SendWeeklyRecap sends the weekly recap email to users with email addresses
+// recipients: users to send emails to (must have email addresses)
+// teamNames: map of UserID -> User with team names from Sleeper (for display in email)
+func (c *Client) SendWeeklyRecap(ctx context.Context, summary *interactor.WeeklySummary, recipients []domain.User, teamNames domain.UserMap) error {
+	if len(recipients) == 0 {
 		log.Println("No users with email addresses found, skipping email sending")
 		return nil
 	}
 
-	// Generate HTML content
-	htmlContent := GenerateWeeklyRecapHTML(summary, domain.UserMapFromSlice(users))
+	// Generate HTML content using team names for display
+	htmlContent := GenerateWeeklyRecapHTML(summary, teamNames)
 
 	// Generate subject line
-	subject := fmt.Sprintf("🏈 Week %d Recap: %s Takes the High Score! 💰",
-		summary.Week,
-		getHighScoreWinnerName(summary))
+	subject := fmt.Sprintf("🏈 Any Given Sunday: Week %d Recap", summary.Week)
 
-	// Send email to each user
+	// Send email to each recipient
+	// Rate limit: Resend allows 2 requests/second, so we wait 600ms between sends
 	successCount := 0
 	errorCount := 0
 
-	for _, user := range users {
+	for idx, user := range recipients {
 		if user.Email == "" {
 			continue
+		}
+
+		// Add rate limiting delay (except for first email)
+		if idx > 0 {
+			time.Sleep(600 * time.Millisecond) // Wait 600ms to stay under 2 req/sec limit
 		}
 
 		err := c.sendEmail(ctx, user.Email, subject, htmlContent)
@@ -93,12 +100,4 @@ func (c *Client) sendEmail(_ context.Context, toEmail string, subject string, ht
 	}
 
 	return nil
-}
-
-// getHighScoreWinnerName extracts the high score winner's name for the subject line
-func getHighScoreWinnerName(summary *interactor.WeeklySummary) string {
-	if summary.HighScore != nil {
-		return summary.HighScore.UserName
-	}
-	return "Unknown"
 }

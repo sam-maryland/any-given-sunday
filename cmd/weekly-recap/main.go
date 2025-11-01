@@ -7,10 +7,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/sam-maryland/any-given-sunday/internal/app"
 )
 
 func main() {
+	// Load .env file for local development
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found (expected in production)")
+	}
+
 	var mode string
 	flag.StringVar(&mode, "mode", "", "Execution mode (weekly-recap)")
 	flag.Parse()
