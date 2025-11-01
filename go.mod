@@ -11,6 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/magefile/mage v1.15.0
+	github.com/resend/resend-go/v2 v2.28.0
 	github.com/stretchr/testify v1.10.0
 )
 

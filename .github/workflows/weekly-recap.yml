@@ -37,6 +37,8 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         DISCORD_WEEKLY_RECAP_CHANNEL_ID: ${{ secrets.DISCORD_WEEKLY_RECAP_CHANNEL_ID }}
+        RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
       run: ./.bin/weekly-recap --mode=weekly-recap
 
     - name: Report status on failure

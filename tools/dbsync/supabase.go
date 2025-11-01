@@ -243,13 +243,13 @@ func extractIndexColumns(stmt string) []string {
 	// Find the part between parentheses
 	startParen := strings.Index(stmt, "(")
 	endParen := strings.LastIndex(stmt, ")")
-	
+
 	if startParen == -1 || endParen == -1 || startParen >= endParen {
 		return make([]string, 0)
 	}
-	
+
 	columnsStr := stmt[startParen+1 : endParen]
-	
+
 	// Split by comma and clean up
 	columns := make([]string, 0)
 	for _, col := range strings.Split(columnsStr, ",") {
@@ -262,7 +262,7 @@ func extractIndexColumns(stmt string) []string {
 			columns = append(columns, col)
 		}
 	}
-	
+
 	return columns
 }
 

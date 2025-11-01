@@ -3,11 +3,15 @@ CREATE TABLE IF NOT EXISTS users (
                                      name TEXT NOT NULL,                        -- Name of the user
                                      discord_id TEXT DEFAULT '' NOT NULL,       -- Discord user ID
                                      onboarding_complete BOOLEAN DEFAULT FALSE, -- Whether user has completed Discord onboarding
+                                     email TEXT DEFAULT '' NOT NULL,            -- User email address for weekly recap notifications
                                      created_at TIMESTAMPTZ DEFAULT NOW()       -- Timestamp when the user joined
 );
 
 -- Create index for efficient Discord ID lookups
 CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);
+
+-- Create index for efficient email lookups
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 CREATE TABLE IF NOT EXISTS matchups (
                                         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,         -- Unique ID for each matchup

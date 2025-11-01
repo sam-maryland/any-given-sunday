@@ -94,7 +94,7 @@ func ListMigrations(ctx context.Context, databaseURL string) error {
 
 	fmt.Println("📋 Applied Migrations")
 	fmt.Println()
-	
+
 	for _, migration := range migrations {
 		fmt.Printf("✅ %s", migration.Version)
 		if migration.AppliedAt != nil {
@@ -109,7 +109,7 @@ func ListMigrations(ctx context.Context, databaseURL string) error {
 // RollbackLastMigration rolls back the most recently applied migration
 func RollbackLastMigration() error {
 	ctx := context.Background()
-	
+
 	// Get DATABASE_URL from environment
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
@@ -137,10 +137,10 @@ func RollbackLastMigration() error {
 	fmt.Println()
 
 	fmt.Print("Continue with rollback? (y/N): ")
-	
+
 	var response string
 	fmt.Scanln(&response)
-	
+
 	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 		fmt.Println("Rollback cancelled.")
 		return nil
@@ -153,7 +153,7 @@ func RollbackLastMigration() error {
 	}
 
 	fmt.Printf("✅ Migration %s rolled back successfully\n", lastMigration.Version)
-	
+
 	// Show current status
 	fmt.Println()
 	fmt.Println("🔍 Current status:")

@@ -29,29 +29,29 @@ func VerifySchema() error {
 	fmt.Println("2. Verifying SQLC code generation...")
 	cmd := exec.Command("sqlc", "generate")
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		fmt.Printf("❌ SQLC generation failed:\n%s\n", string(output))
 		return fmt.Errorf("SQLC verification failed: %w", err)
 	}
 
 	fmt.Println("✅ SQLC code generation successful")
-	
+
 	// Try to build the project
 	fmt.Println()
 	fmt.Println("3. Verifying Go compilation...")
 	cmd = exec.Command("go", "build", "./...")
 	output, err = cmd.CombinedOutput()
-	
+
 	if err != nil {
 		fmt.Printf("❌ Go compilation failed:\n%s\n", string(output))
 		return fmt.Errorf("Go compilation failed: %w", err)
 	}
 
 	fmt.Println("✅ Go compilation successful")
-	
+
 	fmt.Println()
 	fmt.Println("🎉 All verifications passed! Schema and code are in sync.")
-	
+
 	return nil
 }

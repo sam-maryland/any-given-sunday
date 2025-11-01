@@ -11,7 +11,7 @@ import (
 // ShowStatus displays the current sync status between local schema and Supabase
 func ShowStatus() error {
 	ctx := context.Background()
-	
+
 	// Get DATABASE_URL from environment
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
@@ -45,7 +45,7 @@ func ShowStatus() error {
 		fmt.Println("No changes needed")
 	} else {
 		fmt.Println("Status: 🔴 OUT OF SYNC")
-		
+
 		totalChanges := len(comparison.Differences.MissingTables) +
 			len(comparison.Differences.ExtraTables) +
 			len(comparison.Differences.MissingViews) +
@@ -53,7 +53,7 @@ func ShowStatus() error {
 			len(comparison.Differences.MissingIndexes) +
 			len(comparison.Differences.ExtraIndexes) +
 			len(comparison.Differences.TableDiffs)
-		
+
 		fmt.Printf("Pending Changes: %d\n", totalChanges)
 		fmt.Println()
 
@@ -110,7 +110,7 @@ func ShowStatus() error {
 // ShowDifferences displays detailed differences between local and remote schemas
 func ShowDifferences() error {
 	ctx := context.Background()
-	
+
 	// Get DATABASE_URL from environment
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
@@ -204,7 +204,7 @@ func ShowDifferences() error {
 // ApplyChanges generates and applies a migration to sync local schema with Supabase
 func ApplyChanges() error {
 	ctx := context.Background()
-	
+
 	// Get DATABASE_URL from environment
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
@@ -234,7 +234,7 @@ func ApplyChanges() error {
 	// Show what will be changed
 	fmt.Println("🔄 Preparing to sync schemas...")
 	fmt.Println()
-	
+
 	totalChanges := len(comparison.Differences.MissingTables) +
 		len(comparison.Differences.ExtraTables) +
 		len(comparison.Differences.MissingViews) +
@@ -242,9 +242,9 @@ func ApplyChanges() error {
 		len(comparison.Differences.MissingIndexes) +
 		len(comparison.Differences.ExtraIndexes) +
 		len(comparison.Differences.TableDiffs)
-	
+
 	fmt.Printf("Changes to apply: %d\n", totalChanges)
-	
+
 	if len(comparison.Differences.MissingTables) > 0 {
 		fmt.Println("  - Tables to create:", len(comparison.Differences.MissingTables))
 	}
@@ -254,7 +254,7 @@ func ApplyChanges() error {
 	if len(comparison.Differences.MissingIndexes) > 0 {
 		fmt.Println("  - Indexes to create:", len(comparison.Differences.MissingIndexes))
 	}
-	
+
 	// Warn about extra items in Supabase
 	if len(comparison.Differences.ExtraTables) > 0 ||
 		len(comparison.Differences.ExtraViews) > 0 ||
@@ -266,10 +266,10 @@ func ApplyChanges() error {
 
 	fmt.Println()
 	fmt.Print("Continue with sync? (y/N): ")
-	
+
 	var response string
 	fmt.Scanln(&response)
-	
+
 	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 		fmt.Println("Sync cancelled.")
 		return nil
@@ -305,7 +305,7 @@ func ApplyChanges() error {
 
 	fmt.Println("✅ Schema sync completed successfully!")
 	fmt.Printf("   Migration %s applied at %s\n", migration.Version, migration.AppliedAt.Format(time.RFC3339))
-	
+
 	// Verify sync
 	fmt.Println()
 	fmt.Println("🔍 Verifying sync...")

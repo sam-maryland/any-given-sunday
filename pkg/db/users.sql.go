@@ -12,7 +12,7 @@ import (
 )
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, name, discord_id, onboarding_complete, created_at FROM users WHERE id = $1
+SELECT id, name, discord_id, onboarding_complete, email, created_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
@@ -23,13 +23,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.Name,
 		&i.DiscordID,
 		&i.OnboardingComplete,
+		&i.Email,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUsers = `-- name: GetUsers :many
-SELECT id, name, discord_id, onboarding_complete, created_at FROM users
+SELECT id, name, discord_id, onboarding_complete, email, created_at FROM users
 `
 
 func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
@@ -46,6 +47,38 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 			&i.Name,
 			&i.DiscordID,
 			&i.OnboardingComplete,
+			&i.Email,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersWithEmail = `-- name: GetUsersWithEmail :many
+SELECT id, name, discord_id, onboarding_complete, email, created_at FROM users WHERE email != '' AND email IS NOT NULL
+`
+
+func (q *Queries) GetUsersWithEmail(ctx context.Context) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsersWithEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DiscordID,
+			&i.OnboardingComplete,
+			&i.Email,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -59,8 +92,8 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 }
 
 const insertUser = `-- name: InsertUser :exec
-INSERT INTO users (id, name, discord_id, onboarding_complete) 
-VALUES ($1, $2, $3, $4)
+INSERT INTO users (id, name, discord_id, onboarding_complete, email)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type InsertUserParams struct {
@@ -68,6 +101,7 @@ type InsertUserParams struct {
 	Name               string
 	DiscordID          string
 	OnboardingComplete pgtype.Bool
+	Email              string
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
@@ -76,6 +110,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 		arg.Name,
 		arg.DiscordID,
 		arg.OnboardingComplete,
+		arg.Email,
 	)
 	return err
 }

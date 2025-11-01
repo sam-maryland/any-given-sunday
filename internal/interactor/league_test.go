@@ -309,23 +309,23 @@ func TestGetStandingsForLeague(t *testing.T) {
 				}
 			},
 		},
-			{
-				name: "completed league with playoff results",
-				inputLeague: domain.League{
-					ID:     "league-complete",
-					Year:   2024,
-					Status: domain.LeagueStatusComplete,
-				},
-				mockMatchups: createCompleteLeagueMatchups(),
-				validateStandings: func(t *testing.T, standings domain.Standings) {
-					// Should have at least 4 standings (first, second, third, fourth places)
-					assert.GreaterOrEqual(t, len(standings), 4)
-					// All standings should be non-nil
-					for i, standing := range standings {
-						assert.NotNil(t, standing, "Standing at position %d should not be nil", i)
-					}
-				},
+		{
+			name: "completed league with playoff results",
+			inputLeague: domain.League{
+				ID:     "league-complete",
+				Year:   2024,
+				Status: domain.LeagueStatusComplete,
 			},
+			mockMatchups: createCompleteLeagueMatchups(),
+			validateStandings: func(t *testing.T, standings domain.Standings) {
+				// Should have at least 4 standings (first, second, third, fourth places)
+				assert.GreaterOrEqual(t, len(standings), 4)
+				// All standings should be non-nil
+				for i, standing := range standings {
+					assert.NotNil(t, standing, "Standing at position %d should not be nil", i)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

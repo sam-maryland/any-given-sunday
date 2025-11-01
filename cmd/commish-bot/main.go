@@ -85,7 +85,7 @@ func main() {
 // startHealthServer starts a simple HTTP server for Cloud Run health checks
 func startHealthServer() *http.Server {
 	mux := http.NewServeMux()
-	
+
 	// Health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

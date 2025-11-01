@@ -35,13 +35,13 @@ func (p *ChannelPoster) PostWeeklySummary(ctx context.Context, summary string) e
 	// Attempt to send the message with retry logic
 	maxRetries := 3
 	var lastErr error
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		_, err := p.session.ChannelMessageSend(p.channelID, summary)
 		if err == nil {
 			return nil // Success
 		}
-		
+
 		lastErr = err
 		if attempt < maxRetries {
 			// Wait before retrying (exponential backoff) with context awareness

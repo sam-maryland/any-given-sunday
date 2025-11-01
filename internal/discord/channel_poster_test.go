@@ -24,7 +24,7 @@ func TestChannelPoster_PostWeeklySummary_SessionNotReady(t *testing.T) {
 	// Create a session with invalid token to trigger a connection error
 	session, err := discordgo.New("Bot invalid-token")
 	require.NoError(t, err)
-	
+
 	poster := NewChannelPoster(session, "test-channel")
 
 	ctx := context.Background()

@@ -38,7 +38,7 @@ func GenerateMigrationFromDiff(diff *SchemaDiff, name string) (*Migration, error
 	for _, table := range diff.MissingTables {
 		upSQL.WriteString(generateCreateTableSQL(table))
 		upSQL.WriteString("\n")
-		
+
 		downSQL.WriteString(fmt.Sprintf("DROP TABLE IF EXISTS %s;\n", table.Name))
 	}
 
@@ -46,7 +46,7 @@ func GenerateMigrationFromDiff(diff *SchemaDiff, name string) (*Migration, error
 	for _, view := range diff.MissingViews {
 		upSQL.WriteString(view.Definition)
 		upSQL.WriteString(";\n\n")
-		
+
 		downSQL.WriteString(fmt.Sprintf("DROP VIEW IF EXISTS %s;\n", view.Name))
 	}
 
@@ -54,7 +54,7 @@ func GenerateMigrationFromDiff(diff *SchemaDiff, name string) (*Migration, error
 	for _, index := range diff.MissingIndexes {
 		upSQL.WriteString(generateCreateIndexSQL(index))
 		upSQL.WriteString("\n")
-		
+
 		downSQL.WriteString(fmt.Sprintf("DROP INDEX IF EXISTS %s;\n", index.Name))
 	}
 
@@ -74,55 +74,55 @@ func GenerateMigrationFromDiff(diff *SchemaDiff, name string) (*Migration, error
 // generateCreateTableSQL generates CREATE TABLE SQL from a Table struct
 func generateCreateTableSQL(table Table) string {
 	var sql strings.Builder
-	
+
 	sql.WriteString(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", table.Name))
-	
+
 	for i, column := range table.Columns {
 		sql.WriteString(fmt.Sprintf("    %s %s", column.Name, column.Type))
-		
+
 		if column.NotNull {
 			sql.WriteString(" NOT NULL")
 		}
-		
+
 		if column.DefaultValue != nil {
 			sql.WriteString(fmt.Sprintf(" DEFAULT %s", *column.DefaultValue))
 		}
-		
+
 		if column.IsPrimaryKey {
 			sql.WriteString(" PRIMARY KEY")
 		}
-		
+
 		if i < len(table.Columns)-1 {
 			sql.WriteString(",")
 		}
 		sql.WriteString("\n")
 	}
-	
+
 	sql.WriteString(");")
-	
+
 	return sql.String()
 }
 
 // generateCreateIndexSQL generates CREATE INDEX SQL from an Index struct
 func generateCreateIndexSQL(index Index) string {
 	var sql strings.Builder
-	
+
 	if index.Unique {
 		sql.WriteString("CREATE UNIQUE INDEX IF NOT EXISTS ")
 	} else {
 		sql.WriteString("CREATE INDEX IF NOT EXISTS ")
 	}
-	
+
 	sql.WriteString(fmt.Sprintf("%s ON %s", index.Name, index.Table))
-	
+
 	if len(index.Columns) > 0 {
 		sql.WriteString("(")
 		sql.WriteString(strings.Join(index.Columns, ", "))
 		sql.WriteString(")")
 	}
-	
+
 	sql.WriteString(";")
-	
+
 	return sql.String()
 }
 
@@ -130,18 +130,18 @@ func generateCreateIndexSQL(index Index) string {
 func SaveMigrationToFile(migration *Migration) (string, error) {
 	filename := fmt.Sprintf("%s.sql", migration.Version)
 	filePath := filepath.Join("migrations", filename)
-	
+
 	var content strings.Builder
 	content.WriteString("-- +migrate Up\n")
 	content.WriteString(migration.UpSQL)
 	content.WriteString("\n-- +migrate Down\n")
 	content.WriteString(migration.DownSQL)
-	
+
 	err := os.WriteFile(filePath, []byte(content.String()), 0644)
 	if err != nil {
 		return "", fmt.Errorf("failed to write migration file: %w", err)
 	}
-	
+
 	return filePath, nil
 }
 
@@ -202,7 +202,7 @@ func ApplyMigration(ctx context.Context, databaseURL string, migration *Migratio
 	}
 
 	// Record the migration
-	_, err = tx.ExecContext(ctx, 
+	_, err = tx.ExecContext(ctx,
 		"INSERT INTO schema_migrations (version, checksum) VALUES ($1, $2)",
 		migration.Version, migration.Checksum)
 	if err != nil {
@@ -231,7 +231,7 @@ func GetAppliedMigrations(ctx context.Context, databaseURL string) ([]Migration,
 
 	// Check if migrations table exists
 	var exists bool
-	err = db.QueryRowContext(ctx, 
+	err = db.QueryRowContext(ctx,
 		"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'schema_migrations')").Scan(&exists)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check migrations table: %w", err)
@@ -241,7 +241,7 @@ func GetAppliedMigrations(ctx context.Context, databaseURL string) ([]Migration,
 		return []Migration{}, nil
 	}
 
-	rows, err := db.QueryContext(ctx, 
+	rows, err := db.QueryContext(ctx,
 		"SELECT version, applied_at, checksum FROM schema_migrations ORDER BY applied_at")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query migrations: %w", err)

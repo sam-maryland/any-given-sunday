@@ -67,12 +67,12 @@ func TestRemoveComments(t *testing.T) {
 	`
 
 	result := removeComments(content)
-	
+
 	// Should not contain comment text
 	assert.NotContains(t, result, "This is a single line comment")
 	assert.NotContains(t, result, "inline comment")
 	assert.NotContains(t, result, "Multi-line")
-	
+
 	// Should still contain SQL
 	assert.Contains(t, result, "CREATE TABLE test")
 	assert.Contains(t, result, "CREATE INDEX test_idx")
@@ -91,7 +91,7 @@ func TestSplitStatements(t *testing.T) {
 	`
 
 	statements := splitStatements(content)
-	
+
 	assert.Len(t, statements, 3)
 	assert.Contains(t, statements[0], "CREATE TABLE test1")
 	assert.Contains(t, statements[1], "CREATE TABLE test2")
@@ -121,7 +121,7 @@ func TestCompareSchemas(t *testing.T) {
 	}
 
 	comparison := CompareSchemas(local, remote)
-	
+
 	assert.False(t, comparison.InSync)
 	assert.Len(t, comparison.Differences.MissingTables, 1)
 	assert.Equal(t, "posts", comparison.Differences.MissingTables[0].Name)
@@ -172,12 +172,12 @@ func TestParseColumnDefinition(t *testing.T) {
 		t.Run(test.input, func(t *testing.T) {
 			column, err := parseColumnDefinition(test.input)
 			require.NoError(t, err)
-			
+
 			assert.Equal(t, test.expected.Name, column.Name)
 			assert.Equal(t, test.expected.Type, column.Type)
 			assert.Equal(t, test.expected.IsPrimaryKey, column.IsPrimaryKey)
 			assert.Equal(t, test.expected.NotNull, column.NotNull)
-			
+
 			if test.expected.DefaultValue == nil {
 				assert.Nil(t, column.DefaultValue)
 			} else {

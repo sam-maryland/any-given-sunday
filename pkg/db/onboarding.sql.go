@@ -25,7 +25,7 @@ func (q *Queries) CheckSleeperUserClaimed(ctx context.Context, id string) (bool,
 }
 
 const getUserByDiscordID = `-- name: GetUserByDiscordID :one
-SELECT id, name, discord_id, onboarding_complete, created_at FROM users WHERE discord_id = $1 LIMIT 1
+SELECT id, name, discord_id, onboarding_complete, email, created_at FROM users WHERE discord_id = $1 LIMIT 1
 `
 
 // Get user record by Discord ID
@@ -37,13 +37,14 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (Use
 		&i.Name,
 		&i.DiscordID,
 		&i.OnboardingComplete,
+		&i.Email,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUsersWithoutDiscordID = `-- name: GetUsersWithoutDiscordID :many
-SELECT id, name, discord_id, onboarding_complete, created_at FROM users 
+SELECT id, name, discord_id, onboarding_complete, email, created_at FROM users 
 WHERE discord_id = '' OR discord_id IS NULL
 ORDER BY name
 `
@@ -63,6 +64,7 @@ func (q *Queries) GetUsersWithoutDiscordID(ctx context.Context) ([]User, error) 
 			&i.Name,
 			&i.DiscordID,
 			&i.OnboardingComplete,
+			&i.Email,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

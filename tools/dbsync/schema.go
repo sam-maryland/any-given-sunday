@@ -73,14 +73,14 @@ func splitStatements(content string) []string {
 	// Simple split on semicolons - this is basic and may need enhancement
 	statements := strings.Split(content, ";")
 	result := make([]string, 0)
-	
+
 	for _, stmt := range statements {
 		stmt = strings.TrimSpace(stmt)
 		if stmt != "" {
 			result = append(result, stmt)
 		}
 	}
-	
+
 	return result
 }
 
@@ -175,7 +175,7 @@ func parseColumnDefinition(line string) (*Column, error) {
 	}
 
 	lineUpper := strings.ToUpper(line)
-	
+
 	// Check for NOT NULL
 	if strings.Contains(lineUpper, "NOT NULL") {
 		column.NotNull = true
@@ -238,8 +238,6 @@ func parseIndexColumnsFromStatement(stmt string) []string {
 	// Use the shared helper for consistency
 	return extractIndexColumns(stmt)
 }
-
-
 
 // CompareSchemas compares two schemas and returns the differences
 func CompareSchemas(local, remote *Schema) *SchemaComparison {

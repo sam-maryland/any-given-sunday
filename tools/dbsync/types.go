@@ -27,9 +27,9 @@ type Column struct {
 
 // Constraint represents a table constraint
 type Constraint struct {
-	Name   string
-	Type   string // PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK
-	Columns []string
+	Name       string
+	Type       string // PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK
+	Columns    []string
 	Definition string
 }
 
@@ -68,16 +68,16 @@ type TableDiff struct {
 
 // ColumnDiff represents differences in a specific column
 type ColumnDiff struct {
-	Name        string
-	TypeChanged bool
-	OldType     string
-	NewType     string
-	NullChanged bool
-	OldNotNull  bool
-	NewNotNull  bool
+	Name           string
+	TypeChanged    bool
+	OldType        string
+	NewType        string
+	NullChanged    bool
+	OldNotNull     bool
+	NewNotNull     bool
 	DefaultChanged bool
-	OldDefault  *string
-	NewDefault  *string
+	OldDefault     *string
+	NewDefault     *string
 }
 
 // Migration represents a database migration

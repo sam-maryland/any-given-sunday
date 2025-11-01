@@ -26,7 +26,7 @@ func TestHealthEndpoints(t *testing.T) {
 			expectedBody:   "healthy",
 		},
 		{
-			name:           "Ready endpoint returns ready status", 
+			name:           "Ready endpoint returns ready status",
 			endpoint:       "/ready",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "ready",
@@ -43,7 +43,7 @@ func TestHealthEndpoints(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a test server with the health endpoints
 			mux := http.NewServeMux()
-			
+
 			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)

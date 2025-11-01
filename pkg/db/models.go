@@ -62,5 +62,6 @@ type User struct {
 	Name               string
 	DiscordID          string
 	OnboardingComplete pgtype.Bool
+	Email              string
 	CreatedAt          pgtype.Timestamptz
 }

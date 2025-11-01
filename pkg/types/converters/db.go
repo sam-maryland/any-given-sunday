@@ -13,6 +13,7 @@ func UserFromDB(u db.User) domain.User {
 		ID:        u.ID,
 		Name:      u.Name,
 		DiscordID: u.DiscordID,
+		Email:     u.Email,
 	}
 }
 

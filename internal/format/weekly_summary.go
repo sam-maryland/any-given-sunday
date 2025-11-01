@@ -31,7 +31,7 @@ func WeeklySummary(summary *interactor.WeeklySummary, users domain.UserMap) stri
 		if exists {
 			name = user.Name
 		}
-		
+
 		// Add medal emojis for top 3
 		var medal string
 		switch i {
@@ -44,7 +44,7 @@ func WeeklySummary(summary *interactor.WeeklySummary, users domain.UserMap) stri
 		default:
 			medal = ""
 		}
-		
+
 		// Format: "1. Team Name (10-3) 🥇"
 		record := fmt.Sprintf("(%d-%d)", standing.Wins, standing.Losses)
 		response += fmt.Sprintf("%d. %s %s%s\n", i+1, name, record, medal)
