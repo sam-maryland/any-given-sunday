@@ -35,7 +35,7 @@ func (i *testableWeeklyJobInteractor) SyncLatestData(ctx context.Context, year i
 	}
 
 	// Sync data for each week up to the current week
-	for week := 1; week <= nflState.Week; week++ {
+	for week := 1; week < nflState.Week; week++ {
 		err := i.syncWeekData(ctx, league.ID, year, week)
 		if err != nil {
 			// Log error but continue with other weeks

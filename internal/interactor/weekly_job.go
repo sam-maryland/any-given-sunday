@@ -48,7 +48,7 @@ func (i *interactor) SyncLatestData(ctx context.Context, year int) error {
 	}
 
 	// Sync data for each week up to the current week
-	for week := 1; week <= nflState.Week; week++ {
+	for week := 1; week < nflState.Week; week++ {
 		err := i.syncWeekData(ctx, league.ID, year, week)
 		if err != nil {
 			// Log error but continue with other weeks
@@ -288,23 +288,23 @@ func (i *interactor) GenerateWeeklySummary(ctx context.Context, year int) (*Week
 // calculateDataSyncStatus determines the current sync status between local data and Sleeper API
 func (i *interactor) calculateDataSyncStatus(ctx context.Context, year, latestWeek int) string {
 	// Get current NFL state to check the actual current week
-	// Note: Sleeper's week definition is consistently used throughout the codebase 
+	// Note: Sleeper's week definition is consistently used throughout the codebase
 	// (see SyncLatestData which uses the same nflState.Week for syncing)
 	nflState, err := i.SleeperClient.GetNFLState(ctx)
 	if err != nil {
 		return "⚠️ Unable to verify sync status"
 	}
-	
+
 	// If our latest week matches or exceeds the current NFL week, we're current
 	if latestWeek >= nflState.Week {
 		return "✅ Current"
 	}
-	
+
 	// Calculate how many weeks behind we are
 	weeksBehind := nflState.Week - latestWeek
 	if weeksBehind == 1 {
 		return "⏳ 1 week behind"
 	}
-	
+
 	return fmt.Sprintf("⚠️ %d weeks behind", weeksBehind)
 }

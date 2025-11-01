@@ -10,7 +10,7 @@
 *Update this section with what you're actively working on*
 
 **Active Development:**
-- [ ] DB Sync Strategy
+- [X] DB Sync Strategy
 
 **Next Up:**
 - [ ] Feature ready to start next
