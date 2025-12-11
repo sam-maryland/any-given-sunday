@@ -39,15 +39,9 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is required")
 	}
 
+	// Discord configuration (optional - if not set, Discord messages won't be sent)
 	discordToken := os.Getenv("DISCORD_TOKEN")
-	if discordToken == "" {
-		return nil, fmt.Errorf("DISCORD_TOKEN environment variable is required")
-	}
-
 	weeklyRecapChannelID := os.Getenv("DISCORD_WEEKLY_RECAP_CHANNEL_ID")
-	if weeklyRecapChannelID == "" {
-		return nil, fmt.Errorf("DISCORD_WEEKLY_RECAP_CHANNEL_ID environment variable is required")
-	}
 
 	// Email configuration (optional - if not set, emails won't be sent)
 	resendAPIKey := os.Getenv("RESEND_API_KEY")
@@ -98,14 +92,21 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 	// Initialize interactor
 	inter := interactor.NewInteractor(chain)
 
-	// Initialize Discord session
-	session, err := discordgo.New("Bot " + discordToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Discord session: %w", err)
+	// Initialize Discord channel poster (optional)
+	var channelPoster *discord.ChannelPoster
+	if discordToken != "" && weeklyRecapChannelID != "" {
+		session, err := discordgo.New("Bot " + discordToken)
+		if err != nil {
+			log.Printf("Warning: Failed to create Discord session: %v", err)
+			log.Println("Weekly recap will continue without Discord notifications")
+		} else {
+			channelPoster = discord.NewChannelPoster(session, weeklyRecapChannelID)
+			log.Println("✅ Discord client initialized successfully")
+		}
+	} else {
+		log.Println("Discord configuration not found (DISCORD_TOKEN or DISCORD_WEEKLY_RECAP_CHANNEL_ID missing)")
+		log.Println("Weekly recap will run without Discord notifications")
 	}
-
-	// Initialize channel poster
-	channelPoster := discord.NewChannelPoster(session, weeklyRecapChannelID)
 
 	// Initialize email client (optional)
 	var emailClient *email.Client
@@ -157,18 +158,24 @@ func (a *WeeklyRecapApp) RunWeeklyRecap(ctx context.Context) error {
 	}
 	log.Println("✅ Data sync completed successfully")
 
-	// 2. Generate and post weekly summary
+	// 2. Generate weekly summary message
 	message, err := a.GenerateWeeklySummaryMessage(ctx, league.Year)
 	if err != nil {
 		return fmt.Errorf("failed to generate weekly summary message: %w", err)
 	}
 
-	// 3. Post to Discord channel
-	log.Println("Posting weekly summary to Discord...")
-	if err := a.channelPoster.PostWeeklySummary(ctx, message); err != nil {
-		return fmt.Errorf("failed to post weekly summary to Discord: %w", err)
+	// 3. Post to Discord channel (optional, won't fail the job if it errors)
+	if a.channelPoster != nil {
+		log.Println("Posting weekly summary to Discord...")
+		if err := a.channelPoster.PostWeeklySummary(ctx, message); err != nil {
+			log.Printf("⚠️  Failed to post weekly summary to Discord: %v", err)
+			log.Println("Skipping Discord notification, but job continues")
+		} else {
+			log.Printf("✅ Weekly summary posted to Discord")
+		}
+	} else {
+		log.Println("Discord client not configured, skipping Discord notification")
 	}
-	log.Printf("✅ Weekly summary posted to Discord")
 
 	// 4. Send email notifications (optional, won't fail the job if it errors)
 	if a.emailClient != nil {
