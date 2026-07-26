@@ -62,14 +62,8 @@ export async function runWeeklyRecap(
     existingMatchups,
   );
 
-  // Re-read only when the sync actually changed something.
-  const matchups =
-    synced.inserted > 0 || synced.updated > 0
-      ? await db.getMatchupsByYear(league.year)
-      : existingMatchups;
-
   const users = await db.getUsers();
-  const summary = summaryFromMatchups(league, matchups, users);
+  const summary = summaryFromMatchups(league, synced.matchups, users);
   if (!summary) {
     return {
       status: "skipped",
@@ -133,7 +127,9 @@ async function emailRecap(
   }
 
   try {
-    const recipients = await db.getUsersWithEmail();
+    // Recipients come from the users we already loaded rather than a second
+    // filtered query.
+    const recipients = [...users.values()].filter((u) => !!u.email);
     if (recipients.length === 0) {
       return { status: "skipped", recipients: 0 };
     }

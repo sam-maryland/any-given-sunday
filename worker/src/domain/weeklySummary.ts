@@ -1,7 +1,7 @@
 import { SupabaseClient } from "../data/supabase";
 import { getNFLState } from "../data/sleeper";
 import { standingsForLeague, Standing } from "./standings";
-import { League, Matchup, UserMap } from "./types";
+import { League, NewMatchup, UserMap } from "./types";
 
 export interface WeeklyHighScore {
   userId: string;
@@ -30,7 +30,7 @@ export interface WeeklySummary {
  */
 export function summaryFromMatchups(
   league: League,
-  matchups: Matchup[],
+  matchups: NewMatchup[],
   users: UserMap,
   dataSyncStatus = "",
 ): WeeklySummary | null {

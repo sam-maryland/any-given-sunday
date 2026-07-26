@@ -34,7 +34,13 @@ export interface Matchup {
   away_score: number;
 }
 
-// A matchup row being inserted: same as Matchup without the DB-generated id.
+/**
+ * A matchup without its database-generated id.
+ *
+ * Both the row shape used for inserts and the input the standings and summary
+ * logic needs — none of that logic looks at ids, so it can run on rows the
+ * sync has just built but not yet read back.
+ */
 export type NewMatchup = Omit<Matchup, "id">;
 
 export interface User {
@@ -73,7 +79,7 @@ export interface CareerStatsRow {
   playoff_avg_points: number | null;
 }
 
-export function matchupWinnerAndLoser(m: Matchup): { winner: string; loser: string } {
+export function matchupWinnerAndLoser(m: NewMatchup): { winner: string; loser: string } {
   if (m.home_score > m.away_score) {
     return { winner: m.home_user_id, loser: m.away_user_id };
   }

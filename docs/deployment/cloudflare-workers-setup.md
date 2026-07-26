@@ -118,20 +118,30 @@ has completed a live recap, the Go job and its workflow can be deleted.
 ### Worker limits this design works around
 
 On the Workers free plan each invocation gets **50 subrequests** and
-**10ms CPU**. The Go job re-fetched all 17 weeks from Sleeper every run and
-issued two database queries per matchup (~180 requests), which does not
-fit. The port instead:
+**10ms CPU**. Note that this counts binding calls too — Cloudflare defines
+a subrequest as any request "using the Fetch API or to Cloudflare services
+like R2, KV, or D1" — so moving off Supabase to D1 would not by itself buy
+any headroom.
 
-- reads existing matchups once and diffs in memory, writing new rows in a
+The Go job re-fetched all 17 weeks from Sleeper every run, re-fetched
+rosters inside the per-week loop, and issued two database queries per
+matchup (~180 requests), which does not fit. The recap instead:
+
+- reads existing matchups once, diffs in memory, and writes new rows in a
   single bulk insert
 - fetches rosters once rather than once per week
 - only fetches weeks that are missing, plus the two most recent (so stat
   corrections are still picked up)
+- returns the post-sync state in memory rather than reading the table back
+- derives email recipients from the users it already loaded
 - sends all recap emails in one Resend batch request instead of one
   request per recipient
 
-A full season sync costs 19 subrequests; a typical in-season run is under
-15. There is a test asserting this budget in `src/recap/sync.test.ts`.
+A typical in-season run is 10–13 requests. Rather than assert a total,
+`src/recap/sync.test.ts` asserts the properties that keep it low: rosters
+are fetched once regardless of week count, writes happen once per sync
+rather than once per matchup, nothing is read back after writing, and only
+the weeks that can still change are fetched.
 
 ### Verifying without sending anything
 

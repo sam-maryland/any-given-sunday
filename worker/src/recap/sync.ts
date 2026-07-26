@@ -6,6 +6,12 @@ export interface SyncResult {
   weeksFetched: number[];
   inserted: number;
   updated: number;
+  /**
+   * The season's matchups as they now stand, with inserts and score
+   * corrections applied in memory. Returned so callers do not have to read
+   * the table back after writing to it.
+   */
+  matchups: NewMatchup[];
 }
 
 // Scores can still change after a week ends (stat corrections), so weeks this
@@ -32,7 +38,7 @@ export async function syncLatestData(
   // one before it (matching the Go job's `week < nflState.Week` loop).
   const lastCompletedWeek = currentNflWeek - 1;
   if (lastCompletedWeek < 1) {
-    return { weeksFetched: [], inserted: 0, updated: 0 };
+    return { weeksFetched: [], inserted: 0, updated: 0, matchups: existingMatchups };
   }
 
   const weeksWithData = new Set(existingMatchups.filter((m) => !m.is_playoff).map((m) => m.week));
@@ -46,7 +52,7 @@ export async function syncLatestData(
   }
 
   if (weeksToFetch.length === 0) {
-    return { weeksFetched: [], inserted: 0, updated: 0 };
+    return { weeksFetched: [], inserted: 0, updated: 0, matchups: existingMatchups };
   }
 
   // Fetched once and reused for every week, unlike the Go version which
@@ -103,7 +109,29 @@ export async function syncLatestData(
     });
   }
 
-  return { weeksFetched: weeksToFetch, inserted: toInsert.length, updated: toUpdate.length };
+  return {
+    weeksFetched: weeksToFetch,
+    inserted: toInsert.length,
+    updated: toUpdate.length,
+    matchups: applyWrites(existingMatchups, toInsert, toUpdate),
+  };
+}
+
+// Mirrors the writes above onto the rows we already had, so the caller gets
+// the post-sync state without reading the table back.
+function applyWrites(
+  existingMatchups: Matchup[],
+  inserted: NewMatchup[],
+  updated: { id: string; home_score: number; away_score: number }[],
+): NewMatchup[] {
+  const scoresById = new Map(updated.map((u) => [u.id, u]));
+
+  const merged: NewMatchup[] = existingMatchups.map((m) => {
+    const update = scoresById.get(m.id);
+    return update ? { ...m, home_score: update.home_score, away_score: update.away_score } : m;
+  });
+
+  return merged.concat(inserted);
 }
 
 function matchupKey(week: number, userA: string, userB: string): string {

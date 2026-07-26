@@ -70,10 +70,6 @@ export class SupabaseClient {
     return rows[0] ?? null;
   }
 
-  async getUsersWithEmail(): Promise<User[]> {
-    return this.request<User[]>("users?email=neq.&email=not.is.null");
-  }
-
   // Inserts matchups in a single request. PostgREST accepts an array body.
   async insertMatchups(rows: NewMatchup[]): Promise<void> {
     if (rows.length === 0) {

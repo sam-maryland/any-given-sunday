@@ -83,7 +83,7 @@ function existing(overrides: Partial<Matchup> & Pick<Matchup, "week">): Matchup 
 describe("syncLatestData", () => {
   it("does nothing before any week has completed", async () => {
     const result = await syncLatestData(db, "L1", 2025, 1, []);
-    expect(result).toEqual({ weeksFetched: [], inserted: 0, updated: 0 });
+    expect(result).toEqual({ weeksFetched: [], inserted: 0, updated: 0, matchups: [] });
     expect(fetchCalls).toHaveLength(0);
   });
 
@@ -160,10 +160,47 @@ describe("syncLatestData", () => {
     expect(result.weeksFetched).toContain(3);
   });
 
-  it("stays well inside the free plan's 50 subrequest budget for a full season", async () => {
-    await syncLatestData(db, "L1", 2025, 18, []);
-    // 17 week fetches + 1 rosters fetch + 1 bulk insert.
-    expect(fetchCalls.length).toBe(19);
-    expect(fetchCalls.filter((c) => c.includes("/rosters"))).toHaveLength(1);
+  // A Worker invocation may only make so many outbound requests, so the sync
+  // must not issue work per matchup or re-fetch things per week. These assert
+  // the shape of the request pattern rather than a total, which would just
+  // need updating every time the logic legitimately changes.
+  describe("request pattern", () => {
+    it("fetches rosters once no matter how many weeks it syncs", async () => {
+      await syncLatestData(db, "L1", 2025, 18, []);
+      expect(fetchCalls.filter((c) => c.includes("/rosters"))).toHaveLength(1);
+    });
+
+    it("writes once per sync rather than once per matchup", async () => {
+      const result = await syncLatestData(db, "L1", 2025, 18, []);
+
+      expect(result.inserted).toBe(34);
+      expect(fetchCalls.filter((c) => c === "supabase:insertMatchups")).toHaveLength(1);
+    });
+
+    it("reads nothing back after writing", async () => {
+      const result = await syncLatestData(db, "L1", 2025, 6, []);
+
+      expect(fetchCalls.filter((c) => c.startsWith("supabase:"))).toEqual([
+        "supabase:insertMatchups",
+      ]);
+      // The caller gets the post-sync state without another read.
+      expect(result.matchups).toHaveLength(result.inserted);
+    });
+
+    it("only fetches the weeks it actually needs", async () => {
+      const stored: Matchup[] = [];
+      for (let week = 1; week <= 16; week++) {
+        stored.push(existing({ week }));
+        stored.push(
+          existing({ week, home_user_id: "u3", away_user_id: "u4", home_score: 80, away_score: 70 }),
+        );
+      }
+
+      await syncLatestData(db, "L1", 2025, 18, stored);
+
+      // 17 weeks are complete: week 17 is new, and week 16 is re-checked for
+      // stat corrections. The other 15 are left alone.
+      expect(fetchCalls.filter((c) => c.includes("/matchups/"))).toHaveLength(2);
+    });
   });
 });
