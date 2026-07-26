@@ -151,7 +151,7 @@ func TestGetLatestLeague(t *testing.T) {
 				},
 			}
 
-			chain := dependency.NewTestChain(mockDB, nil, nil)
+			chain := dependency.NewTestChain(mockDB, nil)
 			interactor := newTestableInteractor(chain)
 
 			result, err := interactor.GetLatestLeague(context.Background())
@@ -227,7 +227,7 @@ func TestGetLeagueByYear(t *testing.T) {
 				},
 			}
 
-			chain := dependency.NewTestChain(mockDB, nil, nil)
+			chain := dependency.NewTestChain(mockDB, nil)
 			interactor := newTestableInteractor(chain)
 
 			result, err := interactor.GetLeagueByYear(context.Background(), tt.inputYear)
@@ -340,7 +340,7 @@ func TestGetStandingsForLeague(t *testing.T) {
 				},
 			}
 
-			chain := dependency.NewTestChain(mockDB, nil, nil)
+			chain := dependency.NewTestChain(mockDB, nil)
 			interactor := newTestableInteractor(chain)
 
 			result, err := interactor.GetStandingsForLeague(context.Background(), tt.inputLeague)

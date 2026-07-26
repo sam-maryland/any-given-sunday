@@ -10,10 +10,8 @@ type interactor struct {
 
 type Interactor interface {
 	LeagueInteractor
-	StatsInteractor
 	UsersInteractor
 	WeeklyJobInteractor
-	OnboardingInteractor
 }
 
 func NewInteractor(c *dependency.Chain) *interactor {

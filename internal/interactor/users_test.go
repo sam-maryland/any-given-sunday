@@ -175,7 +175,7 @@ func TestGetUsers(t *testing.T) {
 				},
 			}
 
-			chain := dependency.NewTestChain(mockDB, nil, nil)
+			chain := dependency.NewTestChain(mockDB, nil)
 			interactor := newTestableUsersInteractor(chain)
 
 			result, err := interactor.GetUsers(context.Background())
@@ -220,7 +220,7 @@ func TestGetUsers_ContextCancellation(t *testing.T) {
 		},
 	}
 
-	chain := dependency.NewTestChain(mockDB, nil, nil)
+	chain := dependency.NewTestChain(mockDB, nil)
 	interactor := newTestableUsersInteractor(chain)
 
 	result, err := interactor.GetUsers(ctx)
@@ -261,7 +261,7 @@ func TestGetUsers_LargeDataSet(t *testing.T) {
 		},
 	}
 
-	chain := dependency.NewTestChain(mockDB, nil, nil)
+	chain := dependency.NewTestChain(mockDB, nil)
 	interactor := newTestableUsersInteractor(chain)
 
 	result, err := interactor.GetUsers(context.Background())
@@ -295,7 +295,7 @@ func TestGetUsers_DuplicateUserIDs(t *testing.T) {
 		},
 	}
 
-	chain := dependency.NewTestChain(mockDB, nil, nil)
+	chain := dependency.NewTestChain(mockDB, nil)
 	interactor := newTestableUsersInteractor(chain)
 
 	result, err := interactor.GetUsers(context.Background())

@@ -100,10 +100,6 @@ type PlayerMetadata struct {
 	RookieYear string `json:"rookie_year"`
 }
 
-func (p Player) String() {
-	fmt.Printf("%s - %s (%s)\n", p.Position, p.FullName, p.Team)
-}
-
 type Players []Player
 
 // Roster represents a fantasy roster from Sleeper API

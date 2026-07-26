@@ -66,20 +66,23 @@ Create a `.env` file with the following variables:
 ```env
 DATABASE_URL=your_supabase_connection_string
 DISCORD_TOKEN=your_discord_bot_token
-DISCORD_GUILD_ID=your_discord_server_id
 DISCORD_WEEKLY_RECAP_CHANNEL_ID=channel_id_for_automated_recaps
-SLEEPER_LEAGUE_ID=your_sleeper_league_id
+RESEND_API_KEY=your_resend_api_key
+FROM_EMAIL=recaps@yourdomain.com
 ```
 
 ### 5. Local Development
 
 ```bash
-# Build and run the bot locally
+# Build and run the weekly recap job
 mage run
 
-# Or build binaries separately
+# Or build the binary separately
 mage build
 ```
+
+For the Discord bot itself (slash commands), see
+[docs/deployment/cloudflare-workers-setup.md](docs/deployment/cloudflare-workers-setup.md).
 
 ### 6. Deployment
 
@@ -100,13 +103,21 @@ The scheduled weekly recap still runs the Go binary via GitHub Actions
 
 ### Required Environment Variables
 
+The weekly recap job (Go) reads these:
+
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `DISCORD_TOKEN` | Discord bot token |
-| `DISCORD_GUILD_ID` | Discord server ID |
+| `DISCORD_TOKEN` | Discord bot token (for posting the recap) |
 | `DISCORD_WEEKLY_RECAP_CHANNEL_ID` | Channel for automated weekly posts |
-| `SLEEPER_LEAGUE_ID` | Your Sleeper league ID |
+| `RESEND_API_KEY` | Resend API key for recap emails |
+| `FROM_EMAIL` | Sender address for recap emails |
+
+Discord and email are both optional — if their variables are unset, the
+job syncs data and skips those notifications.
+
+The Worker's secrets are configured separately with `wrangler secret put`;
+see the [Workers setup guide](docs/deployment/cloudflare-workers-setup.md).
 
 ### Finding Your Sleeper League ID
 
@@ -137,35 +148,38 @@ This automation ensures your league stays up-to-date without manual intervention
 
 ### Project Structure
 
+The interactive bot (slash commands) and the scheduled weekly recap are
+two separate programs in two languages:
+
 ```
-├── cmd/
-│   ├── commish-bot/     # Main Discord bot application
-│   └── weekly-recap/    # CLI tool for automated recaps
+├── worker/              # Cloudflare Worker: Discord slash commands (TypeScript)
+│   ├── src/discord/     # Signature verification, interaction types
+│   ├── src/domain/      # Standings, career stats, weekly summary formatting
+│   └── src/data/        # Supabase (REST) and Sleeper API clients
+├── cmd/weekly-recap/    # Scheduled Tuesday recap job (Go)
 ├── internal/
-│   ├── discord/         # Discord command handlers
-│   ├── interactor/      # Business logic layer
-│   └── app/            # Application orchestration
+│   ├── app/             # Weekly recap orchestration
+│   ├── interactor/      # Sleeper sync + summary business logic
+│   ├── discord/         # Channel poster for the recap message
+│   └── email/           # Resend email delivery
 ├── pkg/
 │   ├── client/sleeper/  # Sleeper API integration
-│   ├── db/             # Database operations
-│   └── config/         # Configuration management
-├── migrations/         # Database schema migrations
-└── magefile.go         # Build automation
+│   ├── db/              # Database operations (sqlc)
+│   └── types/           # Domain types and DB converters
+├── migrations/          # Database schema migrations
+└── magefile.go          # Build automation
 ```
 
 ### Available Mage Commands
 
 #### Core Development
 - `mage test` - Run all tests
-- `mage build` - Build all binaries
-- `mage run` - Build and run the bot locally
+- `mage build` - Build the weekly-recap binary
+- `mage run` - Build and run the weekly recap locally
 - `mage clean` - Remove build artifacts
 
-#### Docker Operations
-- `mage docker:build` - Build Docker image
-- `mage docker:run` - Run Docker container locally
-- `mage docker:test` - Test Docker build and startup
-- `mage docker:clean` - Remove Docker artifacts
+Worker development lives in `worker/` and uses npm — see the
+[Workers setup guide](docs/deployment/cloudflare-workers-setup.md).
 
 #### Database Management
 - `mage db:status` - Show sync status between local and remote schema
