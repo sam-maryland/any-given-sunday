@@ -1,10 +1,8 @@
 package domain
 
 import (
-	"fmt"
 	"math/rand/v2"
 	"sort"
-	"strings"
 )
 
 type Standing struct {
@@ -74,42 +72,6 @@ func (s Standings) SortStandings() Standings {
 		}
 	}
 	return sm.SortStandingsMap()
-}
-
-func (s Standings) ToDiscordMessage(league League, users UserMap) string {
-	var b strings.Builder
-
-	if league.Status == LeagueStatusComplete {
-		fmt.Fprintf(&b, "**🏆 %d Final Standings 🏆**\n\n", league.Year)
-	} else {
-		fmt.Fprintf(&b, "**🏆 %d Standings 🏆**\n\n", league.Year)
-	}
-
-	// Top 3 rankings with emojis
-	medals := []string{"🥇", "🥈", "🥉"}
-	for i, st := range s {
-		// Format rank and name
-		rank := fmt.Sprintf("%d.", i+1)
-		if i < len(medals) {
-			rank = medals[i]
-		}
-
-		// If the league is in progress, check for the top 6 teams
-		if league.Status == LeagueStatusInProgress && i == 6 {
-			// Add the "Playoff Line" separator
-			fmt.Fprintf(&b, "\n────────────── **Playoffs** ──────────────\n\n")
-		}
-
-		name := users[st.UserID].Name
-		if name == "" {
-			name = st.UserID // Fallback if no name
-		}
-
-		// Write standings in a clean format
-		fmt.Fprintf(&b, "%s **%s** - %d-%d-%d (PF: %.1f, PA: %.1f)\n", rank, name, st.Wins, st.Losses, st.Ties, st.PointsFor, st.PointsAgainst)
-	}
-
-	return b.String()
 }
 
 type StandingsMap map[string]*Standing
