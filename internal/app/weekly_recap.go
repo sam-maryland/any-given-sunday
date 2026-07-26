@@ -27,6 +27,7 @@ type WeeklyRecapApp struct {
 	channelPoster       *discord.ChannelPoster
 	interactor          interactor.Interactor
 	emailClient         *email.Client
+	commissionerEmail   string
 	queries             *db.Queries
 	sleeperClient       sleeper.ISleeperClient
 }
@@ -46,6 +47,10 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 	// Email configuration (optional - if not set, emails won't be sent)
 	resendAPIKey := os.Getenv("RESEND_API_KEY")
 	fromEmail := os.Getenv("FROM_EMAIL")
+
+	// Commissioner email (optional - if set, a plain-text copy of the recap is
+	// emailed there for copy/pasting into the league group chat)
+	commissionerEmail := os.Getenv("COMMISSIONER_EMAIL")
 
 	// Initialize database connection with retry logic
 	var pool *pgxpool.Pool
@@ -128,6 +133,7 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 		channelPoster:       channelPoster,
 		interactor:          inter,
 		emailClient:         emailClient,
+		commissionerEmail:   commissionerEmail,
 		queries:             queries,
 		sleeperClient:       sleeperClient,
 	}, nil
@@ -187,6 +193,18 @@ func (a *WeeklyRecapApp) RunWeeklyRecap(ctx context.Context) error {
 			log.Printf("⚠️  Failed to generate summary for emails: %v", err)
 			log.Println("Skipping email notifications")
 		} else {
+			// Send the commissioner a plain-text copy for the group chat
+			if a.commissionerEmail != "" {
+				smsText := format.StripMarkdown(message)
+				if err := a.emailClient.SendCommissionerRecapCopy(ctx, summary.Week, a.commissionerEmail, smsText); err != nil {
+					log.Printf("⚠️  Failed to send commissioner recap copy: %v", err)
+				} else {
+					log.Printf("✅ Commissioner recap copy sent to %s", a.commissionerEmail)
+				}
+				time.Sleep(600 * time.Millisecond) // stay under Resend's 2 req/sec limit before member sends
+			}
+
+
 			// Get users with email addresses (for sending)
 			dbUsersWithEmail, err := a.queries.GetUsersWithEmail(ctx)
 			if err != nil {

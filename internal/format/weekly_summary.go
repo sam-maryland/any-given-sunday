@@ -2,10 +2,17 @@ package format
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sam-maryland/any-given-sunday/internal/interactor"
 	"github.com/sam-maryland/any-given-sunday/pkg/types/domain"
 )
+
+// StripMarkdown converts a Discord-formatted message to plain text suitable
+// for pasting into an SMS/group chat.
+func StripMarkdown(s string) string {
+	return strings.ReplaceAll(s, "**", "")
+}
 
 // WeeklySummary formats the weekly summary for Discord (shared formatting logic)
 func WeeklySummary(summary *interactor.WeeklySummary, users domain.UserMap) string {

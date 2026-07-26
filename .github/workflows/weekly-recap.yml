@@ -52,6 +52,8 @@ jobs:
         # Email credentials - only set if notifications are enabled
         RESEND_API_KEY: ${{ (github.event_name == 'schedule' || inputs.send_email_notification == true) && secrets.RESEND_API_KEY || '' }}
         FROM_EMAIL: ${{ (github.event_name == 'schedule' || inputs.send_email_notification == true) && secrets.FROM_EMAIL || '' }}
+        # Commissioner copy - plain-text recap for pasting into the group chat
+        COMMISSIONER_EMAIL: ${{ (github.event_name == 'schedule' || inputs.send_email_notification == true) && secrets.COMMISSIONER_EMAIL || '' }}
       run: ./.bin/weekly-recap --mode=weekly-recap
 
     - name: Report status on failure

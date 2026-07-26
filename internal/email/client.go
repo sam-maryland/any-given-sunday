@@ -85,6 +85,24 @@ func (c *Client) SendWeeklyRecap(ctx context.Context, summary *interactor.Weekly
 	return nil
 }
 
+// SendCommissionerRecapCopy emails a plain-text copy of the weekly recap to
+// the commissioner, formatted for copy/pasting into the league group chat.
+func (c *Client) SendCommissionerRecapCopy(_ context.Context, week int, toEmail string, text string) error {
+	params := &resend.SendEmailRequest{
+		From:    c.fromEmail,
+		To:      []string{toEmail},
+		Subject: fmt.Sprintf("📱 Week %d Recap - paste into the group chat", week),
+		Text:    text,
+	}
+
+	_, err := c.resendClient.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("resend API error: %w", err)
+	}
+
+	return nil
+}
+
 // sendEmail sends an individual email via Resend
 func (c *Client) sendEmail(_ context.Context, toEmail string, subject string, htmlContent string) error {
 	params := &resend.SendEmailRequest{
