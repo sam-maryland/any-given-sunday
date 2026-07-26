@@ -1,0 +1,19 @@
+{
+  "name": "any-given-sunday-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord interactions endpoint for the Any Given Sunday fantasy football bot",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "check": "tsc --noEmit",
+    "register-commands": "node --env-file=.dev.vars scripts/register-commands.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260726.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.114.0"
+  }
+}
