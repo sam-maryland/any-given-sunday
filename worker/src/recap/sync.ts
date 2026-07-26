@@ -55,8 +55,10 @@ export async function syncLatestData(
     return { weeksFetched: [], inserted: 0, updated: 0, matchups: existingMatchups };
   }
 
-  // Fetched once and reused for every week, unlike the Go version which
-  // re-fetched rosters inside the per-week loop.
+  // Only the roster-to-owner mapping is needed here, and Sleeper's rosters
+  // endpoint takes no week parameter — it always returns current state. So
+  // fetching it per week (as the Go job did) returned identical data every
+  // time. Week-specific lineup data lives on the matchups endpoint below.
   const rosters = await getRostersInLeague(leagueId);
   const rosterToOwner = new Map<number, string>();
   for (const roster of rosters) {
