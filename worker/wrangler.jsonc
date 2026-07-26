@@ -8,12 +8,25 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
+  },
+  "triggers": {
+    // Weekly recap: Tuesdays at 12:00 UTC, matching the GitHub Actions
+    // schedule it replaces. Cron triggers are always UTC.
+    "crons": ["0 12 * * 2"]
   }
   // Secrets (set with `wrangler secret put <NAME>`, or .dev.vars locally):
   //   DISCORD_PUBLIC_KEY          - Discord app public key (General Information page)
   //   DISCORD_APP_ID              - Discord application ID
   //   SUPABASE_URL                - https://<project-ref>.supabase.co
   //   SUPABASE_SERVICE_ROLE_KEY   - Supabase service role key (server-side only)
-  // Note: no Discord bot token needed — interaction responses use the
+  //
+  // Weekly recap secrets (the cron trigger below; recap steps are skipped
+  // when their secrets are absent):
+  //   DISCORD_BOT_TOKEN                - bot token, to post the recap message
+  //   DISCORD_WEEKLY_RECAP_CHANNEL_ID  - channel to post the recap in
+  //   RESEND_API_KEY                   - Resend API key for recap emails
+  //   FROM_EMAIL                       - sender address for recap emails
+  //
+  // Slash commands need no bot token: interaction responses use the
   // per-interaction token, and signature checks use the public key.
 }

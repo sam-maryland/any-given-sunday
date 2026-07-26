@@ -34,6 +34,9 @@ export interface Matchup {
   away_score: number;
 }
 
+// A matchup row being inserted: same as Matchup without the DB-generated id.
+export type NewMatchup = Omit<Matchup, "id">;
+
 export interface User {
   id: string;
   name: string;

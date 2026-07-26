@@ -1,10 +1,11 @@
 name: Weekly Fantasy Recap
 
+# The weekly schedule now runs as a Cloudflare Worker cron trigger (see
+# worker/wrangler.jsonc). This workflow is kept for manual runs only, as a
+# fallback until the Worker has completed a live recap; running both on a
+# schedule would post and email the recap twice.
 on:
-  schedule:
-    # Run every Tuesday at 7 AM ET (12 PM UTC)
-    - cron: '0 12 * * 2'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:  # Manual triggering only
     inputs:
       send_discord_notification:
         description: 'Send Discord notification'

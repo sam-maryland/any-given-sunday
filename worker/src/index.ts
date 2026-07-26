@@ -6,6 +6,7 @@ import {
   InteractionType,
   jsonResponse,
 } from "./discord/types";
+import { RecapConfig, runWeeklyRecap } from "./recap";
 import {
   COMPONENT_ID_SLEEPER_USER_SELECT,
   handleCareerStatsCommand,
@@ -15,7 +16,43 @@ import {
   handleWeeklySummaryCommand,
 } from "./handlers";
 
+function recapConfig(env: Env): RecapConfig {
+  return {
+    discordBotToken: env.DISCORD_BOT_TOKEN,
+    discordChannelId: env.DISCORD_WEEKLY_RECAP_CHANNEL_ID,
+    resendApiKey: env.RESEND_API_KEY,
+    fromEmail: env.FROM_EMAIL,
+    // Set in .dev.vars so local `wrangler dev --test-scheduled` runs exercise
+    // the full path without posting to Discord or emailing the league.
+    dryRun: env.RECAP_DRY_RUN === "true",
+  };
+}
+
 export default {
+  // Weekly recap (cron). Syncs Sleeper data, posts to Discord, sends email.
+  async scheduled(controller, env, ctx): Promise<void> {
+    const db = new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    ctx.waitUntil(
+      (async () => {
+        try {
+          const outcome = await runWeeklyRecap(db, recapConfig(env));
+          console.log(
+            JSON.stringify({ event: "weekly_recap", cron: controller.cron, ...outcome }),
+          );
+        } catch (err) {
+          console.error(
+            JSON.stringify({
+              event: "weekly_recap_failed",
+              cron: controller.cron,
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          );
+          throw err;
+        }
+      })(),
+    );
+  },
+
   async fetch(request, env, ctx): Promise<Response> {
     if (request.method !== "POST") {
       return new Response("any-given-sunday discord bot", { status: 200 });
