@@ -1,0 +1,10 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# In production, set each of these with: wrangler secret put <NAME>
+DISCORD_PUBLIC_KEY=your_discord_app_public_key
+DISCORD_APP_ID=your_discord_application_id
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Used only by scripts/register-commands.mjs (not by the Worker):
+DISCORD_TOKEN=your_discord_bot_token
+DISCORD_GUILD_ID=your_discord_server_id

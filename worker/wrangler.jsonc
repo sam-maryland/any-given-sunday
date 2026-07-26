@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "any-given-sunday",
+  "account_id": "94827116f0db60b71d2e91d7b64e605e",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+  // Secrets (set with `wrangler secret put <NAME>`, or .dev.vars locally):
+  //   DISCORD_PUBLIC_KEY          - Discord app public key (General Information page)
+  //   DISCORD_APP_ID              - Discord application ID
+  //   SUPABASE_URL                - https://<project-ref>.supabase.co
+  //   SUPABASE_SERVICE_ROLE_KEY   - Supabase service role key (server-side only)
+  // Note: no Discord bot token needed — interaction responses use the
+  // per-interaction token, and signature checks use the public key.
+}
