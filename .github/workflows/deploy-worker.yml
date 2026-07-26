@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Worker types
+        # worker-configuration.d.ts is generated, not committed. wrangler
+        # derives the Env interface from .dev.vars; the committed example
+        # has the same variable names with placeholder values.
+        run: cp .dev.vars.example .dev.vars && npx wrangler types
+
       - name: Type check
         run: npx tsc --noEmit
 
