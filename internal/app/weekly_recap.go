@@ -31,49 +31,104 @@ type WeeklyRecapApp struct {
 	sleeperClient       sleeper.ISleeperClient
 }
 
-// NewWeeklyRecapApp creates a new weekly recap application with all dependencies
-func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
-	// Get required environment variables
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL environment variable is required")
+// weeklyRecapConfig holds the environment-derived configuration for the weekly
+// recap application. Only DatabaseURL is required; the Discord and email
+// settings are optional and disable their respective notifications when unset.
+type weeklyRecapConfig struct {
+	DatabaseURL          string
+	DiscordToken         string
+	WeeklyRecapChannelID string
+	ResendAPIKey         string
+	FromEmail            string
+}
+
+// loadWeeklyRecapConfig reads the weekly recap configuration from the
+// environment. It performs no I/O and returns an error only when a required
+// variable is missing.
+func loadWeeklyRecapConfig() (weeklyRecapConfig, error) {
+	cfg := weeklyRecapConfig{
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+
+		// Discord configuration (optional - if not set, Discord messages won't be sent)
+		DiscordToken:         os.Getenv("DISCORD_TOKEN"),
+		WeeklyRecapChannelID: os.Getenv("DISCORD_WEEKLY_RECAP_CHANNEL_ID"),
+
+		// Email configuration (optional - if not set, emails won't be sent)
+		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
+		FromEmail:    os.Getenv("FROM_EMAIL"),
 	}
 
-	// Discord configuration (optional - if not set, Discord messages won't be sent)
-	discordToken := os.Getenv("DISCORD_TOKEN")
-	weeklyRecapChannelID := os.Getenv("DISCORD_WEEKLY_RECAP_CHANNEL_ID")
+	if cfg.DatabaseURL == "" {
+		return weeklyRecapConfig{}, fmt.Errorf("DATABASE_URL environment variable is required")
+	}
 
-	// Email configuration (optional - if not set, emails won't be sent)
-	resendAPIKey := os.Getenv("RESEND_API_KEY")
-	fromEmail := os.Getenv("FROM_EMAIL")
+	return cfg, nil
+}
 
-	// Initialize database connection with retry logic
-	var pool *pgxpool.Pool
+// connectPolicy controls the database connection retry loop.
+type connectPolicy struct {
+	// MaxAttempts is the total number of connection attempts, including the first.
+	MaxAttempts int
+	// BackoffUnit is multiplied by the attempt number to determine how long to
+	// wait before the next attempt.
+	BackoffUnit time.Duration
+}
+
+// defaultConnectPolicy retries three times with a 2s/4s backoff.
+var defaultConnectPolicy = connectPolicy{MaxAttempts: 3, BackoffUnit: 2 * time.Second}
+
+// connectDB opens a connection pool, retrying transient failures according to
+// policy. A malformed DATABASE_URL fails immediately, since retrying cannot fix it.
+func connectDB(ctx context.Context, databaseURL string, policy connectPolicy) (*pgxpool.Pool, error) {
+	// Validate up front so a malformed URL fails immediately instead of
+	// consuming the retry budget. pgxpool.New parses again per attempt, which
+	// keeps each pool owner of its own config.
+	if _, err := pgxpool.ParseConfig(databaseURL); err != nil {
+		return nil, fmt.Errorf("failed to connect to database: invalid DATABASE_URL: %w", err)
+	}
+
 	var err error
-	maxRetries := 3
-
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		pool, err = pgxpool.New(context.Background(), databaseURL)
+	for attempt := 1; attempt <= policy.MaxAttempts; attempt++ {
+		var pool *pgxpool.Pool
+		pool, err = pgxpool.New(ctx, databaseURL)
 		if err == nil {
 			// Test database connection
-			if pingErr := pool.Ping(context.Background()); pingErr == nil {
-				break // Success
+			if pingErr := pool.Ping(ctx); pingErr == nil {
+				return pool, nil // Success
 			} else {
 				pool.Close() // Close failed connection
 				err = pingErr
 			}
 		}
 
-		if attempt < maxRetries {
-			waitTime := time.Duration(attempt*2) * time.Second
+		if attempt < policy.MaxAttempts {
+			waitTime := time.Duration(attempt) * policy.BackoffUnit
 			log.Printf("Database connection attempt %d/%d failed, retrying in %v: %v",
-				attempt, maxRetries, waitTime, err)
+				attempt, policy.MaxAttempts, waitTime, err)
 			time.Sleep(waitTime)
 		}
 	}
 
+	return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", policy.MaxAttempts, err)
+}
+
+// NewWeeklyRecapApp creates a new weekly recap application with all dependencies
+func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
+	cfg, err := loadWeeklyRecapConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
+		return nil, err
+	}
+
+	return newWeeklyRecapApp(cfg, defaultConnectPolicy)
+}
+
+// newWeeklyRecapApp builds the application from an already-loaded config,
+// using policy for the database connection retry loop.
+func newWeeklyRecapApp(cfg weeklyRecapConfig, policy connectPolicy) (*WeeklyRecapApp, error) {
+	// Initialize database connection with retry logic
+	pool, err := connectDB(context.Background(), cfg.DatabaseURL, policy)
+	if err != nil {
+		return nil, err
 	}
 
 	// Initialize database queries
@@ -94,13 +149,13 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 
 	// Initialize Discord channel poster (optional)
 	var channelPoster *discord.ChannelPoster
-	if discordToken != "" && weeklyRecapChannelID != "" {
-		session, err := discordgo.New("Bot " + discordToken)
+	if cfg.DiscordToken != "" && cfg.WeeklyRecapChannelID != "" {
+		session, err := discordgo.New("Bot " + cfg.DiscordToken)
 		if err != nil {
 			log.Printf("Warning: Failed to create Discord session: %v", err)
 			log.Println("Weekly recap will continue without Discord notifications")
 		} else {
-			channelPoster = discord.NewChannelPoster(session, weeklyRecapChannelID)
+			channelPoster = discord.NewChannelPoster(session, cfg.WeeklyRecapChannelID)
 			log.Println("✅ Discord client initialized successfully")
 		}
 	} else {
@@ -110,8 +165,8 @@ func NewWeeklyRecapApp() (*WeeklyRecapApp, error) {
 
 	// Initialize email client (optional)
 	var emailClient *email.Client
-	if resendAPIKey != "" && fromEmail != "" {
-		emailClient, err = email.NewClient(resendAPIKey, fromEmail)
+	if cfg.ResendAPIKey != "" && cfg.FromEmail != "" {
+		emailClient, err = email.NewClient(cfg.ResendAPIKey, cfg.FromEmail)
 		if err != nil {
 			log.Printf("Warning: Failed to initialize email client: %v", err)
 			log.Println("Weekly recap will continue without email notifications")
