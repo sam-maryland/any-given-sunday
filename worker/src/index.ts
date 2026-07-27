@@ -7,6 +7,7 @@ import {
   jsonResponse,
 } from "./discord/types";
 import { RecapConfig, runWeeklyRecap } from "./recap";
+import { RECAP_TIME_ZONE, hourInTimeZone, isRecapHour } from "./recap/schedule";
 import {
   COMPONENT_ID_SLEEPER_USER_SELECT,
   handleCareerStatsCommand,
@@ -31,6 +32,19 @@ function recapConfig(env: Env): RecapConfig {
 export default {
   // Weekly recap (cron). Syncs Sleeper data, posts to Discord, sends email.
   async scheduled(controller, env, ctx): Promise<void> {
+    // Two UTC slots are registered so one of them is 8am Eastern year-round;
+    // the other is a no-op.
+    if (!isRecapHour(controller.scheduledTime)) {
+      console.log(
+        JSON.stringify({
+          event: "weekly_recap_wrong_hour",
+          cron: controller.cron,
+          localHour: hourInTimeZone(new Date(controller.scheduledTime), RECAP_TIME_ZONE),
+        }),
+      );
+      return;
+    }
+
     const db = new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     ctx.waitUntil(
       (async () => {

@@ -8,7 +8,7 @@ covers it entirely.
 
 The Worker lives in [`worker/`](../../worker). It serves two things: the
 Discord slash commands, and the **weekly recap** on a cron trigger
-(Tuesdays 12:00 UTC) that syncs Sleeper data, posts the recap to Discord,
+(Tuesdays 8am Eastern) that syncs Sleeper data, posts the recap to Discord,
 and emails it to the league.
 
 ## Architecture
@@ -99,10 +99,9 @@ Profile → API Tokens → "Edit Cloudflare Workers" template).
 
 ## The weekly recap (cron trigger)
 
-Runs Tuesdays at 12:00 UTC — the same schedule the GitHub Actions job used —
-**every week, year-round**. Discord posting and email each require their own
-secrets and are skipped (not failed) when unset, so you can enable them
-independently:
+Runs **Tuesdays at 8am Eastern, every week, year-round**. Discord posting and
+email each require their own secrets and are skipped (not failed) when unset,
+so you can enable them independently:
 
 ```bash
 wrangler secret put DISCORD_BOT_TOKEN
@@ -138,13 +137,28 @@ the final week's summary every Tuesday all winter.
 
 The third rule also stops a manual re-run from sending the same recap twice.
 Its trade-off: it depends on Sleeper having advanced `week` by the time the
-cron fires. If Sleeper rolls the week over later than 12:00 UTC Tuesday, a
+cron fires. If Sleeper rolls the week over later than 8am Eastern Tuesday, a
 run can find nothing new and stay quiet for that week. If that ever happens,
-move the cron a few hours later in `wrangler.jsonc`.
+move both cron entries later in `wrangler.jsonc`.
 
 Every run logs one `weekly_recap` JSON line including `seasonType` and, when
 nothing was sent, `notificationsHeld` with the reason — so a quiet week is
 always distinguishable from a broken one.
+
+### Delivering at 8am Eastern year-round
+
+Owners expect the recap at 8am Eastern on Tuesday, but cron triggers are
+UTC-only and Eastern shifts by an hour in November — mid-season. A single
+`0 12 * * 2` trigger is 8am in September and **7am** from November onward,
+which is what the GitHub Actions job did.
+
+So two triggers are registered, `0 12 * * 2` and `0 13 * * 2`, and the
+scheduled handler runs the recap only on whichever one is actually 8am
+Eastern that week (`src/recap/schedule.ts`); the other returns immediately.
+Exactly one recap goes out per Tuesday, verified by a test that walks every
+Tuesday of a season across the changeover.
+
+This uses 2 of the 5 cron triggers a free account gets.
 
 ### Worker limits this design works around
 
@@ -185,6 +199,11 @@ npx wrangler dev --test-scheduled
 
 ```bash
 curl "http://localhost:8787/__scheduled?cron=0+12+*+*+2"
+```
+
+The handler only proceeds when the scheduled time is 8am Eastern, so a local
+trigger outside that hour logs `weekly_recap_wrong_hour` and stops. Comment
+out the guard in `src/index.ts` to exercise the full path at any time.
 ```
 
 The outcome is logged as a single structured `weekly_recap` JSON line

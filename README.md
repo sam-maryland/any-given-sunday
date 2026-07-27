@@ -93,8 +93,8 @@ npm ci
 npm run deploy
 ```
 
-The weekly recap runs as a Cloudflare Worker cron trigger (Tuesdays 12:00
-UTC) in the same Worker. The Go job in `cmd/weekly-recap` remains as a
+The weekly recap runs as a Cloudflare Worker cron trigger (Tuesdays 8am
+Eastern) in the same Worker. The Go job in `cmd/weekly-recap` remains as a
 manually-triggerable fallback until the Worker has completed a live recap.
 
 ## Configuration
@@ -127,7 +127,7 @@ manually-triggerable fallback until the Worker has completed a live recap.
 ### Automated Features
 
 The Worker runs a cron trigger that automatically:
-- Runs every Tuesday at 12:00 UTC
+- Runs every Tuesday at 8am Eastern
 - Syncs the latest matchup data from Sleeper
 - Updates the database with completed games
 - Posts a formatted weekly recap to your designated Discord channel
