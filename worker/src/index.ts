@@ -7,7 +7,7 @@ import {
   jsonResponse,
 } from "./discord/types";
 import { RecapConfig, runWeeklyRecap } from "./recap";
-import { RECAP_TIME_ZONE, hourInTimeZone, isRecapHour } from "./recap/schedule";
+import { recapEmailTime } from "./recap/schedule";
 import {
   COMPONENT_ID_SLEEPER_USER_SELECT,
   handleCareerStatsCommand,
@@ -17,12 +17,13 @@ import {
   handleWeeklySummaryCommand,
 } from "./handlers";
 
-function recapConfig(env: Env): RecapConfig {
+function recapConfig(env: Env, scheduledTime: number): RecapConfig {
   return {
     discordBotToken: env.DISCORD_BOT_TOKEN,
     discordChannelId: env.DISCORD_WEEKLY_RECAP_CHANNEL_ID,
     resendApiKey: env.RESEND_API_KEY,
     fromEmail: env.FROM_EMAIL,
+    emailScheduledAt: recapEmailTime(scheduledTime),
     // Set in .dev.vars so local `wrangler dev --test-scheduled` runs exercise
     // the full path without posting to Discord or emailing the league.
     dryRun: env.RECAP_DRY_RUN === "true",
@@ -32,26 +33,16 @@ function recapConfig(env: Env): RecapConfig {
 export default {
   // Weekly recap (cron). Syncs Sleeper data, posts to Discord, sends email.
   async scheduled(controller, env, ctx): Promise<void> {
-    // Two UTC slots are registered so one of them is 8am Eastern year-round;
-    // the other is a no-op.
-    if (!isRecapHour(controller.scheduledTime)) {
-      console.log(
-        JSON.stringify({
-          event: "weekly_recap_wrong_hour",
-          cron: controller.cron,
-          localHour: hourInTimeZone(new Date(controller.scheduledTime), RECAP_TIME_ZONE),
-        }),
-      );
-      return;
-    }
-
     const db = new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     ctx.waitUntil(
       (async () => {
         try {
           // The recap text is the whole Discord post; keep it out of the log
           // except on dry runs, where seeing it is the point.
-          const { message, ...summary } = await runWeeklyRecap(db, recapConfig(env));
+          const { message, ...summary } = await runWeeklyRecap(
+            db,
+            recapConfig(env, controller.scheduledTime),
+          );
           console.log(
             JSON.stringify({
               event: "weekly_recap",

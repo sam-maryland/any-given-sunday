@@ -14,6 +14,7 @@ export interface EmailResult {
  * them to stay under the rate limit, which does not fit a Worker's budget.
  *
  * @param displayNames names to show in the email body (Sleeper team names)
+ * @param scheduledAt when Resend should deliver; null sends immediately
  */
 export async function sendWeeklyRecap(
   apiKey: string,
@@ -21,6 +22,7 @@ export async function sendWeeklyRecap(
   summary: WeeklySummary,
   recipients: User[],
   displayNames: UserMap,
+  scheduledAt: Date | null = null,
 ): Promise<EmailResult> {
   const withEmail = recipients.filter((u) => !!u.email);
   if (withEmail.length === 0) {
@@ -36,6 +38,9 @@ export async function sendWeeklyRecap(
     to: [user.email as string],
     subject,
     html,
+    // Resend holds the message until this instant, which is how the recap
+    // lands at 8am Eastern even though the job runs earlier.
+    ...(scheduledAt ? { scheduled_at: scheduledAt.toISOString() } : {}),
   }));
 
   const res = await fetch("https://api.resend.com/emails/batch", {

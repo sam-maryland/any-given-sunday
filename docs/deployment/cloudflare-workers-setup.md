@@ -137,28 +137,39 @@ the final week's summary every Tuesday all winter.
 
 The third rule also stops a manual re-run from sending the same recap twice.
 Its trade-off: it depends on Sleeper having advanced `week` by the time the
-cron fires. If Sleeper rolls the week over later than 8am Eastern Tuesday, a
-run can find nothing new and stay quiet for that week. If that ever happens,
-move both cron entries later in `wrangler.jsonc`.
+cron fires at 11:00 UTC (6-7am Eastern). Monday Night Football ends around
+11:30pm Eastern, so there is a wide margin, but if a week ever goes quiet
+unexpectedly, move the cron later in `wrangler.jsonc` — anything up to 8am
+Eastern still leaves the email delivery time untouched.
 
 Every run logs one `weekly_recap` JSON line including `seasonType` and, when
 nothing was sent, `notificationsHeld` with the reason — so a quiet week is
 always distinguishable from a broken one.
 
-### Delivering at 8am Eastern year-round
+### Delivering the email at 8am Eastern year-round
 
-Owners expect the recap at 8am Eastern on Tuesday, but cron triggers are
-UTC-only and Eastern shifts by an hour in November — mid-season. A single
-`0 12 * * 2` trigger is 8am in September and **7am** from November onward,
-which is what the GitHub Actions job did.
+Owners expect the recap email at 8am Eastern on Tuesday, but cron triggers
+are UTC-only and Eastern shifts by an hour in early November — mid-season. A
+single `0 12 * * 2` trigger is 8am in September and **7am** from November
+onward, which is what the GitHub Actions job did for years.
 
-So two triggers are registered, `0 12 * * 2` and `0 13 * * 2`, and the
-scheduled handler runs the recap only on whichever one is actually 8am
-Eastern that week (`src/recap/schedule.ts`); the other returns immediately.
-Exactly one recap goes out per Tuesday, verified by a test that walks every
-Tuesday of a season across the changeover.
+Rather than juggle cron entries, the job runs early and lets Resend hold the
+message:
 
-This uses 2 of the 5 cron triggers a free account gets.
+1. The cron fires at 11:00 UTC — 6-7am Eastern depending on the season.
+2. The sync runs and the recap posts to Discord straight away.
+3. The email batch is sent with `scheduled_at` set to exactly 8am Eastern
+   that morning, computed in `src/recap/schedule.ts`, and Resend delivers it
+   then.
+
+So the Discord post lands an hour or two before the email, which is fine —
+the email is the one with a promised time. If the job runs after 8am Eastern
+(a manual trigger, or a delayed invocation) the email is sent immediately
+rather than scheduled into the past.
+
+`recapEmailTime` resolves the zone offset at the target instant, so it stays
+correct across the November changeover; a test walks every Tuesday of a
+season asserting the delivery time is 8am local each week.
 
 ### Worker limits this design works around
 
@@ -198,12 +209,12 @@ npx wrangler dev --test-scheduled
 ```
 
 ```bash
-curl "http://localhost:8787/__scheduled?cron=0+12+*+*+2"
+curl "http://localhost:8787/__scheduled?cron=0+11+*+*+2"
 ```
 
-The handler only proceeds when the scheduled time is 8am Eastern, so a local
-trigger outside that hour logs `weekly_recap_wrong_hour` and stops. Comment
-out the guard in `src/index.ts` to exercise the full path at any time.
+A run that reaches the email step logs `email.deliverAt` with the instant
+Resend will deliver at, so you can confirm the 8am Eastern target without
+waiting for it.
 ```
 
 The outcome is logged as a single structured `weekly_recap` JSON line

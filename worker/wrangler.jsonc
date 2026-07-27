@@ -10,12 +10,11 @@
     "head_sampling_rate": 1
   },
   "triggers": {
-    // Weekly recap: Tuesdays at 8am Eastern. Cron triggers are UTC-only, so
-    // both candidate slots are registered — 12:00 UTC is 8am during daylight
-    // saving, 13:00 UTC is 8am outside it. The scheduled handler runs the
-    // recap only on whichever one is actually 8am Eastern that week, so
-    // exactly one run happens per Tuesday. See src/recap/schedule.ts.
-    "crons": ["0 12 * * 2", "0 13 * * 2"]
+    // Weekly recap: Tuesdays at 11:00 UTC. That is 6-7am Eastern depending on
+    // daylight saving, comfortably before the 8am Eastern delivery time the
+    // email is scheduled for (see src/recap/schedule.ts). The Discord post
+    // goes out when this runs, an hour or two ahead of the email.
+    "crons": ["0 11 * * 2"]
   }
   // Secrets (set with `wrangler secret put <NAME>`, or .dev.vars locally):
   //   DISCORD_PUBLIC_KEY          - Discord app public key (General Information page)

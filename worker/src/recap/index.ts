@@ -11,6 +11,12 @@ export interface RecapConfig {
   discordChannelId?: string;
   resendApiKey?: string;
   fromEmail?: string;
+  /**
+   * When Resend should deliver the email. The Discord post goes out as soon
+   * as the job runs; this holds the email until 8am Eastern. Null sends it
+   * immediately.
+   */
+  emailScheduledAt?: Date | null;
   /** When true, do everything except post to Discord and send email. */
   dryRun?: boolean;
 }
@@ -25,7 +31,12 @@ export interface RecapOutcome {
   /** Why nothing was sent this run, when the recap otherwise succeeded. */
   notificationsHeld?: string;
   discord?: "posted" | "skipped" | "failed" | "dry-run";
-  email?: { status: "sent" | "skipped" | "failed" | "dry-run"; recipients?: number };
+  email?: {
+    status: "sent" | "skipped" | "failed" | "dry-run";
+    recipients?: number;
+    /** When Resend will deliver, if the send was scheduled rather than immediate. */
+    deliverAt?: string;
+  };
   message?: string;
 }
 
@@ -221,8 +232,13 @@ async function emailRecap(
       summary,
       recipients,
       displayNames,
+      config.emailScheduledAt ?? null,
     );
-    return { status: "sent", recipients: result.sent };
+    return {
+      status: "sent",
+      recipients: result.sent,
+      deliverAt: config.emailScheduledAt?.toISOString(),
+    };
   } catch (err) {
     console.error(
       JSON.stringify({
