@@ -14,24 +14,26 @@ A Discord bot for fantasy football league management with automated weekly recap
 - **Historical Statistics**: Track career performance across multiple seasons
 - **Easy Deployment**: Designed for technical commissioners to set up for their own leagues
 
+Everything runs as a single [Cloudflare Worker](worker/): the slash commands
+are served from Discord's HTTP interactions endpoint, and the weekly recap
+runs on a cron trigger in the same Worker. Data lives in Supabase.
+
 ## Prerequisites
 
 - **Sleeper Fantasy Football League** - Must have an active Sleeper league
 - **Discord Server** - Server where the bot will operate with appropriate permissions
 - **PostgreSQL Database** - Supabase is used in this project ([create account](https://supabase.com))
-- **Go 1.23+** - For local development and building
-- **Mage** - Build tool used for this project
+- **Cloudflare account** - The Worker runs on the free plan
+- **Node.js 22+** - For local development
+- **Go 1.23+ and Mage** - Only for the database schema tooling (`mage db:*`)
 
 ## Quick Start
 
 ### 1. Development Setup
 
 ```bash
-# Install Mage build tool
-mage install
-
-# Install dependencies
-go mod download
+cd worker
+npm install
 ```
 
 ### 2. Discord Bot Setup
@@ -59,36 +61,26 @@ This project uses Supabase as the PostgreSQL provider:
    mage db:sync
    ```
 
-### 4. Environment Configuration
+### 4. Configuration
 
-Create a `.env` file with the following variables:
+The Worker's settings are stored as Cloudflare secrets, not a `.env` file —
+see [the setup guide](docs/deployment/cloudflare-workers-setup.md) for the
+full list and where each value comes from. For local development, copy
+`worker/.dev.vars.example` to `worker/.dev.vars` and fill it in.
 
-```env
-DATABASE_URL=your_supabase_connection_string
-DISCORD_TOKEN=your_discord_bot_token
-DISCORD_WEEKLY_RECAP_CHANNEL_ID=channel_id_for_automated_recaps
-RESEND_API_KEY=your_resend_api_key
-FROM_EMAIL=recaps@yourdomain.com
-```
+The schema tooling (`mage db:*`) is the one thing that still reads a
+root-level `.env`, for `DATABASE_URL`.
 
 ### 5. Local Development
 
 ```bash
-# Build and run the weekly recap job
-mage run
-
-# Or build the binary separately
-mage build
+cd worker
+npm run dev      # slash commands, on http://localhost:8787
+npm test         # unit tests
+npm run check    # type check
 ```
 
-For the Discord bot itself (slash commands), see
-[docs/deployment/cloudflare-workers-setup.md](docs/deployment/cloudflare-workers-setup.md).
-
 ### 6. Deployment
-
-The interactive bot is a Cloudflare Worker serving Discord's HTTP
-interactions endpoint — see
-[docs/deployment/cloudflare-workers-setup.md](docs/deployment/cloudflare-workers-setup.md).
 
 ```bash
 cd worker
@@ -96,29 +88,35 @@ npm ci
 npm run deploy
 ```
 
-The weekly recap runs as a Cloudflare Worker cron trigger (Tuesdays 8am
-Eastern) in the same Worker. The Go job in `cmd/weekly-recap` remains as a
-manually-triggerable fallback until the Worker has completed a live recap.
+Pushes to `main` that touch `worker/` deploy automatically via GitHub
+Actions. Full details in
+[docs/deployment/cloudflare-workers-setup.md](docs/deployment/cloudflare-workers-setup.md).
+
+The weekly recap runs as a cron trigger in the same Worker, delivering the
+email at 8am Eastern every Tuesday.
 
 ## Configuration
 
-### Required Environment Variables
+### Worker secrets
 
-The weekly recap job (Go) reads these:
+Set with `wrangler secret put <NAME>` from `worker/`:
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `DISCORD_TOKEN` | Discord bot token (for posting the recap) |
-| `DISCORD_WEEKLY_RECAP_CHANNEL_ID` | Channel for automated weekly posts |
-| `RESEND_API_KEY` | Resend API key for recap emails |
-| `FROM_EMAIL` | Sender address for recap emails |
+| Secret | Used by | Description |
+|--------|---------|-------------|
+| `DISCORD_PUBLIC_KEY` | slash commands | Verifies Discord's request signatures |
+| `DISCORD_APP_ID` | slash commands | Discord application ID |
+| `SUPABASE_URL` | both | `https://<project-ref>.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | both | Service role key (server-side only) |
+| `DISCORD_TOKEN` | weekly recap | Bot token, to post the recap message |
+| `DISCORD_WEEKLY_RECAP_CHANNEL_ID` | weekly recap | Channel for automated weekly posts |
+| `RESEND_API_KEY` | weekly recap | Resend API key for recap emails |
+| `FROM_EMAIL` | weekly recap | Sender address for recap emails |
 
-Discord and email are both optional — if their variables are unset, the
-job syncs data and skips those notifications.
+The recap's Discord post and email are independently optional — if their
+secrets are unset, that step is skipped and the data sync still runs.
 
-The Worker's secrets are configured separately with `wrangler secret put`;
-see the [Workers setup guide](docs/deployment/cloudflare-workers-setup.md).
+`DATABASE_URL` is read from a root `.env` by the `mage db:*` schema tooling
+only; the Worker never uses it.
 
 ### Finding Your Sleeper League ID
 
@@ -149,38 +147,33 @@ This automation ensures your league stays up-to-date without manual intervention
 
 ### Project Structure
 
-The interactive bot (slash commands) and the scheduled weekly recap are
-two separate programs in two languages:
-
 ```
-├── worker/              # Cloudflare Worker: Discord slash commands (TypeScript)
-│   ├── src/discord/     # Signature verification, interaction types
-│   ├── src/domain/      # Standings, career stats, weekly summary formatting
-│   └── src/data/        # Supabase (REST) and Sleeper API clients
-├── cmd/weekly-recap/    # Scheduled Tuesday recap job (Go)
-├── internal/
-│   ├── app/             # Weekly recap orchestration
-│   ├── interactor/      # Sleeper sync + summary business logic
-│   ├── discord/         # Channel poster for the recap message
-│   └── email/           # Resend email delivery
-├── pkg/
-│   ├── client/sleeper/  # Sleeper API integration
-│   ├── db/              # Database operations (sqlc)
-│   └── types/           # Domain types and DB converters
-├── migrations/          # Database schema migrations
-└── magefile.go          # Build automation
+├── worker/                 # Everything the bot does (TypeScript)
+│   ├── src/index.ts        # Interactions endpoint + weekly recap cron handler
+│   ├── src/handlers.ts     # Slash command handlers
+│   ├── src/discord/        # Signature verification, interaction types
+│   ├── src/domain/         # Standings, career stats, weekly summary
+│   ├── src/data/           # Supabase (REST) and Sleeper API clients
+│   ├── src/recap/          # Sleeper sync, Discord post, Resend email
+│   └── scripts/            # Slash command registration
+├── pkg/db/schema.sql       # Canonical database schema
+├── tools/dbsync/           # Schema sync tooling (Go)
+└── magefile.go             # Schema tooling entry points
+```
+
+### Worker Development
+
+```bash
+cd worker
+npm test         # unit tests
+npm run check    # type check
+npm run dev      # local server
 ```
 
 ### Available Mage Commands
 
-#### Core Development
-- `mage test` - Run all tests
-- `mage build` - Build the weekly-recap binary
-- `mage run` - Build and run the weekly recap locally
-- `mage clean` - Remove build artifacts
-
-Worker development lives in `worker/` and uses npm — see the
-[Workers setup guide](docs/deployment/cloudflare-workers-setup.md).
+Mage now only covers database schema management. Everything else lives in
+`worker/` and uses npm.
 
 #### Database Management
 - `mage db:status` - Show sync status between local and remote schema
@@ -188,13 +181,12 @@ Worker development lives in `worker/` and uses npm — see the
 - `mage db:sync` - Apply local schema changes to Supabase
 - `mage db:rollback` - Roll back the last migration
 - `mage db:migrations` - List all applied migrations
-- `mage db:verify` - Check schema sync and SQLC integration
+- `mage db:verify` - Check that the local schema matches Supabase
 
 ### Running Tests
 
 ```bash
-# Run all tests
-mage test
+cd worker && npm test
 ```
 
 ### Contributing
@@ -202,7 +194,7 @@ mage test
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes with appropriate tests
-4. Ensure all tests pass with `mage test`
+4. Ensure all tests pass with `cd worker && npm test`
 5. Submit a pull request
 
 ## API Integration
