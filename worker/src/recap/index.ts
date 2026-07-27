@@ -20,24 +20,42 @@ export interface RecapOutcome {
   reason?: string;
   year?: number;
   week?: number;
+  seasonType?: string;
   synced?: { weeksFetched: number[]; inserted: number; updated: number };
+  /** Why nothing was sent this run, when the recap otherwise succeeded. */
+  notificationsHeld?: string;
   discord?: "posted" | "skipped" | "failed" | "dry-run";
   email?: { status: "sent" | "skipped" | "failed" | "dry-run"; recipients?: number };
   message?: string;
 }
 
+// Sleeper's season_type values that mean games are being played. Outside
+// these ("off" and "pre") there is nothing new to report.
+const ACTIVE_SEASON_TYPES = new Set(["regular", "post"]);
+
 /**
  * Runs the weekly recap: sync from Sleeper, build the summary, post it to
  * Discord, and email it out.
  *
- * Mirrors the Go RunWeeklyRecap: only IN_PROGRESS leagues are processed, and
- * notification failures are logged without failing the run (the data sync is
- * the part that must not be lost).
+ * Runs every week year-round. The first thing it does is read the league from
+ * the database, which doubles as the keepalive that stops a free Supabase
+ * project from pausing during the offseason.
+ *
+ * Notifications are held back unless there is genuinely something new: the
+ * league must be IN_PROGRESS, the NFL season must be underway, and the sync
+ * must have recorded new matchups. That makes the offseason quiet without
+ * anyone having to disable the cron, and stops a re-run from sending the same
+ * recap twice.
+ *
+ * As in the Go job, notification failures are logged without failing the run —
+ * the data sync is the part that must not be lost.
  */
 export async function runWeeklyRecap(
   db: SupabaseClient,
   config: RecapConfig,
 ): Promise<RecapOutcome> {
+  // Also the Supabase keepalive — this read happens on every run, in season
+  // or not, so the project never goes 7 days without activity.
   const league = await db.getLatestLeague();
   if (!league) {
     return { status: "skipped", reason: "no league found" };
@@ -69,7 +87,11 @@ export async function runWeeklyRecap(
       status: "skipped",
       reason: `no completed weeks found for year ${league.year}`,
       year: league.year,
-      synced,
+      synced: {
+        weeksFetched: synced.weeksFetched,
+        inserted: synced.inserted,
+        updated: synced.updated,
+      },
     };
   }
 
@@ -78,14 +100,47 @@ export async function runWeeklyRecap(
     status: "completed",
     year: summary.year,
     week: summary.week,
-    synced,
+    seasonType: nflState.season_type,
+    // Counts only — SyncResult also carries every matchup row, which has no
+    // business in a log line.
+    synced: {
+      weeksFetched: synced.weeksFetched,
+      inserted: synced.inserted,
+      updated: synced.updated,
+    },
     message,
   };
 
+  const held = notificationsHeldReason(nflState.season_type, synced.inserted);
+  if (held) {
+    outcome.notificationsHeld = held;
+    outcome.discord = "skipped";
+    outcome.email = { status: "skipped" };
+    return outcome;
+  }
+
   outcome.discord = await postRecap(config, message);
-  outcome.email = await emailRecap(db, config, league.id, summary, users);
+  outcome.email = await emailRecap(config, league.id, summary, users);
 
   return outcome;
+}
+
+/**
+ * Whether to stay quiet this run, and why.
+ *
+ * @returns the reason to hold notifications, or null to send them
+ */
+export function notificationsHeldReason(
+  seasonType: string,
+  insertedMatchups: number,
+): string | null {
+  if (!ACTIVE_SEASON_TYPES.has(seasonType)) {
+    return `NFL season_type is "${seasonType}"`;
+  }
+  if (insertedMatchups === 0) {
+    return "no new matchups were recorded this run";
+  }
+  return null;
 }
 
 async function postRecap(
@@ -115,7 +170,6 @@ async function postRecap(
 }
 
 async function emailRecap(
-  db: SupabaseClient,
   config: RecapConfig,
   leagueId: string,
   summary: Parameters<typeof formatWeeklySummary>[0],

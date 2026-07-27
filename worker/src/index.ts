@@ -35,9 +35,16 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
-          const outcome = await runWeeklyRecap(db, recapConfig(env));
+          // The recap text is the whole Discord post; keep it out of the log
+          // except on dry runs, where seeing it is the point.
+          const { message, ...summary } = await runWeeklyRecap(db, recapConfig(env));
           console.log(
-            JSON.stringify({ event: "weekly_recap", cron: controller.cron, ...outcome }),
+            JSON.stringify({
+              event: "weekly_recap",
+              cron: controller.cron,
+              ...summary,
+              ...(env.RECAP_DRY_RUN === "true" ? { message } : {}),
+            }),
           );
         } catch (err) {
           console.error(

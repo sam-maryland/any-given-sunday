@@ -99,10 +99,10 @@ Profile → API Tokens → "Edit Cloudflare Workers" template).
 
 ## The weekly recap (cron trigger)
 
-Runs Tuesdays at 12:00 UTC — the same schedule the GitHub Actions job used.
-It only acts on an `IN_PROGRESS` league; other statuses are logged and
-skipped. Discord posting and email each require their own secrets and are
-skipped (not failed) when unset, so you can enable them independently:
+Runs Tuesdays at 12:00 UTC — the same schedule the GitHub Actions job used —
+**every week, year-round**. Discord posting and email each require their own
+secrets and are skipped (not failed) when unset, so you can enable them
+independently:
 
 ```bash
 wrangler secret put DISCORD_BOT_TOKEN
@@ -114,6 +114,37 @@ wrangler secret put FROM_EMAIL
 The GitHub Actions workflow (`weekly-recap.yml`) is now **manual-only** —
 its schedule was removed so the recap cannot run twice. Once the Worker
 has completed a live recap, the Go job and its workflow can be deleted.
+
+### Why the cron never needs disabling in the offseason
+
+The run always starts by reading the league from the database. That read is
+also the **Supabase keepalive**: a free project pauses after ~7 days of
+inactivity, and a weekly read keeps it awake through the offseason.
+
+What does *not* happen year-round is notifying anyone. The recap posts and
+emails only when all three hold:
+
+| Condition | Why |
+|---|---|
+| League status is `IN_PROGRESS` | Nothing to report on a finished season |
+| Sleeper `season_type` is `regular` or `post` | Between seasons it reports `off` (and `pre` in preseason) |
+| The sync recorded new matchups | Nothing new happened, so there is nothing to say |
+
+The second rule is what makes this automatic: it comes from the live NFL
+calendar, so the recap goes quiet in February and starts again in September
+with no one touching the schedule — and it holds even if the league is left
+marked `IN_PROGRESS` by mistake. Without it, the recap would happily re-send
+the final week's summary every Tuesday all winter.
+
+The third rule also stops a manual re-run from sending the same recap twice.
+Its trade-off: it depends on Sleeper having advanced `week` by the time the
+cron fires. If Sleeper rolls the week over later than 12:00 UTC Tuesday, a
+run can find nothing new and stay quiet for that week. If that ever happens,
+move the cron a few hours later in `wrangler.jsonc`.
+
+Every run logs one `weekly_recap` JSON line including `seasonType` and, when
+nothing was sent, `notificationsHeld` with the reason — so a quiet week is
+always distinguishable from a broken one.
 
 ### Worker limits this design works around
 
