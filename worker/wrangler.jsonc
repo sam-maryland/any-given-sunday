@@ -24,7 +24,7 @@
   //
   // Weekly recap secrets (the cron trigger below; recap steps are skipped
   // when their secrets are absent):
-  //   DISCORD_BOT_TOKEN                - bot token, to post the recap message
+  //   DISCORD_TOKEN                    - bot token, to post the recap message
   //   DISCORD_WEEKLY_RECAP_CHANNEL_ID  - channel to post the recap in
   //   RESEND_API_KEY                   - Resend API key for recap emails
   //   FROM_EMAIL                       - sender address for recap emails

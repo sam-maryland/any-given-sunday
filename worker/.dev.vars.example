@@ -8,7 +8,7 @@ SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # Weekly recap (cron trigger). Each step is skipped if its values are unset.
-DISCORD_BOT_TOKEN=your_discord_bot_token
+# DISCORD_TOKEN below is shared with the recap — the same bot posts it.
 DISCORD_WEEKLY_RECAP_CHANNEL_ID=channel_id_for_automated_recaps
 RESEND_API_KEY=your_resend_api_key
 FROM_EMAIL=recaps@yourdomain.com
@@ -17,6 +17,9 @@ FROM_EMAIL=recaps@yourdomain.com
 # recap but never posts to Discord or sends email. Do NOT set in production.
 RECAP_DRY_RUN=true
 
-# Used only by scripts/register-commands.mjs (not by the Worker):
+# Bot token: used by the weekly recap to post, and by
+# scripts/register-commands.mjs to register slash commands.
 DISCORD_TOKEN=your_discord_bot_token
+
+# Used only by scripts/register-commands.mjs (not by the Worker):
 DISCORD_GUILD_ID=your_discord_server_id
