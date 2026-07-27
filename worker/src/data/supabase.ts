@@ -1,4 +1,12 @@
-import { CareerStatsRow, League, LeagueStatus, Matchup, User, UserMap } from "../domain/types";
+import {
+  CareerStatsRow,
+  League,
+  LeagueStatus,
+  Matchup,
+  NewMatchup,
+  User,
+  UserMap,
+} from "../domain/types";
 
 // Minimal Supabase PostgREST client. The service role key bypasses RLS, so
 // this must only ever run server-side (it lives in a Worker secret).
@@ -60,6 +68,29 @@ export class SupabaseClient {
   async getUserById(id: string): Promise<User | null> {
     const rows = await this.request<User[]>(`users?id=eq.${encodeURIComponent(id)}&limit=1`);
     return rows[0] ?? null;
+  }
+
+  // Inserts matchups in a single request. PostgREST accepts an array body.
+  async insertMatchups(rows: NewMatchup[]): Promise<void> {
+    if (rows.length === 0) {
+      return;
+    }
+    await this.request<void>("matchups", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(rows),
+    });
+  }
+
+  async updateMatchupScores(
+    id: string,
+    scores: { home_score: number; away_score: number },
+  ): Promise<void> {
+    await this.request<void>(`matchups?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(scores),
+    });
   }
 
   async getUsersWithoutDiscordId(): Promise<User[]> {

@@ -9,7 +9,7 @@ A Discord bot for fantasy football league management with automated weekly recap
   - `/standings` - View current league standings
   - `/career-stats` - Historical performance statistics
   - `/onboard` - Link new league members to their Sleeper team
-- **Automated Weekly Recaps**: GitHub Actions automation posts weekly summaries every Tuesday
+- **Automated Weekly Recaps**: A Cloudflare Worker cron trigger posts weekly summaries every Tuesday
 - **League Data Sync**: Real-time integration with Sleeper API for up-to-date information
 - **Historical Statistics**: Track career performance across multiple seasons
 - **Easy Deployment**: Designed for technical commissioners to set up for their own leagues
@@ -96,8 +96,9 @@ npm ci
 npm run deploy
 ```
 
-The scheduled weekly recap still runs the Go binary via GitHub Actions
-(`.github/workflows/weekly-recap.yml`).
+The weekly recap runs as a Cloudflare Worker cron trigger (Tuesdays 8am
+Eastern) in the same Worker. The Go job in `cmd/weekly-recap` remains as a
+manually-triggerable fallback until the Worker has completed a live recap.
 
 ## Configuration
 
@@ -136,8 +137,8 @@ see the [Workers setup guide](docs/deployment/cloudflare-workers-setup.md).
 
 ### Automated Features
 
-The bot includes a GitHub Actions workflow that automatically:
-- Runs every Tuesday at 4 AM ET
+The Worker runs a cron trigger that automatically:
+- Runs every Tuesday at 8am Eastern
 - Syncs the latest matchup data from Sleeper
 - Updates the database with completed games
 - Posts a formatted weekly recap to your designated Discord channel

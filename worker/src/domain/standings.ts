@@ -1,7 +1,7 @@
 import {
   League,
   LeagueStatus,
-  Matchup,
+  NewMatchup,
   PlayoffRound,
   UserMap,
   matchupWinnerAndLoser,
@@ -18,7 +18,7 @@ export interface Standing {
 }
 
 // Builds unsorted per-user standings from regular season matchups.
-export function matchupsToStandingsMap(matchups: Matchup[]): Map<string, Standing> {
+export function matchupsToStandingsMap(matchups: NewMatchup[]): Map<string, Standing> {
   const standings = new Map<string, Standing>();
 
   const ensure = (userId: string): Standing => {
@@ -131,7 +131,7 @@ export interface LeagueStandings {
 // placements come from playoff results instead of regular season record; if
 // the playoff matchups are missing or malformed, falls back to regular
 // season order rather than failing the whole command.
-export function standingsForLeague(league: League, matchups: Matchup[]): LeagueStandings {
+export function standingsForLeague(league: League, matchups: NewMatchup[]): LeagueStandings {
   if (league.status === LeagueStatus.Pending) {
     throw new Error("league year has not started yet");
   }
@@ -163,9 +163,9 @@ export function standingsForLeague(league: League, matchups: Matchup[]): LeagueS
 function playoffPlacements(
   standingsMap: Map<string, Standing>,
   sortedStandings: Standing[],
-  matchups: Matchup[],
+  matchups: NewMatchup[],
 ): Standing[] {
-  const matchupsByRound = new Map<string, Matchup[]>();
+  const matchupsByRound = new Map<string, NewMatchup[]>();
   for (const m of matchups) {
     if (!m.is_playoff || !m.playoff_round) {
       continue;
