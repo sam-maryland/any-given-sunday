@@ -5,39 +5,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/sam-maryland/any-given-sunday/tools/dbsync"
 )
-
-// Test runs all tests in the repository
-func Test() error {
-	fmt.Println("Running tests...")
-	return sh.RunV("go", "test", "-count=1", "./...")
-}
-
-// Build builds all binaries
-func Build() error {
-	fmt.Println("Building all binaries...")
-	return sh.RunV("go", "build", "-o", ".bin/weekly-recap", "./cmd/weekly-recap")
-}
-
-// Clean removes build artifacts
-func Clean() error {
-	fmt.Println("Cleaning build artifacts...")
-	return os.RemoveAll(".bin")
-}
-
-// Run builds and runs the weekly-recap job
-func Run() error {
-	if err := Build(); err != nil {
-		return err
-	}
-	fmt.Println("Running weekly-recap...")
-	return sh.RunWithV(map[string]string{}, ".bin/weekly-recap", "--mode=weekly-recap")
-}
 
 // Install installs mage if not present
 func Install() error {

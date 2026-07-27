@@ -110,9 +110,9 @@ wrangler secret put RESEND_API_KEY
 wrangler secret put FROM_EMAIL
 ```
 
-The GitHub Actions workflow (`weekly-recap.yml`) is now **manual-only** —
-its schedule was removed so the recap cannot run twice. Once the Worker
-has completed a live recap, the Go job and its workflow can be deleted.
+The Go implementation of the recap and its GitHub Actions workflow have
+been removed; the Worker is the only thing that runs it. The previous
+version is in git history if it is ever needed.
 
 ### Why the cron never needs disabling in the offseason
 
