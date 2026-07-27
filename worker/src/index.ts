@@ -19,7 +19,7 @@ import {
 
 function recapConfig(env: Env, scheduledTime: number): RecapConfig {
   return {
-    discordBotToken: env.DISCORD_BOT_TOKEN,
+    discordBotToken: env.DISCORD_TOKEN,
     discordChannelId: env.DISCORD_WEEKLY_RECAP_CHANNEL_ID,
     resendApiKey: env.RESEND_API_KEY,
     fromEmail: env.FROM_EMAIL,

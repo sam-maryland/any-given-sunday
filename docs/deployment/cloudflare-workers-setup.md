@@ -104,7 +104,7 @@ email each require their own secrets and are skipped (not failed) when unset,
 so you can enable them independently:
 
 ```bash
-wrangler secret put DISCORD_BOT_TOKEN
+wrangler secret put DISCORD_TOKEN
 wrangler secret put DISCORD_WEEKLY_RECAP_CHANNEL_ID
 wrangler secret put RESEND_API_KEY
 wrangler secret put FROM_EMAIL
