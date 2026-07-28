@@ -2,6 +2,8 @@ import { withTeamNames } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { PLAYOFF_TEAM_COUNT, Standing, standingsForLeague } from "../domain/standings";
 import { League, LeagueStatus, UserMap } from "../domain/types";
+import { lastSyncBoundary } from "../recap/schedule";
+import { cachedJsonResponse, epochCacheKey } from "./cache";
 
 export interface StandingsRow {
   rank: number;
@@ -60,14 +62,40 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-function jsonResponse(body: unknown, status: number, cacheSeconds = 0): Response {
-  return new Response(JSON.stringify(body), {
+// How long a browser may reuse the standings, and how long the edge may. The
+// epoch key handles the weekly sync; the edge bound is the safety net for an
+// out-of-band edit, such as a commissioner tagging playoff results by hand.
+const BROWSER_MAX_AGE_SECONDS = 300;
+const EDGE_MAX_AGE_SECONDS = 3600;
+
+function errorResponse(error: string, status: number): Response {
+  return new Response(JSON.stringify({ error }), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": cacheSeconds > 0 ? `public, max-age=${cacheSeconds}` : "no-store",
-    },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
+}
+
+// Thrown rather than returned so the miss never reaches the cache: an empty
+// database should not pin a 404 for the rest of the week.
+class LeagueNotFound extends Error {}
+
+async function loadStandings(
+  db: SupabaseClient,
+  year: number | undefined,
+): Promise<StandingsPayload> {
+  const league = year ? await db.getLeagueByYear(year) : await db.getLatestLeague();
+  if (!league) {
+    throw new LeagueNotFound(`no league for ${year ?? "latest"}`);
+  }
+
+  const matchups = await db.getMatchupsByYear(league.year);
+  const { standings, usedPlayoffResults } = standingsForLeague(league, matchups);
+  // Team names, not owner names — the same display the recap email uses.
+  // For a past season this reads that season's league, so the names are the
+  // ones that were in use then.
+  const users = await withTeamNames(await db.getUsers(), league.id);
+
+  return standingsPayload(league, standings, users, usedPlayoffResults);
 }
 
 /**
@@ -75,45 +103,51 @@ function jsonResponse(body: unknown, status: number, cacheSeconds = 0): Response
  *
  * Reads the same tables the Discord command does. Matchups only land in the
  * database when the weekly recap cron syncs them, so this is as fresh as the
- * last sync, not as fresh as Sleeper.
+ * last sync, not as fresh as Sleeper — and cached on exactly that boundary,
+ * so a hit costs no Supabase or Sleeper requests at all.
  */
-export async function handleStandingsRequest(db: SupabaseClient, url: URL): Promise<Response> {
+export async function handleStandingsRequest(
+  db: SupabaseClient,
+  url: URL,
+  ctx: ExecutionContext,
+  now = new Date(),
+): Promise<Response> {
   const yearParam = url.searchParams.get("year");
   let year: number | undefined;
   if (yearParam !== null) {
     year = Number(yearParam);
-    if (!Number.isInteger(year)) {
-      return jsonResponse({ error: "year must be an integer" }, 400);
+    // Bounded as well as integral: the year is part of the cache key, and each
+    // distinct value costs a full set of Supabase and Sleeper reads to miss.
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      return errorResponse("year must be an integer between 2000 and 2100", 400);
     }
   }
 
-  // Every database read is inside the catch: a Supabase failure should surface
-  // as a JSON error the page can show, not an opaque runtime 500.
-  let league: League | null = null;
-  try {
-    league = year ? await db.getLeagueByYear(year) : await db.getLatestLeague();
-    if (!league) {
-      return jsonResponse({ error: "league not found" }, 404);
-    }
+  const key = epochCacheKey(url, lastSyncBoundary(now).getTime(), {
+    year: year ? String(year) : "latest",
+  });
 
-    const matchups = await db.getMatchupsByYear(league.year);
-    const { standings, usedPlayoffResults } = standingsForLeague(league, matchups);
-    // Team names, not owner names — the same display the recap email uses.
-    // For a past season this reads that season's league, so the names are the
-    // ones that were in use then.
-    const users = await withTeamNames(await db.getUsers(), league.id);
-    // Standings only move when the cron syncs, so a few minutes of caching
-    // costs nothing and keeps refreshes off Supabase.
-    return jsonResponse(standingsPayload(league, standings, users, usedPlayoffResults), 200, 300);
+  // Every read is inside the catch: a Supabase failure should surface as a
+  // JSON error the page can show, not an opaque runtime 500.
+  try {
+    return await cachedJsonResponse({
+      key,
+      ctx,
+      browserMaxAge: BROWSER_MAX_AGE_SECONDS,
+      edgeMaxAge: EDGE_MAX_AGE_SECONDS,
+      load: () => loadStandings(db, year),
+    });
   } catch (err) {
+    if (err instanceof LeagueNotFound) {
+      return errorResponse("league not found", 404);
+    }
     console.error(
       JSON.stringify({
         event: "api_standings_error",
-        leagueYear: league?.year ?? null,
-        leagueStatus: league?.status ?? null,
+        key,
         error: err instanceof Error ? err.message : String(err),
       }),
     );
-    return jsonResponse({ error: "could not load standings" }, 500);
+    return errorResponse("could not load standings", 500);
   }
 }

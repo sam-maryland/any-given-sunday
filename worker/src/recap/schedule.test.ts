@@ -2,11 +2,53 @@ import { describe, expect, it } from "vitest";
 import {
   RECAP_TIME_ZONE,
   hourInTimeZone,
+  lastSyncBoundary,
   localHourToInstant,
   recapEmailTime,
 } from "./schedule";
 
 const at = (iso: string) => new Date(iso).getTime();
+
+describe("lastSyncBoundary", () => {
+  const boundary = (iso: string) => lastSyncBoundary(new Date(iso)).toISOString();
+
+  it("returns the cron's own run time at the moment it fires", () => {
+    // 2026-07-28 is a Tuesday.
+    expect(boundary("2026-07-28T11:00:00Z")).toBe("2026-07-28T11:00:00.000Z");
+  });
+
+  it("returns the previous week before the cron has run that Tuesday", () => {
+    expect(boundary("2026-07-28T10:59:59Z")).toBe("2026-07-21T11:00:00.000Z");
+  });
+
+  it("holds steady across the days between runs", () => {
+    for (const iso of [
+      "2026-07-28T11:00:01Z",
+      "2026-07-29T00:00:00Z",
+      "2026-08-01T18:30:00Z",
+      "2026-08-04T10:59:59Z",
+    ]) {
+      expect(boundary(iso)).toBe("2026-07-28T11:00:00.000Z");
+    }
+  });
+
+  it("rolls over exactly when the next run fires", () => {
+    expect(boundary("2026-08-04T11:00:00Z")).toBe("2026-08-04T11:00:00.000Z");
+  });
+
+  it("always lands on a Tuesday, across a year of samples", () => {
+    const cursor = new Date("2026-01-01T00:00:00Z");
+    for (let i = 0; i < 365; i++) {
+      const result = lastSyncBoundary(cursor);
+      expect(result.getUTCDay()).toBe(2);
+      expect(result.getUTCHours()).toBe(11);
+      expect(result.getTime()).toBeLessThanOrEqual(cursor.getTime());
+      // Never more than a week behind.
+      expect(cursor.getTime() - result.getTime()).toBeLessThan(7 * 24 * 60 * 60 * 1000);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  });
+});
 
 describe("localHourToInstant", () => {
   it("resolves 8am Eastern during daylight saving", () => {

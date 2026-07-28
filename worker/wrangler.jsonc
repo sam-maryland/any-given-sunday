@@ -9,6 +9,19 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  // Serving the dashboard from a domain we own is not only cosmetic: Cache API
+  // operations have no effect on workers.dev, so the standings cache in
+  // src/api/cache.ts only does anything here. Cloudflare manages the DNS
+  // record and certificate for a custom_domain route.
+  //
+  // workers.dev stays enabled alongside this, so Discord's existing
+  // Interactions Endpoint URL keeps working untouched.
+  "routes": [
+    {
+      "pattern": "ags-hq.org",
+      "custom_domain": true
+    }
+  ],
   // The league dashboard. Only the paths below reach the Worker; every other
   // asset request is served straight from the edge. The root is worker-first
   // because Discord POSTs its interactions there — the Worker hands non-POST

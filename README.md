@@ -161,6 +161,28 @@ Because matchups only reach the database when the weekly recap cron syncs
 them, the dashboard is as fresh as the last sync — it changes on Tuesdays, not
 during Sunday's games.
 
+That also makes the standings cacheable on a known boundary. Responses are
+held in Cloudflare's cache under a key that includes the most recent cron run
+(`lastSyncBoundary()`), so a cache hit costs no Supabase or Sleeper requests at
+all, and the next sync changes the key — which invalidates every colo at once
+without anything having to send a purge. The `X-Cache` response header reports
+`HIT` or `MISS`.
+
+Entries also expire after an hour regardless, so an out-of-band database edit
+(playoff results tagged by hand, say) shows up without waiting for Tuesday.
+
+The cache is per-colo, not global: a viewer routed to a data center that has
+not served the page yet still pays for one load. Note that this only works
+because the Worker has a custom domain — Cache API operations have no effect
+on `workers.dev`.
+
+### Hosting
+
+The dashboard is served from `ags-hq.org`, configured as a Custom Domain route
+in `wrangler.jsonc`; Cloudflare manages the DNS record and certificate. The
+`workers.dev` URL stays enabled alongside it, so Discord's Interactions
+Endpoint URL is unaffected.
+
 The root path is shared: Discord POSTs its interactions there, and every
 non-POST request is served the dashboard. Adding the dashboard did **not**
 change the Interactions Endpoint URL, so no Discord Developer Portal change is

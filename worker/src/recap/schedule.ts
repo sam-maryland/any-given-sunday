@@ -8,6 +8,35 @@
 export const RECAP_TIME_ZONE = "America/New_York";
 export const RECAP_LOCAL_HOUR = 8;
 
+// The cron itself, from wrangler.jsonc's "0 11 * * 2". Cron triggers are UTC,
+// so unlike the email time this needs no time zone handling — but it does have
+// to be kept in step with the configured schedule by hand.
+const SYNC_WEEKDAY_UTC = 2; // Tuesday
+const SYNC_HOUR_UTC = 11;
+
+/**
+ * The most recent instant the weekly recap cron ran, at or before `now`.
+ *
+ * Matchups only change when that job syncs them, so this is the moment the
+ * league's data last became stale — which makes it a cache epoch: derive it
+ * on every request, and a rollover invalidates cached standings everywhere at
+ * once without anything having to send a purge.
+ */
+export function lastSyncBoundary(now: Date): Date {
+  const boundary = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), SYNC_HOUR_UTC),
+  );
+
+  let daysBack = (boundary.getUTCDay() - SYNC_WEEKDAY_UTC + 7) % 7;
+  // On the cron's own weekday, before its hour, the last run was a week ago.
+  if (daysBack === 0 && boundary.getTime() > now.getTime()) {
+    daysBack = 7;
+  }
+  boundary.setUTCDate(boundary.getUTCDate() - daysBack);
+
+  return boundary;
+}
+
 /** The hour (0-23) that `date` falls on in the given IANA time zone. */
 export function hourInTimeZone(date: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {
