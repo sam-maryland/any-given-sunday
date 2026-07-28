@@ -77,6 +77,7 @@ export default {
         return handleStandingsRequest(
           new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
           url,
+          ctx,
         );
       }
       return new Response("not found", { status: 404 });

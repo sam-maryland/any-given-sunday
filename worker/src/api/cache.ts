@@ -1,100 +1,79 @@
 /**
- * A small in-isolate memo for values that are expensive to derive and change
- * on a known schedule.
+ * Edge caching for derived JSON, keyed on the epoch of the data it was built
+ * from.
  *
- * This is deliberately not the Cache API: the Worker is deployed to
- * workers.dev, where Cache API operations have no effect. It is also not KV,
- * because the values here are cheap to rebuild — the cost being avoided is a
- * handful of Supabase and Sleeper round-trips per page load, not computation.
+ * Putting the epoch in the cache key means nothing ever has to send a purge:
+ * when the underlying data changes on its known schedule, the key changes and
+ * every colo misses at once. Stale entries under old keys age out on their own.
  *
- * Consequences of living in an isolate: entries are per-colo, and are lost on
- * eviction and on every deploy. A cold isolate rebuilds once. That is a fine
- * trade for a league-sized audience, but it means this can never be relied on
- * for correctness — only for latency.
+ * This replaces an earlier in-isolate memo. That version was invisible in
+ * production — Cache API operations have no effect on workers.dev — and was
+ * per-isolate even where it did work, so it was lost on eviction and on every
+ * deploy. Backed by the real cache, an entry survives both and is shared by
+ * every request reaching the same colo. It is still per-colo, not global: a
+ * viewer routed elsewhere gets their own miss.
  */
 
-export interface MemoOptions {
-  /** Entries to retain before evicting the least recently written. */
-  maxEntries?: number;
+export interface CachedJsonOptions<T> {
+  /** Full URL string identifying this entry. Must include the data epoch. */
+  key: string;
+  ctx: ExecutionContext;
+  /** How long a browser may reuse its copy, in seconds. */
+  browserMaxAge: number;
   /**
-   * How long an entry may be served within a single epoch. The epoch already
-   * covers scheduled changes; this bounds how long an out-of-band edit (a
-   * commissioner tagging playoff results by hand, say) can stay hidden.
+   * How long the edge may reuse its copy, in seconds. The epoch already covers
+   * scheduled changes; this bounds how long an out-of-band edit stays hidden.
    */
-  maxAgeMs?: number;
+  edgeMaxAge: number;
+  load: () => Promise<T>;
 }
-
-export interface MemoResult<T> {
-  value: T;
-  hit: boolean;
-}
-
-interface Entry {
-  epoch: number;
-  storedAt: number;
-  /**
-   * Resolved plain data only — never a promise, and never anything holding an
-   * I/O object. Workers ties streams, requests and responses to the request
-   * that created them, and reaching one from a later request throws "Cannot
-   * perform I/O on behalf of a different request".
-   */
-  value: unknown;
-}
-
-export type Memo = <T>(
-  key: string,
-  epoch: number,
-  now: number,
-  load: () => Promise<T>,
-) => Promise<MemoResult<T>>;
 
 /**
- * Builds a memo with its own storage. Callers hold one at module scope; tests
- * make their own so they never share state.
- *
- * Concurrent misses on a cold isolate each run their own load rather than
- * sharing one in-flight promise. That is deliberate, not an oversight: a
- * pending promise closes over I/O belonging to the request that started it,
- * and awaiting it from a second request throws "Cannot perform I/O on behalf
- * of a different request". Deduplicating would trade a few redundant loads
- * for intermittent 500s during exactly the burst it was meant to help.
- *
- * Storing only resolved values also means a failed load is never cached — the
- * entry is written after the load succeeds, or not at all.
+ * Builds a cache key on the request's own origin, so entries stay on a
+ * hostname this Worker actually serves.
  */
-export function createMemo(options: MemoOptions = {}): Memo {
-  const maxEntries = options.maxEntries ?? 24;
-  const maxAgeMs = options.maxAgeMs ?? 60 * 60 * 1000;
-  const entries = new Map<string, Entry>();
+export function epochCacheKey(url: URL, epoch: number, params: Record<string, string>): string {
+  const key = new URL(url.pathname, url.origin);
+  for (const [name, value] of Object.entries(params)) {
+    key.searchParams.set(name, value);
+  }
+  key.searchParams.set("epoch", String(epoch));
+  return key.toString();
+}
 
-  return async function memo<T>(
-    key: string,
-    epoch: number,
-    now: number,
-    load: () => Promise<T>,
-  ): Promise<MemoResult<T>> {
-    const existing = entries.get(key);
-    if (existing && existing.epoch === epoch && now - existing.storedAt < maxAgeMs) {
-      return { value: existing.value as T, hit: true };
-    }
+/**
+ * Cache-aside around a JSON payload. Returns the cached response when there is
+ * one, otherwise loads, stores, and returns a fresh one.
+ *
+ * A failing load is propagated and nothing is written, so an outage or a
+ * missing record can never be pinned in the cache. Only resolved plain data
+ * is stored — never a promise or anything holding an I/O handle, which
+ * Workers scopes to the request that created it.
+ */
+export async function cachedJsonResponse<T>(options: CachedJsonOptions<T>): Promise<Response> {
+  const cache = caches.default;
 
-    const value = await load();
+  const hit = await cache.match(options.key);
+  if (hit) {
+    // Headers on a cached Response are immutable, so rebuild it to tag X-Cache.
+    const response = new Response(hit.body, hit);
+    response.headers.set("X-Cache", "HIT");
+    return response;
+  }
 
-    // Re-inserting moves the key to the end, so iteration order stays
-    // least-recently-written first for eviction below.
-    entries.delete(key);
-    entries.set(key, { epoch, storedAt: now, value });
+  const value = await options.load();
 
-    // `key` is partly caller-supplied (the ?year= parameter), so the map has
-    // to be bounded rather than growing with whatever gets requested.
-    while (entries.size > maxEntries) {
-      const oldest = entries.keys().next();
-      if (oldest.done) {
-        break;
-      }
-      entries.delete(oldest.value);
-    }
+  const response = new Response(JSON.stringify(value), {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": `public, max-age=${options.browserMaxAge}, s-maxage=${options.edgeMaxAge}`,
+    },
+  });
 
-    return { value, hit: false };
-  };
+  // Clone before tagging, so the stored copy carries no X-Cache of its own and
+  // a later hit is not served the word "MISS".
+  options.ctx.waitUntil(cache.put(options.key, response.clone()));
+  response.headers.set("X-Cache", "MISS");
+
+  return response;
 }
