@@ -1,3 +1,4 @@
+import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleStandingsRequest, standingsPayload } from "./standings";
 import { SupabaseClient } from "../data/supabase";
@@ -116,22 +117,17 @@ function fakeDb(league: League | null, matchups: Matchup[] = []) {
   return { db, calls };
 }
 
-const waited: Promise<unknown>[] = [];
-const ctx = {
-  waitUntil: (p: Promise<unknown>) => waited.push(p),
-  passThroughOnException: () => {},
-} as unknown as ExecutionContext;
-
-// Cache writes go through waitUntil, so they must be settled before the next
-// request can be expected to hit.
+// Runs against the real caches.default. Cache writes go through waitUntil, so
+// they must settle before the next request can be expected to hit.
 async function request(db: SupabaseClient, year: number | "latest", now: Date) {
+  const ctx = createExecutionContext();
   const res = await handleStandingsRequest(
     db,
     new URL(`https://ags-hq.org/api/standings${year === "latest" ? "" : `?year=${year}`}`),
     ctx,
     now,
   );
-  await Promise.all(waited.splice(0));
+  await waitOnExecutionContext(ctx);
   return res;
 }
 
@@ -141,14 +137,6 @@ describe("handleStandingsRequest caching", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     // withTeamNames calls Sleeper; let it fail so it falls back to DB names.
     vi.stubGlobal("fetch", async () => new Response("nope", { status: 500 }));
-    // A fresh cache per test, standing in for caches.default.
-    const stored = new Map<string, Response>();
-    vi.stubGlobal("caches", {
-      default: {
-        match: async (key: string) => stored.get(key)?.clone(),
-        put: async (key: string, response: Response) => void stored.set(key, response),
-      },
-    });
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -216,7 +204,7 @@ describe("handleStandingsRequest caching", () => {
     const res = await handleStandingsRequest(
       db,
       new URL("https://ags-hq.org/api/standings?year=abc"),
-      ctx,
+      createExecutionContext(),
       AFTER_SYNC,
     );
 

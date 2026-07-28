@@ -1,46 +1,31 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
+import { describe, expect, it, vi } from "vitest";
 import { cachedJsonResponse, epochCacheKey } from "./cache";
 
 /**
- * A stand-in for `caches.default`. Plain vitest has no Workers runtime, so
- * these tests pin the cache-aside logic — what gets stored, what does not, and
- * how responses are tagged — rather than Cloudflare's caching behaviour itself.
+ * These run inside workerd against the real `caches.default` and a real
+ * ExecutionContext — not a stub. That matters: the Cache API behaves in ways
+ * a hand-written fake does not, most visibly that headers on a cached Response
+ * are immutable, and cache writes only land once waitUntil has settled.
  */
-function fakeCache() {
-  const stored = new Map<string, Response>();
-  return {
-    stored,
-    match: vi.fn(async (key: string) => stored.get(key)?.clone()),
-    put: vi.fn(async (key: string, response: Response) => {
-      stored.set(key, response);
-    }),
-  };
+
+let keySeq = 0;
+// Cache state is shared within a run, so each test takes its own key.
+const freshKey = () => `https://ags-hq.org/api/standings?test=${keySeq++}`;
+
+async function call<T>(key: string, load: () => Promise<T>) {
+  const ctx = createExecutionContext();
+  const response = await cachedJsonResponse({
+    key,
+    ctx,
+    browserMaxAge: 300,
+    edgeMaxAge: 3600,
+    load,
+  });
+  // Settles the waitUntil the cache write was handed to.
+  await waitOnExecutionContext(ctx);
+  return response;
 }
-
-let cache: ReturnType<typeof fakeCache>;
-const waited: Promise<unknown>[] = [];
-const ctx = {
-  waitUntil: (p: Promise<unknown>) => waited.push(p),
-  passThroughOnException: () => {},
-} as unknown as ExecutionContext;
-
-const flush = () => Promise.all(waited.splice(0));
-
-beforeEach(() => {
-  cache = fakeCache();
-  waited.length = 0;
-  vi.stubGlobal("caches", { default: cache });
-});
-
-afterEach(() => vi.unstubAllGlobals());
-
-const options = (load: () => Promise<unknown>, key = "https://ags-hq.org/api/standings?epoch=1") => ({
-  key,
-  ctx,
-  browserMaxAge: 300,
-  edgeMaxAge: 3600,
-  load,
-});
 
 describe("epochCacheKey", () => {
   it("keys on the request's own origin and path", () => {
@@ -77,64 +62,75 @@ describe("epochCacheKey", () => {
 });
 
 describe("cachedJsonResponse", () => {
-  it("loads and stores on a miss", async () => {
+  it("loads on a miss and serves the stored entry on the next call", async () => {
+    const key = freshKey();
     const load = vi.fn(async () => ({ teams: 10 }));
 
-    const res = await cachedJsonResponse(options(load));
-    await flush();
+    const first = await call(key, load);
+    const second = await call(key, load);
 
-    expect(res.headers.get("X-Cache")).toBe("MISS");
-    expect(await res.json()).toEqual({ teams: 10 });
-    expect(cache.put).toHaveBeenCalledTimes(1);
-  });
-
-  it("serves a stored entry without loading again", async () => {
-    const load = vi.fn(async () => ({ teams: 10 }));
-
-    await cachedJsonResponse(options(load));
-    await flush();
-    const second = await cachedJsonResponse(options(load));
-
-    expect(load).toHaveBeenCalledTimes(1);
+    expect(first.headers.get("X-Cache")).toBe("MISS");
     expect(second.headers.get("X-Cache")).toBe("HIT");
+    expect(load).toHaveBeenCalledTimes(1);
     expect(await second.json()).toEqual({ teams: 10 });
   });
 
-  it("stores no X-Cache header, so a later hit is not labelled MISS", async () => {
-    await cachedJsonResponse(options(async () => ({ teams: 10 })));
-    await flush();
+  it("returns a readable body on a hit, not a consumed one", async () => {
+    const key = freshKey();
+    const payload = { teams: ["a", "b"], nested: { deep: true } };
 
-    const [, storedResponse] = cache.put.mock.calls[0]!;
-    expect(storedResponse.headers.get("X-Cache")).toBeNull();
+    await call(key, async () => payload);
+    const hit = await call(key, async () => ({ teams: ["changed"] }));
+
+    expect(await hit.json()).toEqual(payload);
+  });
+
+  it("tags a hit as HIT despite cached response headers being immutable", async () => {
+    const key = freshKey();
+
+    await call(key, async () => ({}));
+    const hit = await call(key, async () => ({}));
+
+    // Reaching this at all proves the implementation rebuilds the Response:
+    // mutating headers on the object cache.match returns throws in workerd.
+    expect(hit.headers.get("X-Cache")).toBe("HIT");
+  });
+
+  it("stores no X-Cache header, so a later hit is not labelled MISS", async () => {
+    const key = freshKey();
+
+    await call(key, async () => ({}));
+    const stored = await caches.default.match(key);
+
+    expect(stored).toBeDefined();
+    expect(stored!.headers.get("X-Cache")).toBeNull();
   });
 
   it("sets both a browser and an edge max age", async () => {
-    const res = await cachedJsonResponse(options(async () => ({})));
-    await flush();
+    const res = await call(freshKey(), async () => ({}));
 
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=300, s-maxage=3600");
     expect(res.headers.get("Content-Type")).toBe("application/json");
   });
 
   it("stores nothing when the load fails", async () => {
+    const key = freshKey();
     const load = vi.fn().mockRejectedValue(new Error("supabase down"));
 
-    await expect(cachedJsonResponse(options(load))).rejects.toThrow("supabase down");
-    await flush();
+    await expect(call(key, load)).rejects.toThrow("supabase down");
 
-    expect(cache.put).not.toHaveBeenCalled();
-    expect(cache.stored.size).toBe(0);
+    expect(await caches.default.match(key)).toBeUndefined();
   });
 
   it("retries after a failure rather than serving the error", async () => {
+    const key = freshKey();
     const load = vi
       .fn()
       .mockRejectedValueOnce(new Error("supabase down"))
       .mockResolvedValueOnce({ teams: 10 });
 
-    await expect(cachedJsonResponse(options(load))).rejects.toThrow();
-    const retry = await cachedJsonResponse(options(load));
-    await flush();
+    await expect(call(key, load)).rejects.toThrow();
+    const retry = await call(key, load);
 
     expect(retry.headers.get("X-Cache")).toBe("MISS");
     expect(await retry.json()).toEqual({ teams: 10 });
@@ -143,28 +139,23 @@ describe("cachedJsonResponse", () => {
   it("keeps entries under different keys apart", async () => {
     const load = vi.fn(async () => ({ teams: 10 }));
 
-    await cachedJsonResponse(options(load, "https://ags-hq.org/api/standings?epoch=1"));
-    await flush();
-    const other = await cachedJsonResponse(
-      options(load, "https://ags-hq.org/api/standings?epoch=2"),
-    );
+    await call(freshKey(), load);
+    const other = await call(freshKey(), load);
 
     expect(other.headers.get("X-Cache")).toBe("MISS");
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it("writes to the cache without blocking the response", async () => {
-    let released!: () => void;
-    cache.put.mockImplementation(
-      () => new Promise<void>((resolve) => (released = () => resolve())),
-    );
+  it("survives being read from a later, separate request context", async () => {
+    const key = freshKey();
 
-    // Resolves even though the put is still outstanding.
-    const res = await cachedJsonResponse(options(async () => ({})));
+    // Each call gets its own ExecutionContext, standing in for a separate
+    // request. Only resolved data crosses between them — holding an in-flight
+    // promise here is what workerd rejects with "Cannot perform I/O on behalf
+    // of a different request".
+    await call(key, async () => ({ teams: 10 }));
+    const later = await call(key, async () => ({ teams: 999 }));
 
-    expect(res.headers.get("X-Cache")).toBe("MISS");
-    expect(waited).toHaveLength(1);
-    released();
-    await flush();
+    expect(await later.json()).toEqual({ teams: 10 });
   });
 });
