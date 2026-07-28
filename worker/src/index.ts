@@ -1,3 +1,4 @@
+import { handleStandingsRequest } from "./api/standings";
 import { SupabaseClient } from "./data/supabase";
 import { verifyDiscordSignature } from "./discord/verify";
 import {
@@ -66,8 +67,26 @@ export default {
   },
 
   async fetch(request, env, ctx): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/api/")) {
+      if (request.method !== "GET") {
+        return new Response("method not allowed", { status: 405 });
+      }
+      if (url.pathname === "/api/standings") {
+        return handleStandingsRequest(
+          new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
+          url,
+        );
+      }
+      return new Response("not found", { status: 404 });
+    }
+
+    // Discord posts interactions to the root path, which is also where the
+    // dashboard lives. Only POSTs are interactions; hand everything else to
+    // the static assets binding so the bot's endpoint URL need not change.
     if (request.method !== "POST") {
-      return new Response("any-given-sunday discord bot", { status: 200 });
+      return env.ASSETS.fetch(request);
     }
 
     const signature = request.headers.get("X-Signature-Ed25519");

@@ -1,3 +1,5 @@
+import { UserMap } from "../domain/types";
+
 const BASE_URL = "https://api.sleeper.app/v1";
 
 export interface SleeperUser {
@@ -58,4 +60,40 @@ export function getUsersInLeague(leagueId: string): Promise<SleeperUser[]> {
 // Sleeper falls back to the display name when no team name is set.
 export function teamName(user: SleeperUser): string {
   return user.metadata?.team_name || user.display_name;
+}
+
+/**
+ * Returns the league's users with Sleeper team names in place of the names
+ * stored in the database, so displays read "The Ducks" rather than the
+ * owner's name. Costs one request for the whole league.
+ *
+ * Team names are cosmetic, so Sleeper being unreachable falls back to the
+ * database names instead of failing the caller. Users who are no longer in
+ * the league keep their stored name.
+ */
+export async function withTeamNames(users: UserMap, leagueId: string): Promise<UserMap> {
+  const merged: UserMap = new Map(users);
+
+  try {
+    for (const sleeperUser of await getUsersInLeague(leagueId)) {
+      const existing = merged.get(sleeperUser.user_id);
+      merged.set(sleeperUser.user_id, {
+        id: sleeperUser.user_id,
+        name: teamName(sleeperUser),
+        discord_id: existing?.discord_id ?? null,
+        onboarding_complete: existing?.onboarding_complete ?? null,
+        email: existing?.email ?? null,
+      });
+    }
+  } catch (err) {
+    console.warn(
+      JSON.stringify({
+        event: "team_names_unavailable",
+        leagueId,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
+
+  return merged;
 }

@@ -7,6 +7,10 @@ import {
   matchupWinnerAndLoser,
 } from "./types";
 
+// Teams that make the playoffs. Standings displays draw a cut line here while
+// a season is in progress.
+export const PLAYOFF_TEAM_COUNT = 6;
+
 export interface Standing {
   userId: string;
   wins: number;
@@ -207,7 +211,7 @@ function playoffPlacements(
     bySeed(thirdPlaceResult.winner),
     bySeed(thirdPlaceResult.loser),
     ...sortedQuarterfinalLosers,
-    ...sortedStandings.slice(6),
+    ...sortedStandings.slice(PLAYOFF_TEAM_COUNT),
   ];
 }
 
@@ -228,7 +232,7 @@ export function standingsToDiscordMessage(
   standings.forEach((st, i) => {
     const rank = medals[i] ?? `${i + 1}.`;
 
-    if (league.status === LeagueStatus.InProgress && i === 6) {
+    if (league.status === LeagueStatus.InProgress && i === PLAYOFF_TEAM_COUNT) {
       b += "\n────────────── **Playoffs** ──────────────\n\n";
     }
 

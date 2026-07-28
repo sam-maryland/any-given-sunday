@@ -10,13 +10,15 @@ A Discord bot for fantasy football league management with automated weekly recap
   - `/career-stats` - Historical performance statistics
   - `/onboard` - Link new league members to their Sleeper team
 - **Automated Weekly Recaps**: A Cloudflare Worker cron trigger posts weekly summaries every Tuesday
+- **Standings Dashboard**: A web page showing the current standings, served from the same Worker
 - **League Data Sync**: Real-time integration with Sleeper API for up-to-date information
 - **Historical Statistics**: Track career performance across multiple seasons
 - **Easy Deployment**: Designed for technical commissioners to set up for their own leagues
 
 Everything runs as a single [Cloudflare Worker](worker/): the slash commands
-are served from Discord's HTTP interactions endpoint, and the weekly recap
-runs on a cron trigger in the same Worker. Data lives in Supabase.
+are served from Discord's HTTP interactions endpoint, the weekly recap runs on
+a cron trigger, and the dashboard is served as static assets — all from the
+same Worker. Data lives in Supabase.
 
 ## Prerequisites
 
@@ -143,18 +145,41 @@ The Worker runs a cron trigger that automatically:
 
 This automation ensures your league stays up-to-date without manual intervention after Monday Night Football concludes.
 
+### Standings Dashboard
+
+The Worker's own URL serves a standings page in the browser, backed by
+`GET /api/standings` (add `?year=YYYY` for a past season). Both read the same
+tables and run the same `standingsForLeague()` logic as `/standings` in
+Discord, so the two can never disagree on the order.
+
+Teams are labelled with their Sleeper team name rather than the owner's name,
+the same way the recap email is. If Sleeper is unreachable the page falls back
+to the names stored in the database. Note that `/standings` in Discord still
+shows owner names.
+
+Because matchups only reach the database when the weekly recap cron syncs
+them, the dashboard is as fresh as the last sync — it changes on Tuesdays, not
+during Sunday's games.
+
+The root path is shared: Discord POSTs its interactions there, and every
+non-POST request is served the dashboard. Adding the dashboard did **not**
+change the Interactions Endpoint URL, so no Discord Developer Portal change is
+needed.
+
 ## Development
 
 ### Project Structure
 
 ```
 ├── worker/                 # Everything the bot does (TypeScript)
-│   ├── src/index.ts        # Interactions endpoint + weekly recap cron handler
+│   ├── src/index.ts        # Routing: interactions, /api, assets, recap cron
 │   ├── src/handlers.ts     # Slash command handlers
+│   ├── src/api/            # JSON endpoints for the dashboard
 │   ├── src/discord/        # Signature verification, interaction types
 │   ├── src/domain/         # Standings, career stats, weekly summary
 │   ├── src/data/           # Supabase (REST) and Sleeper API clients
 │   ├── src/recap/          # Sleeper sync, Discord post, Resend email
+│   ├── public/             # Dashboard, served as Workers static assets
 │   └── scripts/            # Slash command registration
 ├── pkg/db/schema.sql       # Canonical database schema
 ├── tools/dbsync/           # Schema sync tooling (Go)
