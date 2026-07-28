@@ -32,7 +32,13 @@ export interface MemoResult<T> {
 interface Entry {
   epoch: number;
   storedAt: number;
-  value: Promise<unknown>;
+  /**
+   * Resolved plain data only — never a promise, and never anything holding an
+   * I/O object. Workers ties streams, requests and responses to the request
+   * that created them, and reaching one from a later request throws "Cannot
+   * perform I/O on behalf of a different request".
+   */
+  value: unknown;
 }
 
 export type Memo = <T>(
@@ -46,9 +52,15 @@ export type Memo = <T>(
  * Builds a memo with its own storage. Callers hold one at module scope; tests
  * make their own so they never share state.
  *
- * The in-flight promise is stored rather than the resolved value, so requests
- * that arrive together on a cold isolate share one load instead of racing.
- * A rejected load is evicted, so failures are never served from cache.
+ * Concurrent misses on a cold isolate each run their own load rather than
+ * sharing one in-flight promise. That is deliberate, not an oversight: a
+ * pending promise closes over I/O belonging to the request that started it,
+ * and awaiting it from a second request throws "Cannot perform I/O on behalf
+ * of a different request". Deduplicating would trade a few redundant loads
+ * for intermittent 500s during exactly the burst it was meant to help.
+ *
+ * Storing only resolved values also means a failed load is never cached — the
+ * entry is written after the load succeeds, or not at all.
  */
 export function createMemo(options: MemoOptions = {}): Memo {
   const maxEntries = options.maxEntries ?? 24;
@@ -63,21 +75,15 @@ export function createMemo(options: MemoOptions = {}): Memo {
   ): Promise<MemoResult<T>> {
     const existing = entries.get(key);
     if (existing && existing.epoch === epoch && now - existing.storedAt < maxAgeMs) {
-      return { value: (await existing.value) as T, hit: true };
+      return { value: existing.value as T, hit: true };
     }
 
-    const value = load();
+    const value = await load();
+
     // Re-inserting moves the key to the end, so iteration order stays
     // least-recently-written first for eviction below.
     entries.delete(key);
     entries.set(key, { epoch, storedAt: now, value });
-
-    value.catch(() => {
-      // Only evict our own entry — a later request may already have replaced it.
-      if (entries.get(key)?.value === value) {
-        entries.delete(key);
-      }
-    });
 
     // `key` is partly caller-supplied (the ?year= parameter), so the map has
     // to be bounded rather than growing with whatever gets requested.
@@ -89,6 +95,6 @@ export function createMemo(options: MemoOptions = {}): Memo {
       entries.delete(oldest.value);
     }
 
-    return { value: (await value) as T, hit: false };
+    return { value, hit: false };
   };
 }
