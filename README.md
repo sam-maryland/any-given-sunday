@@ -161,6 +161,18 @@ Because matchups only reach the database when the weekly recap cron syncs
 them, the dashboard is as fresh as the last sync — it changes on Tuesdays, not
 during Sunday's games.
 
+That also makes the standings cacheable on a known boundary. Each response is
+memoised in the Worker isolate under a key that includes the most recent cron
+run (`lastSyncBoundary()`), so a cache hit costs no Supabase or Sleeper
+requests at all, and the next sync invalidates every entry without anything
+having to send a purge. The `X-Cache` response header reports `HIT` or `MISS`.
+
+The cache is deliberately in-memory rather than the Cache API, which has no
+effect on `workers.dev` domains. It is per-isolate, so it is lost on eviction
+and on deploy — it is there for latency, never for correctness. Entries also
+expire after an hour regardless, so an out-of-band database edit (playoff
+results tagged by hand, say) shows up without waiting for Tuesday.
+
 The root path is shared: Discord POSTs its interactions there, and every
 non-POST request is served the dashboard. Adding the dashboard did **not**
 change the Interactions Endpoint URL, so no Discord Developer Portal change is
