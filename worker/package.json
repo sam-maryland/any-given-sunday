@@ -13,6 +13,7 @@
     "register-commands": "node --env-file=.dev.vars scripts/register-commands.mjs"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.8",
     "@cloudflare/workers-types": "^5.20260726.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10",
