@@ -1,122 +1,170 @@
-import { describe, expect, it, vi } from "vitest";
-import { createMemo } from "./cache";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cachedJsonResponse, epochCacheKey } from "./cache";
 
-const EPOCH = 1_000_000;
+/**
+ * A stand-in for `caches.default`. Plain vitest has no Workers runtime, so
+ * these tests pin the cache-aside logic — what gets stored, what does not, and
+ * how responses are tagged — rather than Cloudflare's caching behaviour itself.
+ */
+function fakeCache() {
+  const stored = new Map<string, Response>();
+  return {
+    stored,
+    match: vi.fn(async (key: string) => stored.get(key)?.clone()),
+    put: vi.fn(async (key: string, response: Response) => {
+      stored.set(key, response);
+    }),
+  };
+}
 
-describe("createMemo", () => {
-  it("loads once and serves the second call from cache", async () => {
-    const memo = createMemo();
-    const load = vi.fn(async () => "value");
+let cache: ReturnType<typeof fakeCache>;
+const waited: Promise<unknown>[] = [];
+const ctx = {
+  waitUntil: (p: Promise<unknown>) => waited.push(p),
+  passThroughOnException: () => {},
+} as unknown as ExecutionContext;
 
-    const first = await memo("k", EPOCH, 0, load);
-    const second = await memo("k", EPOCH, 0, load);
+const flush = () => Promise.all(waited.splice(0));
+
+beforeEach(() => {
+  cache = fakeCache();
+  waited.length = 0;
+  vi.stubGlobal("caches", { default: cache });
+});
+
+afterEach(() => vi.unstubAllGlobals());
+
+const options = (load: () => Promise<unknown>, key = "https://ags-hq.org/api/standings?epoch=1") => ({
+  key,
+  ctx,
+  browserMaxAge: 300,
+  edgeMaxAge: 3600,
+  load,
+});
+
+describe("epochCacheKey", () => {
+  it("keys on the request's own origin and path", () => {
+    const key = epochCacheKey(new URL("https://ags-hq.org/api/standings?year=2025"), 1234, {
+      year: "2025",
+    });
+
+    expect(key).toBe("https://ags-hq.org/api/standings?year=2025&epoch=1234");
+  });
+
+  it("distinguishes the default from an explicit season", () => {
+    const url = new URL("https://ags-hq.org/api/standings");
+
+    expect(epochCacheKey(url, 1, { year: "latest" })).not.toBe(
+      epochCacheKey(url, 1, { year: "2025" }),
+    );
+  });
+
+  it("changes when the epoch rolls over", () => {
+    const url = new URL("https://ags-hq.org/api/standings");
+
+    expect(epochCacheKey(url, 1, { year: "latest" })).not.toBe(
+      epochCacheKey(url, 2, { year: "latest" }),
+    );
+  });
+
+  it("drops query parameters that are not part of the key", () => {
+    const key = epochCacheKey(new URL("https://ags-hq.org/api/standings?utm_source=discord"), 1, {
+      year: "latest",
+    });
+
+    expect(key).toBe("https://ags-hq.org/api/standings?year=latest&epoch=1");
+  });
+});
+
+describe("cachedJsonResponse", () => {
+  it("loads and stores on a miss", async () => {
+    const load = vi.fn(async () => ({ teams: 10 }));
+
+    const res = await cachedJsonResponse(options(load));
+    await flush();
+
+    expect(res.headers.get("X-Cache")).toBe("MISS");
+    expect(await res.json()).toEqual({ teams: 10 });
+    expect(cache.put).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves a stored entry without loading again", async () => {
+    const load = vi.fn(async () => ({ teams: 10 }));
+
+    await cachedJsonResponse(options(load));
+    await flush();
+    const second = await cachedJsonResponse(options(load));
 
     expect(load).toHaveBeenCalledTimes(1);
-    expect(first).toEqual({ value: "value", hit: false });
-    expect(second).toEqual({ value: "value", hit: true });
+    expect(second.headers.get("X-Cache")).toBe("HIT");
+    expect(await second.json()).toEqual({ teams: 10 });
   });
 
-  it("reloads when the epoch rolls over", async () => {
-    const memo = createMemo();
-    const load = vi.fn(async () => "value");
+  it("stores no X-Cache header, so a later hit is not labelled MISS", async () => {
+    await cachedJsonResponse(options(async () => ({ teams: 10 })));
+    await flush();
 
-    await memo("k", EPOCH, 0, load);
-    const next = await memo("k", EPOCH + 1, 0, load);
-
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(next.hit).toBe(false);
+    const [, storedResponse] = cache.put.mock.calls[0]!;
+    expect(storedResponse.headers.get("X-Cache")).toBeNull();
   });
 
-  it("keeps separate entries per key", async () => {
-    const memo = createMemo();
-    const load = vi.fn(async () => "value");
+  it("sets both a browser and an edge max age", async () => {
+    const res = await cachedJsonResponse(options(async () => ({})));
+    await flush();
 
-    await memo("a", EPOCH, 0, load);
-    await memo("b", EPOCH, 0, load);
-
-    expect(load).toHaveBeenCalledTimes(2);
-    expect((await memo("a", EPOCH, 0, load)).hit).toBe(true);
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=300, s-maxage=3600");
+    expect(res.headers.get("Content-Type")).toBe("application/json");
   });
 
-  it("reloads once the entry passes its max age, even within an epoch", async () => {
-    const memo = createMemo({ maxAgeMs: 100 });
-    const load = vi.fn(async () => "value");
+  it("stores nothing when the load fails", async () => {
+    const load = vi.fn().mockRejectedValue(new Error("supabase down"));
 
-    await memo("k", EPOCH, 0, load);
-    expect((await memo("k", EPOCH, 99, load)).hit).toBe(true);
-    expect((await memo("k", EPOCH, 100, load)).hit).toBe(false);
-    expect(load).toHaveBeenCalledTimes(2);
+    await expect(cachedJsonResponse(options(load))).rejects.toThrow("supabase down");
+    await flush();
+
+    expect(cache.put).not.toHaveBeenCalled();
+    expect(cache.stored.size).toBe(0);
   });
 
-  // Deliberately NOT deduplicated. Sharing one in-flight promise across
-  // requests would mean a second request awaiting I/O created in the first
-  // request's context, which Workers rejects with "Cannot perform I/O on
-  // behalf of a different request". Redundant loads are the safe trade.
-  it("lets concurrent misses each run their own load rather than sharing one", async () => {
-    const memo = createMemo();
-    // One resolver per call: each concurrent miss gets its own promise, so a
-    // single shared handle would leave the first load hanging forever.
-    const resolvers: ((v: string) => void)[] = [];
-    const load = vi.fn(() => new Promise<string>((r) => resolvers.push(r)));
-
-    const both = Promise.all([memo("k", EPOCH, 0, load), memo("k", EPOCH, 0, load)]);
-    expect(resolvers).toHaveLength(2);
-    resolvers.forEach((r) => r("value"));
-
-    expect((await both).map((r) => r.value)).toEqual(["value", "value"]);
-    expect(load).toHaveBeenCalledTimes(2);
-  });
-
-  it("stores resolved data, never the promise it came from", async () => {
-    const memo = createMemo();
-    const payload = { teams: ["a", "b"] };
-
-    await memo("k", EPOCH, 0, async () => payload);
-    const hit = await memo("k", EPOCH, 0, async () => ({ teams: ["changed"] }));
-
-    // A cached hit hands back the plain object itself — nothing to await, and
-    // nothing holding a request-scoped I/O handle.
-    expect(hit.value).toBe(payload);
-    expect(hit.hit).toBe(true);
-  });
-
-  it("does not cache a failed load", async () => {
-    const memo = createMemo();
+  it("retries after a failure rather than serving the error", async () => {
     const load = vi
       .fn()
       .mockRejectedValueOnce(new Error("supabase down"))
-      .mockResolvedValueOnce("value");
+      .mockResolvedValueOnce({ teams: 10 });
 
-    await expect(memo("k", EPOCH, 0, load)).rejects.toThrow("supabase down");
-    const retry = await memo("k", EPOCH, 0, load);
+    await expect(cachedJsonResponse(options(load))).rejects.toThrow();
+    const retry = await cachedJsonResponse(options(load));
+    await flush();
 
-    expect(retry).toEqual({ value: "value", hit: false });
+    expect(retry.headers.get("X-Cache")).toBe("MISS");
+    expect(await retry.json()).toEqual({ teams: 10 });
+  });
+
+  it("keeps entries under different keys apart", async () => {
+    const load = vi.fn(async () => ({ teams: 10 }));
+
+    await cachedJsonResponse(options(load, "https://ags-hq.org/api/standings?epoch=1"));
+    await flush();
+    const other = await cachedJsonResponse(
+      options(load, "https://ags-hq.org/api/standings?epoch=2"),
+    );
+
+    expect(other.headers.get("X-Cache")).toBe("MISS");
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it("bounds the map so a caller-supplied key cannot grow it without limit", async () => {
-    const memo = createMemo({ maxEntries: 2 });
-    const load = vi.fn(async () => "value");
+  it("writes to the cache without blocking the response", async () => {
+    let released!: () => void;
+    cache.put.mockImplementation(
+      () => new Promise<void>((resolve) => (released = () => resolve())),
+    );
 
-    for (const key of ["a", "b", "c"]) {
-      await memo(key, EPOCH, 0, load);
-    }
+    // Resolves even though the put is still outstanding.
+    const res = await cachedJsonResponse(options(async () => ({})));
 
-    // "a" was evicted as least recently written; "c" is still resident.
-    expect((await memo("c", EPOCH, 0, load)).hit).toBe(true);
-    expect((await memo("a", EPOCH, 0, load)).hit).toBe(false);
-  });
-
-  it("treats a refreshed key as recently written for eviction", async () => {
-    const memo = createMemo({ maxEntries: 2 });
-    const load = vi.fn(async () => "value");
-
-    await memo("a", EPOCH, 0, load);
-    await memo("b", EPOCH, 0, load);
-    await memo("a", EPOCH + 1, 0, load); // refresh moves "a" to newest
-    await memo("c", EPOCH, 0, load); // evicts "b"
-
-    expect((await memo("a", EPOCH + 1, 0, load)).hit).toBe(true);
-    expect((await memo("b", EPOCH, 0, load)).hit).toBe(false);
+    expect(res.headers.get("X-Cache")).toBe("MISS");
+    expect(waited).toHaveLength(1);
+    released();
+    await flush();
   });
 });
