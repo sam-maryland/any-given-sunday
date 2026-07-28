@@ -1,4 +1,4 @@
-import { getNFLState, getUsersInLeague, teamName } from "../data/sleeper";
+import { getNFLState, withTeamNames } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { LeagueStatus, UserMap } from "../domain/types";
 import { formatWeeklySummary, summaryFromMatchups } from "../domain/weeklySummary";
@@ -200,27 +200,7 @@ async function emailRecap(
     }
 
     // The email shows Sleeper team names rather than the DB's user names.
-    const displayNames: UserMap = new Map(users);
-    try {
-      for (const sleeperUser of await getUsersInLeague(leagueId)) {
-        const existing = displayNames.get(sleeperUser.user_id);
-        displayNames.set(sleeperUser.user_id, {
-          id: sleeperUser.user_id,
-          name: teamName(sleeperUser),
-          discord_id: existing?.discord_id ?? null,
-          onboarding_complete: existing?.onboarding_complete ?? null,
-          email: existing?.email ?? null,
-        });
-      }
-    } catch (err) {
-      // Fall back to DB names rather than dropping the email entirely.
-      console.warn(
-        JSON.stringify({
-          event: "recap_team_names_unavailable",
-          error: err instanceof Error ? err.message : String(err),
-        }),
-      );
-    }
+    const displayNames = await withTeamNames(users, leagueId);
 
     if (config.dryRun) {
       return { status: "dry-run", recipients: recipients.length };

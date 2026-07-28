@@ -9,6 +9,15 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  // The league dashboard. Only the paths below reach the Worker; every other
+  // asset request is served straight from the edge. The root is worker-first
+  // because Discord POSTs its interactions there — the Worker hands non-POST
+  // root requests back to ASSETS so index.html is still served.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/api/*"]
+  },
   "triggers": {
     // Weekly recap: Tuesdays at 11:00 UTC. That is 6-7am Eastern depending on
     // daylight saving, comfortably before the 8am Eastern delivery time the

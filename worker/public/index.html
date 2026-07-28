@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Any Given Sunday — Standings</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🏈</text></svg>" />
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --border: #e3e6ea;
+        --text: #14181f;
+        --muted: #697280;
+        --accent: #1f6f4a;
+        --cut: #c2410c;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1216;
+          --surface: #171b21;
+          --border: #272d36;
+          --text: #e8ebef;
+          --muted: #8b95a3;
+          --accent: #4ade80;
+          --cut: #fb923c;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 2rem 1rem 4rem;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 46rem;
+        margin: 0 auto;
+      }
+
+      header {
+        margin-bottom: 1.5rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin: 0.25rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+      }
+
+      .scroller {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th,
+      td {
+        padding: 0.7rem 0.9rem;
+        text-align: right;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--border);
+      }
+
+      th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      th:nth-child(1),
+      td:nth-child(1) {
+        text-align: center;
+        width: 3rem;
+        color: var(--muted);
+      }
+
+      th:nth-child(2),
+      td:nth-child(2) {
+        text-align: left;
+        white-space: normal;
+        font-weight: 600;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* The playoff cut line: everyone above it is currently in. */
+      tr.cut td {
+        border-bottom: 2px solid var(--cut);
+      }
+
+      .cut-label {
+        padding: 0.4rem 0.9rem;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--cut);
+        font-weight: 600;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .medal {
+        font-size: 1rem;
+      }
+
+      /* Narrow screens: buy horizontal room so team names stay on one line. */
+      @media (max-width: 30rem) {
+        body {
+          padding: 1.25rem 0.75rem 3rem;
+        }
+
+        th,
+        td {
+          padding: 0.6rem 0.55rem;
+          font-size: 0.9rem;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+          white-space: nowrap;
+        }
+      }
+
+      .note,
+      .status {
+        margin: 1rem 0 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .error {
+        color: var(--cut);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>🏈 Any Given Sunday</h1>
+        <p class="subtitle" id="subtitle">Loading standings…</p>
+      </header>
+
+      <div class="card scroller" id="card" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team</th>
+              <th>Record</th>
+              <th>PF</th>
+              <th>PA</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <p class="status" id="status"></p>
+      <p class="note" id="note" hidden></p>
+    </main>
+
+    <script>
+      const MEDALS = ["🥇", "🥈", "🥉"];
+
+      function render(data) {
+        document.getElementById("subtitle").textContent =
+          data.status === "COMPLETE"
+            ? `${data.year} final standings`
+            : `${data.year} standings`;
+
+        const tbody = document.getElementById("rows");
+        for (const team of data.standings) {
+          const tr = document.createElement("tr");
+
+          const rank = MEDALS[team.rank - 1];
+          tr.appendChild(cell(rank ?? String(team.rank), rank ? "medal" : ""));
+          tr.appendChild(cell(team.name));
+          tr.appendChild(cell(`${team.wins}-${team.losses}-${team.ties}`));
+          tr.appendChild(cell(team.pointsFor.toFixed(1)));
+          tr.appendChild(cell(team.pointsAgainst.toFixed(1)));
+
+          if (team.rank === data.playoffCutoff) {
+            tr.className = "cut";
+          }
+          tbody.appendChild(tr);
+
+          if (team.rank === data.playoffCutoff) {
+            const label = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 5;
+            td.className = "cut-label";
+            td.textContent = "Playoff line";
+            label.appendChild(td);
+            tbody.appendChild(label);
+          }
+        }
+
+        document.getElementById("card").hidden = false;
+        document.getElementById("status").textContent =
+          "Synced weekly, after the Tuesday recap.";
+
+        if (data.status === "COMPLETE" && !data.usedPlayoffResults) {
+          const note = document.getElementById("note");
+          note.textContent =
+            "⚠️ Playoff results haven't been recorded for this season, so this is regular season order.";
+          note.hidden = false;
+        }
+      }
+
+      // textContent throughout — team names are user-supplied and never
+      // interpolated into markup.
+      function cell(text, className) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        if (className) td.className = className;
+        return td;
+      }
+
+      async function load() {
+        try {
+          const res = await fetch("/api/standings");
+          if (!res.ok) {
+            throw new Error(`request failed (${res.status})`);
+          }
+          render(await res.json());
+        } catch (err) {
+          document.getElementById("subtitle").textContent = "";
+          const status = document.getElementById("status");
+          status.className = "status error";
+          status.textContent = `Couldn't load the standings: ${err.message}`;
+        }
+      }
+
+      load();
+    </script>
+  </body>
+</html>
