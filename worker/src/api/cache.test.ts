@@ -48,16 +48,36 @@ describe("createMemo", () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it("shares one load between callers that arrive together", async () => {
+  // Deliberately NOT deduplicated. Sharing one in-flight promise across
+  // requests would mean a second request awaiting I/O created in the first
+  // request's context, which Workers rejects with "Cannot perform I/O on
+  // behalf of a different request". Redundant loads are the safe trade.
+  it("lets concurrent misses each run their own load rather than sharing one", async () => {
     const memo = createMemo();
-    let resolve!: (v: string) => void;
-    const load = vi.fn(() => new Promise<string>((r) => (resolve = r)));
+    // One resolver per call: each concurrent miss gets its own promise, so a
+    // single shared handle would leave the first load hanging forever.
+    const resolvers: ((v: string) => void)[] = [];
+    const load = vi.fn(() => new Promise<string>((r) => resolvers.push(r)));
 
     const both = Promise.all([memo("k", EPOCH, 0, load), memo("k", EPOCH, 0, load)]);
-    resolve("value");
+    expect(resolvers).toHaveLength(2);
+    resolvers.forEach((r) => r("value"));
 
     expect((await both).map((r) => r.value)).toEqual(["value", "value"]);
-    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("stores resolved data, never the promise it came from", async () => {
+    const memo = createMemo();
+    const payload = { teams: ["a", "b"] };
+
+    await memo("k", EPOCH, 0, async () => payload);
+    const hit = await memo("k", EPOCH, 0, async () => ({ teams: ["changed"] }));
+
+    // A cached hit hands back the plain object itself — nothing to await, and
+    // nothing holding a request-scoped I/O handle.
+    expect(hit.value).toBe(payload);
+    expect(hit.hit).toBe(true);
   });
 
   it("does not cache a failed load", async () => {
