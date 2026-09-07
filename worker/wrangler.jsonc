@@ -14,8 +14,12 @@
   // src/api/cache.ts only does anything here. Cloudflare manages the DNS
   // record and certificate for a custom_domain route.
   //
-  // workers.dev stays enabled alongside this, so Discord's existing
-  // Interactions Endpoint URL keeps working untouched.
+  // Set explicitly rather than left to the default, which depends on whether
+  // routes are present. Everything — the dashboard, /api/*, and Discord's
+  // Interactions Endpoint URL — goes through ags-hq.org, so the workers.dev
+  // subdomain is off. Turning it back on means a second public hostname for
+  // the same Worker, one where the Cache API silently does nothing.
+  "workers_dev": false,
   "routes": [
     {
       "pattern": "ags-hq.org",
