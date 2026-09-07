@@ -180,13 +180,16 @@ on `workers.dev`.
 
 The dashboard is served from `ags-hq.org`, configured as a Custom Domain route
 in `wrangler.jsonc`; Cloudflare manages the DNS record and certificate. The
-`workers.dev` URL stays enabled alongside it, so Discord's Interactions
-Endpoint URL is unaffected.
+`workers.dev` subdomain is disabled (`"workers_dev": false`) — `ags-hq.org` is
+the Worker's only hostname.
 
-The root path is shared: Discord POSTs its interactions there, and every
-non-POST request is served the dashboard. Adding the dashboard did **not**
-change the Interactions Endpoint URL, so no Discord Developer Portal change is
-needed.
+The root path is shared: Discord POSTs its interactions to `https://ags-hq.org/`,
+and every non-POST request is served the dashboard.
+
+Note for anyone adding a route later: when `routes` is set and `workers_dev` is
+not, a deploy tears down the `*.workers.dev` route. That is how the Interactions
+Endpoint URL went dead once — Discord was still pointed at the subdomain. Keep
+the endpoint on a domain the config names outright.
 
 ## Development
 

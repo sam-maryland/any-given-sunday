@@ -69,7 +69,7 @@ open your application → **General Information** → set
 **Interactions Endpoint URL** to the Worker URL:
 
 ```
-https://any-given-sunday.wattsio.workers.dev/
+https://ags-hq.org/
 ```
 
 Discord immediately sends a signed PING; the save only succeeds if the
