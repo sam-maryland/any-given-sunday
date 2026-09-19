@@ -1,4 +1,10 @@
-import { SleeperMatchup, getMatchupsForWeek, getRostersInLeague } from "../data/sleeper";
+import {
+  NFLState,
+  SleeperLeague,
+  SleeperMatchup,
+  getMatchupsForWeek,
+  getRostersInLeague,
+} from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { Matchup, NewMatchup } from "../domain/types";
 
@@ -19,6 +25,24 @@ export interface SyncResult {
 const RESYNC_RECENT_WEEKS = 2;
 
 /**
+ * The last week whose scores are final.
+ *
+ * Sleeper's league settings carry `last_scored_leg`, which is exactly this.
+ * The obvious-looking alternative — NFLState.week minus one — is wrong on the
+ * day this job runs: Sleeper's week counter rolls over on Wednesday, so at
+ * Tuesday 11:00 UTC it still reports the week that finished the night before
+ * as the current one. Deriving from it skipped the season's first recap
+ * entirely and left every later one a week stale.
+ *
+ * Falls back to that derivation only when Sleeper omits the setting, which
+ * keeps a sync running (a week behind) rather than failing outright.
+ */
+export function lastCompletedWeek(league: SleeperLeague, state: NFLState): number {
+  const scored = league.settings?.last_scored_leg;
+  return typeof scored === "number" ? scored : state.week - 1;
+}
+
+/**
  * Syncs completed regular season matchups from Sleeper into the database.
  *
  * The Go implementation re-fetched every week on every run and issued two
@@ -31,21 +55,18 @@ export async function syncLatestData(
   db: SupabaseClient,
   leagueId: string,
   year: number,
-  currentNflWeek: number,
+  lastCompleteWeek: number,
   existingMatchups: Matchup[],
 ): Promise<SyncResult> {
-  // Sleeper's current week is in progress, so the last completed week is the
-  // one before it (matching the Go job's `week < nflState.Week` loop).
-  const lastCompletedWeek = currentNflWeek - 1;
-  if (lastCompletedWeek < 1) {
+  if (lastCompleteWeek < 1) {
     return { weeksFetched: [], inserted: 0, updated: 0, matchups: existingMatchups };
   }
 
   const weeksWithData = new Set(existingMatchups.filter((m) => !m.is_playoff).map((m) => m.week));
 
   const weeksToFetch: number[] = [];
-  for (let week = 1; week <= lastCompletedWeek; week++) {
-    const isRecent = week > lastCompletedWeek - RESYNC_RECENT_WEEKS;
+  for (let week = 1; week <= lastCompleteWeek; week++) {
+    const isRecent = week > lastCompleteWeek - RESYNC_RECENT_WEEKS;
     if (!weeksWithData.has(week) || isRecent) {
       weeksToFetch.push(week);
     }

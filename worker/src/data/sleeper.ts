@@ -21,6 +21,21 @@ export interface NFLState {
   season_type: string;
 }
 
+export interface SleeperLeague {
+  league_id: string;
+  status: string;
+  settings: {
+    /**
+     * The last week Sleeper has finished scoring, and the only authoritative
+     * answer to "which weeks are done". NFLState.week cannot stand in for it:
+     * Sleeper rolls that counter over on Wednesday, so on the Tuesday the
+     * recap runs it still names the week that just finished as current.
+     */
+    last_scored_leg?: number;
+    playoff_week_start?: number;
+  };
+}
+
 export interface SleeperMatchup {
   matchup_id: number | null;
   roster_id: number;
@@ -43,6 +58,10 @@ export function getSleeperUser(userId: string): Promise<SleeperUser> {
 
 export function getRostersInLeague(leagueId: string): Promise<SleeperRoster[]> {
   return get<SleeperRoster[]>(`/league/${encodeURIComponent(leagueId)}/rosters`);
+}
+
+export function getLeague(leagueId: string): Promise<SleeperLeague> {
+  return get<SleeperLeague>(`/league/${encodeURIComponent(leagueId)}`);
 }
 
 export function getNFLState(): Promise<NFLState> {
