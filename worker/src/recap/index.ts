@@ -1,10 +1,10 @@
-import { getNFLState, withTeamNames } from "../data/sleeper";
+import { getLeague, getNFLState, withTeamNames } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { LeagueStatus, UserMap } from "../domain/types";
 import { formatWeeklySummary, summaryFromMatchups } from "../domain/weeklySummary";
 import { postToChannel } from "./channel";
 import { sendWeeklyRecap } from "./email";
-import { syncLatestData } from "./sync";
+import { lastCompletedWeek, syncLatestData } from "./sync";
 
 export interface RecapConfig {
   discordBotToken?: string;
@@ -80,14 +80,17 @@ export async function runWeeklyRecap(
     };
   }
 
-  const nflState = await getNFLState();
+  // season_type (for the notification gate) comes from NFL state; which
+  // weeks are final comes from the league's last_scored_leg — see
+  // lastCompletedWeek for why the two cannot be collapsed into one call.
+  const [nflState, sleeperLeague] = await Promise.all([getNFLState(), getLeague(league.id)]);
   const existingMatchups = await db.getMatchupsByYear(league.year);
 
   const synced = await syncLatestData(
     db,
     league.id,
     league.year,
-    nflState.week,
+    lastCompletedWeek(sleeperLeague, nflState),
     existingMatchups,
   );
 

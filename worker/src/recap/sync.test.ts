@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SupabaseClient } from "../data/supabase";
+import { SleeperLeague } from "../data/sleeper";
 import { Matchup, NewMatchup } from "../domain/types";
-import { syncLatestData } from "./sync";
+import { lastCompletedWeek, syncLatestData } from "./sync";
 
 const ROSTERS = [
   { roster_id: 1, owner_id: "u1" },
@@ -80,15 +81,36 @@ function existing(overrides: Partial<Matchup> & Pick<Matchup, "week">): Matchup 
   };
 }
 
+describe("lastCompletedWeek", () => {
+  const state = { week: 2, season: "2026", season_type: "regular" };
+  const league = (last_scored_leg?: number) =>
+    ({ league_id: "L1", status: "in_season", settings: { last_scored_leg } }) as SleeperLeague;
+
+  it("trusts the league's last scored week", () => {
+    // The bug this replaced: on the Tuesday the recap runs, Sleeper still
+    // reports the week that just finished as current, so week-minus-one said
+    // nothing was complete and that week's recap never went out.
+    expect(lastCompletedWeek(league(1), state)).toBe(1);
+  });
+
+  it("reports nothing complete before the first week is scored", () => {
+    expect(lastCompletedWeek(league(0), state)).toBe(0);
+  });
+
+  it("falls back to the NFL state when Sleeper omits the setting", () => {
+    expect(lastCompletedWeek(league(undefined), state)).toBe(1);
+  });
+});
+
 describe("syncLatestData", () => {
   it("does nothing before any week has completed", async () => {
-    const result = await syncLatestData(db, "L1", 2025, 1, []);
+    const result = await syncLatestData(db, "L1", 2025, 0, []);
     expect(result).toEqual({ weeksFetched: [], inserted: 0, updated: 0, matchups: [] });
     expect(fetchCalls).toHaveLength(0);
   });
 
   it("fetches every week when the database is empty", async () => {
-    const result = await syncLatestData(db, "L1", 2025, 6, []);
+    const result = await syncLatestData(db, "L1", 2025, 5, []);
     expect(result.weeksFetched).toEqual([1, 2, 3, 4, 5]);
     // Two games per week, bye row ignored.
     expect(result.inserted).toBe(10);
@@ -110,7 +132,7 @@ describe("syncLatestData", () => {
       stored.push(existing({ week, home_user_id: "u3", away_user_id: "u4", home_score: 80, away_score: 70 }));
     }
 
-    const result = await syncLatestData(db, "L1", 2025, 6, stored);
+    const result = await syncLatestData(db, "L1", 2025, 5, stored);
 
     expect(result.weeksFetched).toEqual([4, 5]);
     expect(result.inserted).toBe(0);
@@ -119,7 +141,7 @@ describe("syncLatestData", () => {
 
   it("updates scores that changed after a stat correction", async () => {
     const stored = [existing({ week: 5, home_score: 1, away_score: 2 })];
-    const result = await syncLatestData(db, "L1", 2025, 6, stored);
+    const result = await syncLatestData(db, "L1", 2025, 5, stored);
 
     expect(result.updated).toBe(1);
     expect(updated[0]).toEqual({ id: "existing-5", home_score: 100, away_score: 90 });
@@ -147,7 +169,7 @@ describe("syncLatestData", () => {
       );
     }
 
-    const result = await syncLatestData(db, "L1", 2025, 6, stored);
+    const result = await syncLatestData(db, "L1", 2025, 5, stored);
 
     expect(result.weeksFetched).toEqual([4, 5]);
     expect(result.inserted).toBe(0);
@@ -156,7 +178,7 @@ describe("syncLatestData", () => {
 
   it("ignores playoff rows when deciding which weeks have data", async () => {
     const stored = [existing({ week: 3, is_playoff: true, playoff_round: "final" })];
-    const result = await syncLatestData(db, "L1", 2025, 5, stored);
+    const result = await syncLatestData(db, "L1", 2025, 4, stored);
     expect(result.weeksFetched).toContain(3);
   });
 
@@ -166,19 +188,19 @@ describe("syncLatestData", () => {
   // need updating every time the logic legitimately changes.
   describe("request pattern", () => {
     it("fetches rosters once no matter how many weeks it syncs", async () => {
-      await syncLatestData(db, "L1", 2025, 18, []);
+      await syncLatestData(db, "L1", 2025, 17, []);
       expect(fetchCalls.filter((c) => c.includes("/rosters"))).toHaveLength(1);
     });
 
     it("writes once per sync rather than once per matchup", async () => {
-      const result = await syncLatestData(db, "L1", 2025, 18, []);
+      const result = await syncLatestData(db, "L1", 2025, 17, []);
 
       expect(result.inserted).toBe(34);
       expect(fetchCalls.filter((c) => c === "supabase:insertMatchups")).toHaveLength(1);
     });
 
     it("reads nothing back after writing", async () => {
-      const result = await syncLatestData(db, "L1", 2025, 6, []);
+      const result = await syncLatestData(db, "L1", 2025, 5, []);
 
       expect(fetchCalls.filter((c) => c.startsWith("supabase:"))).toEqual([
         "supabase:insertMatchups",
@@ -196,7 +218,7 @@ describe("syncLatestData", () => {
         );
       }
 
-      await syncLatestData(db, "L1", 2025, 18, stored);
+      await syncLatestData(db, "L1", 2025, 17, stored);
 
       // 17 weeks are complete: week 17 is new, and week 16 is re-checked for
       // stat corrections. The other 15 are left alone.

@@ -30,10 +30,16 @@ export class SupabaseClient {
       const body = await res.text();
       throw new Error(`Supabase ${init?.method ?? "GET"} ${path} failed (${res.status}): ${body}`);
     }
-    if (res.status === 204) {
+    // A write sent with `Prefer: return=minimal` comes back as 201 with a
+    // zero-byte body, not 204, so the status alone does not say whether there
+    // is JSON to parse. Read the body and treat empty as no content — calling
+    // res.json() on it throws "Unexpected end of JSON input", which took down
+    // the whole weekly recap the first time it stored a matchup.
+    const text = await res.text();
+    if (text === "") {
       return undefined as T;
     }
-    return (await res.json()) as T;
+    return JSON.parse(text) as T;
   }
 
   async getLeagueByYear(year: number): Promise<League | null> {
