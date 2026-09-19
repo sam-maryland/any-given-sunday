@@ -36,6 +36,12 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      # Runs before the deploy step so a red suite blocks the release. The
+      # tests need no secrets: they stub fetch, and the placeholder .dev.vars
+      # written above is enough to satisfy the Worker's Env.
+      - name: Test
+        run: npm test
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
