@@ -1,5 +1,6 @@
 import {
   NFLState,
+  SleeperGame,
   SleeperLeague,
   SleeperMatchup,
   getMatchupsForWeek,
@@ -24,20 +25,64 @@ export interface SyncResult {
 // recent are re-fetched even when we already have their matchups.
 const RESYNC_RECENT_WEEKS = 2;
 
+// A game that can still be played blocks its week. "canceled" cannot be
+// played, so it counts as finished — week 6 of the 2026 season already
+// carries one, and waiting on it would stall the recap for the rest of the
+// year. Anything else, including whatever Sleeper reports mid-game, holds.
+const FINISHED_GAME_STATUSES = new Set(["complete", "canceled"]);
+
 /**
- * The last week whose scores are final.
+ * The last week whose games are all over, according to the NFL schedule.
  *
- * Sleeper's league settings carry `last_scored_leg`, which is exactly this.
- * The obvious-looking alternative — NFLState.week minus one — is wrong on the
- * day this job runs: Sleeper's week counter rolls over on Wednesday, so at
- * Tuesday 11:00 UTC it still reports the week that finished the night before
- * as the current one. Deriving from it skipped the season's first recap
- * entirely and left every later one a week stale.
+ * Two earlier versions of this asked Sleeper's counters instead —
+ * `NFLState.week - 1`, then the league's `last_scored_leg` — and both were
+ * wrong in the same way: those counters advance on Sleeper's own weekly
+ * rollover, which lands after the Tuesday the recap runs. Each shipped as a
+ * fix and each produced another silent Tuesday, because on the morning the
+ * job runs they still describe the week that finished the night before as
+ * unfinished.
  *
- * Falls back to that derivation only when Sleeper omits the setting, which
- * keeps a sync running (a week behind) rather than failing outright.
+ * The games themselves have no such ambiguity. This walks up from week 1 and
+ * stops at the first week still holding a playable game, so a week is only
+ * ever reported complete when every week before it is too.
+ *
+ * @param fallback used when the schedule is unavailable — see the caller
  */
-export function lastCompletedWeek(league: SleeperLeague, state: NFLState): number {
+export function lastCompletedWeek(schedule: SleeperGame[], fallback: number): number {
+  if (schedule.length === 0) {
+    return fallback;
+  }
+
+  const byWeek = new Map<number, SleeperGame[]>();
+  for (const game of schedule) {
+    const games = byWeek.get(game.week);
+    if (games) {
+      games.push(game);
+    } else {
+      byWeek.set(game.week, [game]);
+    }
+  }
+
+  let lastComplete = 0;
+  for (let week = 1; byWeek.has(week); week++) {
+    const games = byWeek.get(week) as SleeperGame[];
+    if (!games.every((g) => FINISHED_GAME_STATUSES.has(g.status))) {
+      break;
+    }
+    lastComplete = week;
+  }
+
+  return lastComplete;
+}
+
+/**
+ * The last week Sleeper has finished scoring, as the league reports it.
+ *
+ * Only a fallback now, for when the schedule endpoint is unreachable: it is
+ * late by a week on the day the recap runs, so relying on it means a stale
+ * recap rather than none at all.
+ */
+export function sleeperLastScoredWeek(league: SleeperLeague, state: NFLState): number {
   const scored = league.settings?.last_scored_leg;
   return typeof scored === "number" ? scored : state.week - 1;
 }
