@@ -1,10 +1,10 @@
-import { getLeague, getNFLState, withTeamNames } from "../data/sleeper";
+import { SleeperGame, getLeague, getNFLSchedule, getNFLState, withTeamNames } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { LeagueStatus, UserMap } from "../domain/types";
 import { formatWeeklySummary, summaryFromMatchups } from "../domain/weeklySummary";
 import { postToChannel } from "./channel";
 import { sendWeeklyRecap } from "./email";
-import { lastCompletedWeek, syncLatestData } from "./sync";
+import { lastCompletedWeek, sleeperLastScoredWeek, syncLatestData } from "./sync";
 
 export interface RecapConfig {
   discordBotToken?: string;
@@ -80,17 +80,37 @@ export async function runWeeklyRecap(
     };
   }
 
-  // season_type (for the notification gate) comes from NFL state; which
-  // weeks are final comes from the league's last_scored_leg — see
-  // lastCompletedWeek for why the two cannot be collapsed into one call.
+  // season_type (for the notification gate) comes from NFL state; which weeks
+  // are over comes from the schedule's per-game status. The league is read
+  // only for the fallback below.
   const [nflState, sleeperLeague] = await Promise.all([getNFLState(), getLeague(league.id)]);
+
+  // An undocumented endpoint, so losing it must not take the recap with it:
+  // fall back to Sleeper's own counter, which sends a week late rather than
+  // not at all, and say so in the log.
+  let schedule: SleeperGame[] = [];
+  try {
+    schedule = await getNFLSchedule(nflState.season);
+  } catch (err) {
+    console.warn(
+      JSON.stringify({
+        event: "nfl_schedule_unavailable",
+        season: nflState.season,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
+  const lastComplete = lastCompletedWeek(
+    schedule,
+    sleeperLastScoredWeek(sleeperLeague, nflState),
+  );
   const existingMatchups = await db.getMatchupsByYear(league.year);
 
   const synced = await syncLatestData(
     db,
     league.id,
     league.year,
-    lastCompletedWeek(sleeperLeague, nflState),
+    lastComplete,
     existingMatchups,
   );
 

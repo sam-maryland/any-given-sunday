@@ -36,20 +36,52 @@ export interface SleeperLeague {
   };
 }
 
+export interface SleeperGame {
+  game_id: string;
+  week: number;
+  /** "complete", "pre_game", "canceled", or an in-progress value while played. */
+  status: string;
+  /** Local game date, YYYY-MM-DD. */
+  date: string;
+  home: string;
+  away: string;
+}
+
 export interface SleeperMatchup {
   matchup_id: number | null;
   roster_id: number;
   points: number;
 }
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function getUrl<T>(url: string): Promise<T> {
+  const res = await fetch(url, {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) {
-    throw new Error(`Sleeper GET ${path} failed (${res.status})`);
+    throw new Error(`Sleeper GET ${url} failed (${res.status})`);
   }
   return (await res.json()) as T;
+}
+
+function get<T>(path: string): Promise<T> {
+  return getUrl<T>(`${BASE_URL}${path}`);
+}
+
+/**
+ * The season's games, each with its own status.
+ *
+ * This is what tells the recap that a week is actually over: the games
+ * themselves say so, rather than a counter Sleeper advances on a schedule of
+ * its own. It costs one request for the entire season.
+ *
+ * Note the path — this endpoint sits outside /v1 and outside Sleeper's
+ * published docs, so it may move or change shape without warning. Callers
+ * treat a failure as routine and fall back to the league's last_scored_leg.
+ */
+export function getNFLSchedule(season: string): Promise<SleeperGame[]> {
+  return getUrl<SleeperGame[]>(
+    `https://api.sleeper.app/schedule/nfl/regular/${encodeURIComponent(season)}`,
+  );
 }
 
 export function getSleeperUser(userId: string): Promise<SleeperUser> {

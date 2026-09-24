@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SupabaseClient } from "../data/supabase";
-import { SleeperLeague } from "../data/sleeper";
+import { SleeperGame, SleeperLeague } from "../data/sleeper";
 import { Matchup, NewMatchup } from "../domain/types";
-import { lastCompletedWeek, syncLatestData } from "./sync";
+import { lastCompletedWeek, sleeperLastScoredWeek, syncLatestData } from "./sync";
 
 const ROSTERS = [
   { roster_id: 1, owner_id: "u1" },
@@ -81,24 +81,67 @@ function existing(overrides: Partial<Matchup> & Pick<Matchup, "week">): Matchup 
   };
 }
 
+// Statuses as the schedule endpoint reports them, one row per game.
+function games(week: number, ...statuses: string[]): SleeperGame[] {
+  return statuses.map((status, i) => ({
+    game_id: `${week}-${i}`,
+    week,
+    status,
+    date: "2026-09-13",
+    home: "CAR",
+    away: "CHI",
+  }));
+}
+
+const complete = (week: number, n = 16) => games(week, ...Array(n).fill("complete"));
+
 describe("lastCompletedWeek", () => {
-  const state = { week: 2, season: "2026", season_type: "regular" };
+  it("reports the last week whose games have all finished", () => {
+    // The Tuesday case both earlier versions got wrong: week 2's games are
+    // over, and Sleeper's own counters still call week 2 the current week.
+    const schedule = [...complete(1), ...complete(2), ...games(3, ...Array(16).fill("pre_game"))];
+    expect(lastCompletedWeek(schedule, 1)).toBe(2);
+  });
+
+  it("holds a week that still has a game in progress", () => {
+    const schedule = [...complete(1), ...games(2, "complete", "in_game")];
+    expect(lastCompletedWeek(schedule, 99)).toBe(1);
+  });
+
+  it("does not wait on a canceled game", () => {
+    // Week 6 of the 2026 season carries one. Treating it as unfinished would
+    // stall the recap for the rest of the year.
+    const schedule = [...complete(1), ...games(2, "complete", "canceled")];
+    expect(lastCompletedWeek(schedule, 0)).toBe(2);
+  });
+
+  it("stops at the first unfinished week rather than taking the highest", () => {
+    const schedule = [...complete(1), ...games(2, "pre_game"), ...complete(3)];
+    expect(lastCompletedWeek(schedule, 0)).toBe(1);
+  });
+
+  it("reports nothing complete before the season starts", () => {
+    expect(lastCompletedWeek(games(1, ...Array(16).fill("pre_game")), 0)).toBe(0);
+  });
+
+  it("falls back when the schedule is unavailable", () => {
+    // The endpoint is undocumented, so this is the path that keeps the recap
+    // running — a week late — rather than failing outright.
+    expect(lastCompletedWeek([], 4)).toBe(4);
+  });
+});
+
+describe("sleeperLastScoredWeek", () => {
+  const state = { week: 3, season: "2026", season_type: "regular" };
   const league = (last_scored_leg?: number) =>
     ({ league_id: "L1", status: "in_season", settings: { last_scored_leg } }) as SleeperLeague;
 
-  it("trusts the league's last scored week", () => {
-    // The bug this replaced: on the Tuesday the recap runs, Sleeper still
-    // reports the week that just finished as current, so week-minus-one said
-    // nothing was complete and that week's recap never went out.
-    expect(lastCompletedWeek(league(1), state)).toBe(1);
+  it("reads the league's last scored week", () => {
+    expect(sleeperLastScoredWeek(league(2), state)).toBe(2);
   });
 
-  it("reports nothing complete before the first week is scored", () => {
-    expect(lastCompletedWeek(league(0), state)).toBe(0);
-  });
-
-  it("falls back to the NFL state when Sleeper omits the setting", () => {
-    expect(lastCompletedWeek(league(undefined), state)).toBe(1);
+  it("derives from NFL state when the setting is absent", () => {
+    expect(sleeperLastScoredWeek(league(undefined), state)).toBe(2);
   });
 });
 
