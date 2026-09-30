@@ -40,7 +40,14 @@
     // daylight saving, comfortably before the 8am Eastern delivery time the
     // email is scheduled for (see src/recap/schedule.ts). The Discord post
     // goes out when this runs, an hour or two ahead of the email.
-    "crons": ["0 11 * * 2"]
+    //
+    // Cloudflare's cron triggers number day-of-week Quartz-style (1=Sunday,
+    // ..., 7=Saturday), not Unix-style (0=Sunday). "2" is Monday here, not
+    // Tuesday — confirmed against the dashboard's own schedule preview. That
+    // off-by-one ran this a full day early, before Monday Night Football had
+    // finished, so lastCompletedWeek() (schedule.ts) could never see the
+    // prior week as complete and the recap synced nothing every run.
+    "crons": ["0 11 * * 3"]
   }
   // Secrets (set with `wrangler secret put <NAME>`, or .dev.vars locally):
   //   DISCORD_PUBLIC_KEY          - Discord app public key (General Information page)
