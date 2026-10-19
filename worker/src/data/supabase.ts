@@ -62,6 +62,14 @@ export class SupabaseClient {
     return complete[0] ?? null;
   }
 
+  // Years with standings to show, newest first. A pending league has none yet.
+  async getSeasonYears(): Promise<number[]> {
+    const rows = await this.request<Pick<League, "year">[]>(
+      `leagues?status=neq.${LeagueStatus.Pending}&select=year&order=year.desc`,
+    );
+    return rows.map((r) => r.year);
+  }
+
   async getMatchupsByYear(year: number): Promise<Matchup[]> {
     return this.request<Matchup[]>(`matchups?year=eq.${year}&order=week.asc,id.asc`);
   }
