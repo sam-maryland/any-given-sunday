@@ -84,16 +84,12 @@ Once the league is complete, the final standings are determined by playoff perfo
 ### Playoff Bracket Structure
 
 The playoffs follow this structure:
-- **Quarterfinals**: Seeds 3-6 play (Seeds 1 & 2 have byes)
-- **Semifinals**: Seeds 1 & 2 play the quarterfinal winners
+- **Quarterfinals**: Seeds 3 vs 6, Seeds 4 vs 5 (Seeds 1 & 2 have byes)
+- **Semifinals**: Seed 1 vs lowest remaining seed, Seed 2 vs highest remaining seed
 - **Championship Game**: Winners of semifinals play for 1st/2nd place
 - **Third Place Game**: Losers of semifinals play for 3rd/4th place
 
-The league has set pairings two ways, and decides each season which to use:
-- **By seeding**: Seeds 3 vs 6 and 4 vs 5, then Seed 1 vs the lowest remaining seed and Seed 2 vs the highest.
-- **Higher seeds pick**: Seed 3 picks its quarterfinal opponent from seeds 4-6, and Seed 1 picks its semifinal opponent from the quarterfinal winners. 2025 ran this way.
-
-Final placements don't depend on which way was used. They come only from the championship, the third place game, and the quarterfinal losers. The website's projected bracket for a live season follows the `SEEDS_PICK_OPPONENTS` setting in `worker/public/index.html`.
+Before 2026, higher seeds sometimes picked their opponents instead (in 2025, Seed 3 picked its quarterfinal opponent and Seed 1 its semifinal opponent), so past brackets don't always follow these pairings. Final placements don't depend on pairings either way: they come only from the championship, the third place game, and the quarterfinal losers.
 
 ## Example Scenarios
 
