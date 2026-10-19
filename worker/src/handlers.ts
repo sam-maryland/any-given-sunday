@@ -86,10 +86,10 @@ export function handleStandingsCommand(hc: HandlerContext): Response {
     const matchups = await db.getMatchupsByYear(league.year);
     let content: string;
     try {
-      const { standings, usedPlayoffResults } = standingsForLeague(league, matchups);
+      const result = standingsForLeague(league, matchups);
       const users = await db.getUsers();
-      content = standingsToDiscordMessage(standings, league, users);
-      if (league.status === LeagueStatus.Complete && !usedPlayoffResults) {
+      content = standingsToDiscordMessage(result, league, users);
+      if (league.status === LeagueStatus.Complete && !result.usedPlayoffResults) {
         content +=
           "\n_⚠️ Playoff results haven't been recorded for this season, so this is regular season order._";
       }

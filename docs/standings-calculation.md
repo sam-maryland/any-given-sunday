@@ -18,18 +18,21 @@ Teams are primarily ranked by **wins** in descending order (most wins first).
 
 When teams have the same number of wins, the following tiebreakers are applied in order:
 
-#### 1. Head-to-Head Record
-- Among tied teams, calculate total head-to-head wins against other teams in the tie
-- The team with the most head-to-head wins against the other tied teams is ranked higher
-- Example: If Teams A, B, and C all have 8 wins, but Team A beat both B and C during the season (2 H2H wins), Team B beat C but lost to A (1 H2H win), and Team C lost to both A and B (0 H2H wins), the order would be: A, B, C
+#### 1. Head-to-Head (only when it's fair)
+Head-to-head is used only when it compares like with like. Fantasy schedules are uneven, so by mid-season some tied teams will have played each other and some won't. Counting raw wins against the tied group would reward a team just for having played more of them.
+
+- **Every tied team has played every other tied team:** rank by record in games among the tied teams (win percentage, with a tie counting as half a win). This is the normal case for a two-team tie where the teams have met.
+- **Not everyone has played, but one team beat all the others:** that team goes first, having beaten every other tied team at least once without losing to any. The remaining teams then start the tiebreak over among themselves.
+- **Otherwise:** head-to-head is skipped and the tie goes straight to points for.
+
+If head-to-head is used but leaves teams level (for example, two teams split their two games), points for decides between them.
 
 #### 2. Points For (Total Points Scored)
-- If head-to-head records are tied, the team with more total points scored throughout the season is ranked higher
+- If head-to-head is level or skipped, the team with more total points scored throughout the season is ranked higher
 - This rewards consistent offensive performance
 
 #### 3. Points Against (Total Points Allowed)
 - If Points For are also tied, the team that allowed fewer points is ranked higher
-- This accounts for both strength of schedule and defensive performance (though defense is less relevant in fantasy)
 
 #### 4. Random Tiebreaker (Coin Flip)
 - As a final tiebreaker, a random determination is made
@@ -39,10 +42,12 @@ When teams have the same number of wins, the following tiebreakers are applied i
 
 1. **Regular Season Data Collection**: Only non-playoff matchups are considered
 2. **Record Calculation**: For each team, calculate wins, losses, ties, total points for, and total points against
-3. **Head-to-Head Matrix**: Track wins by each team against every other team
+3. **Head-to-Head Matrix**: Track games played and wins by each team against every other team
 4. **Grouping**: Group teams by number of wins
-5. **Tiebreaking**: Within each win group, apply tiebreakers to determine order
+5. **Tiebreaking**: Within each win group, apply the tiebreakers above
 6. **Final Ordering**: Combine all groups in descending order of wins
+
+The website (ags-hq.org) shows which tiebreaker separated each pair of adjacent teams, and the Discord `/standings` command notes every spot a tiebreaker decided.
 
 ### Playoff Qualification
 
@@ -86,14 +91,23 @@ The playoffs follow this structure:
 
 ## Example Scenarios
 
-### Regular Season Tiebreaker Example
+### Regular Season Tiebreaker Examples
 
-Three teams tied at 8-4:
-- **Team A**: 8-4, 1,500 PF, 1,400 PA, beat Team B and Team C (2 H2H wins)
-- **Team B**: 8-4, 1,520 PF, 1,350 PA, beat Team C, lost to Team A (1 H2H win)  
-- **Team C**: 8-4, 1,480 PF, 1,450 PA, lost to both Team A and B (0 H2H wins)
+**Everyone has played.** Three teams tied at 8-4, and each has played the other two:
+- **Team A**: beat Team B and Team C (2-0 among the tied teams)
+- **Team B**: beat Team C, lost to Team A (1-1)
+- **Team C**: lost to both (0-2)
 
-**Result**: Team A (1st), Team B (2nd), Team C (3rd) based on head-to-head record.
+**Result**: A, B, C on head-to-head.
+
+**Not everyone has played.** Three teams tied at 4-1 after week 5:
+- **Team A**: beat Team C, 758.0 PF
+- **Team B**: hasn't played A or C, 852.5 PF
+- **Team C**: lost to Team A, 704.2 PF
+
+A beat C, but B has played neither, and nobody beat both others. Head-to-head is skipped. **Result**: B, A, C on points for.
+
+**A sweep.** Same tie, but Team A beat both B and C, while B and C haven't played each other. A beat every other tied team, so A goes first. B and C then start over: they haven't played, so points for decides between them.
 
 ### Post-Season Ranking Change Example
 
@@ -134,11 +148,11 @@ This example shows how playoff performance can significantly change final rankin
 **Q: Why did Team X finish behind Team Y even though they had a better record?**
 A: In final standings, playoff performance determines positions 1-6. Regular season record only matters for playoff seeding and final ranking of teams within the same playoff outcome (like quarterfinal losers).
 
-**Q: How are head-to-head records calculated in multi-team ties?**
-A: Each team's wins against other teams in the tie are counted. If Teams A, B, and C are tied, we count A's wins vs B and C, B's wins vs A and C, etc.
+**Q: How is head-to-head calculated in multi-team ties?**
+A: Only games among the tied teams count. If every tied team has played the others, the best record in those games goes first. If not, head-to-head only counts for a team that beat all the others. Otherwise it's skipped.
 
 **Q: What happens if two teams never played each other?**
-A: Head-to-head wins would be 0 for both teams against each other, so tiebreaking would move to the next criteria (Points For).
+A: Head-to-head is skipped and the tie goes to points for, unless a third tied team beat both of them.
 
 **Q: Can standings change after the regular season ends?**
 A: Once playoffs begin, positions 7-12 are locked based on regular season performance. Only positions 1-6 change based on playoff results.

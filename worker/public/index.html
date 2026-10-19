@@ -4,263 +4,1592 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Any Given Sunday — Standings</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🏈</text></svg>" />
+    <meta name="description" content="Standings for the Any Given Sunday fantasy football league, with the tiebreakers behind every spot." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
+    />
     <style>
       :root {
-        --bg: #f6f7f9;
-        --surface: #ffffff;
-        --border: #e3e6ea;
-        --text: #14181f;
-        --muted: #697280;
-        --accent: #1f6f4a;
-        --cut: #c2410c;
+        --paper: oklch(97.2% 0.008 85);
+        --raised: oklch(99% 0.004 85);
+        --ink: oklch(21% 0.015 70);
+        --ink-2: oklch(43% 0.012 70);
+        --ink-3: oklch(60% 0.01 70);
+        --line: oklch(89% 0.01 80);
+        --line-2: oklch(93% 0.008 80);
+        --field: oklch(47% 0.11 155);
+        --field-soft: oklch(47% 0.11 155 / 0.1);
+        --signal: oklch(60% 0.17 42);
+        --signal-soft: oklch(60% 0.17 42 / 0.1);
+        --gold: oklch(68% 0.13 80);
+        --loss: oklch(55% 0.13 25);
+
+        --serif: "Instrument Serif", ui-serif, Georgia, serif;
+        --sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+        --radius: 14px;
+        --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #0f1216;
-          --surface: #171b21;
-          --border: #272d36;
-          --text: #e8ebef;
-          --muted: #8b95a3;
-          --accent: #4ade80;
-          --cut: #fb923c;
+          --paper: oklch(16% 0.008 70);
+          --raised: oklch(19.5% 0.009 70);
+          --ink: oklch(94% 0.01 85);
+          --ink-2: oklch(76% 0.01 80);
+          --ink-3: oklch(58% 0.01 75);
+          --line: oklch(29% 0.01 70);
+          --line-2: oklch(24% 0.009 70);
+          --field: oklch(74% 0.13 155);
+          --field-soft: oklch(74% 0.13 155 / 0.12);
+          --signal: oklch(74% 0.15 50);
+          --signal-soft: oklch(74% 0.15 50 / 0.12);
+          --gold: oklch(80% 0.12 85);
+          --loss: oklch(70% 0.12 25);
         }
       }
 
-      * {
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
       }
 
       body {
         margin: 0;
-        padding: 2rem 1rem 4rem;
-        background: var(--bg);
-        color: var(--text);
-        font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        font: 15px/1.55 var(--sans);
+        font-feature-settings: "ss01", "cv11";
+        -webkit-font-smoothing: antialiased;
       }
 
-      main {
-        max-width: 46rem;
+      .wrap {
+        max-width: 64rem;
         margin: 0 auto;
+        padding: clamp(1.5rem, 5vw, 4rem) clamp(1rem, 4vw, 2.5rem) 5rem;
       }
 
-      header {
-        margin-bottom: 1.5rem;
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .num {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+      }
+
+      /* ---------- Masthead ---------- */
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-2);
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 7px;
+        background: var(--ink);
+        color: var(--paper);
+        font: italic 1.05rem/1 var(--serif);
+        letter-spacing: 0;
+        text-transform: none;
       }
 
       h1 {
-        margin: 0;
-        font-size: 1.5rem;
-        letter-spacing: -0.02em;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0 0.3em;
+        margin: 1.25rem 0 0;
+        font: 400 clamp(3rem, 11vw, 6.5rem) / 0.95 var(--serif);
+        letter-spacing: -0.025em;
       }
 
-      .subtitle {
-        margin: 0.25rem 0 0;
-        color: var(--muted);
+      h1 em {
+        color: var(--ink-3);
+      }
+
+      /* The season picker is the year in the headline. */
+      .season {
+        position: relative;
+        display: inline-flex;
+        align-items: baseline;
+      }
+
+      .season select {
+        appearance: none;
+        margin: 0;
+        padding: 0 0.42em 0 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        cursor: pointer;
+        border-radius: 8px;
+      }
+
+      .season select:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: 4px;
+      }
+
+      .season::after {
+        content: "";
+        position: absolute;
+        right: 0.05em;
+        top: 50%;
+        width: 0.2em;
+        height: 0.2em;
+        border-right: 0.045em solid var(--ink-3);
+        border-bottom: 0.045em solid var(--ink-3);
+        transform: translateY(-80%) rotate(45deg);
+        pointer-events: none;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.9rem;
+        margin: 1.25rem 0 0;
+        color: var(--ink-2);
         font-size: 0.9rem;
       }
 
-      .card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 0.75rem;
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+
+      .pill.live::before {
+        content: "";
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 50%;
+        background: var(--field);
+        box-shadow: 0 0 0 0 var(--field);
+        animation: pulse 2.4s var(--ease) infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 oklch(from var(--field) l c h / 0.5);
+        }
+        70%,
+        100% {
+          box-shadow: 0 0 0 0.45rem oklch(from var(--field) l c h / 0);
+        }
+      }
+
+      .meta .dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: var(--ink-3);
+      }
+
+      /* ---------- Highlights ---------- */
+
+      .highlights {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: clamp(2rem, 5vw, 3.25rem) 0 0;
+        border-top: 1px solid var(--ink);
+      }
+
+      .highlight {
+        padding: 1rem 1.25rem 0.25rem 0;
+        min-width: 0;
+      }
+
+      .highlight + .highlight {
+        padding-left: 1.25rem;
+        border-left: 1px solid var(--line);
+      }
+
+      .highlight dt {
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .highlight dd {
+        margin: 0.35rem 0 0;
+      }
+
+      .highlight .big {
+        display: block;
+        font: 400 clamp(1.5rem, 3.2vw, 2.1rem) / 1.1 var(--serif);
+        letter-spacing: -0.01em;
         overflow: hidden;
-      }
-
-      .scroller {
-        overflow-x: auto;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-variant-numeric: tabular-nums;
-      }
-
-      th,
-      td {
-        padding: 0.7rem 0.9rem;
-        text-align: right;
+        text-overflow: ellipsis;
         white-space: nowrap;
-        border-bottom: 1px solid var(--border);
       }
 
-      th {
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--muted);
-        font-weight: 600;
-      }
-
-      th:nth-child(1),
-      td:nth-child(1) {
-        text-align: center;
-        width: 3rem;
-        color: var(--muted);
-      }
-
-      th:nth-child(2),
-      td:nth-child(2) {
-        text-align: left;
-        white-space: normal;
-        font-weight: 600;
-      }
-
-      tbody tr:last-child td {
-        border-bottom: none;
-      }
-
-      /* The playoff cut line: everyone above it is currently in. */
-      tr.cut td {
-        border-bottom: 2px solid var(--cut);
-      }
-
-      .cut-label {
-        padding: 0.4rem 0.9rem;
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--cut);
-        font-weight: 600;
-        text-align: left;
-        border-bottom: 1px solid var(--border);
-      }
-
-      .medal {
-        font-size: 1rem;
-      }
-
-      /* Narrow screens: buy horizontal room so team names stay on one line. */
-      @media (max-width: 30rem) {
-        body {
-          padding: 1.25rem 0.75rem 3rem;
-        }
-
-        th,
-        td {
-          padding: 0.6rem 0.55rem;
-          font-size: 0.9rem;
-        }
-
-        th:nth-child(2),
-        td:nth-child(2) {
-          white-space: nowrap;
-        }
-      }
-
-      .note,
-      .status {
-        margin: 1rem 0 0;
+      .highlight .small {
+        display: block;
+        margin-top: 0.2rem;
         font-size: 0.85rem;
-        color: var(--muted);
+        color: var(--ink-2);
       }
 
-      .error {
-        color: var(--cut);
+      /* ---------- Board ---------- */
+
+      .board {
+        margin-top: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      h2 {
+        margin: 0;
+        font: 400 clamp(1.75rem, 4vw, 2.5rem) / 1.05 var(--serif);
+        letter-spacing: -0.015em;
+      }
+
+      .hint {
+        color: var(--ink-3);
+        font-size: 0.85rem;
+      }
+
+      .cols,
+      .row {
+        display: grid;
+        grid-template-columns: 3rem minmax(0, 1fr) 5.5rem 6.5rem 5.5rem 5.5rem 7rem 1.25rem;
+        align-items: center;
+        column-gap: 0.75rem;
+      }
+
+      .cols {
+        padding: 0 0.75rem 0.6rem;
+        border-bottom: 1px solid var(--ink);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .cols .r,
+      .row .r {
+        text-align: right;
+      }
+
+      .rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .team {
+        border-bottom: 1px solid var(--line-2);
+        transition:
+          opacity 0.5s var(--ease),
+          translate 0.5s var(--ease);
+        transition-delay: calc(var(--i, 0) * 28ms);
+      }
+
+      @starting-style {
+        .team {
+          opacity: 0;
+          translate: 0 8px;
+        }
+      }
+
+      .team details {
+        border-radius: 10px;
+      }
+
+      .row {
+        padding: 0.85rem 0.75rem;
+        cursor: pointer;
+        list-style: none;
+        border-radius: 10px;
+        transition: background 0.2s var(--ease);
+      }
+
+      .row::-webkit-details-marker {
+        display: none;
+      }
+
+      .row:hover {
+        background: var(--line-2);
+      }
+
+      .row:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: -2px;
+      }
+
+      .rank {
+        font: 400 1.9rem/1 var(--serif);
+        letter-spacing: -0.02em;
+        text-align: center;
+        color: var(--ink);
+      }
+
+      .team.out .rank {
+        color: var(--ink-3);
+      }
+
+      .name {
+        min-width: 0;
+      }
+
+      .name strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+        font-size: 1rem;
+        letter-spacing: -0.01em;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--ink-3);
+      }
+
+      .tag {
+        padding: 0.05rem 0.45rem;
+        border-radius: 999px;
+        background: var(--line-2);
+        color: var(--ink-2);
+        font-weight: 500;
+      }
+
+      .tag.gold {
+        background: oklch(from var(--gold) l c h / 0.16);
+        color: oklch(from var(--gold) calc(l - 0.18) c h);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .tag.gold {
+          color: var(--gold);
+        }
+      }
+
+      .tag.bye,
+      .tag.in {
+        background: var(--field-soft);
+        color: var(--field);
+      }
+
+      .record {
+        font-weight: 500;
+      }
+
+      .mobile-record {
+        display: none;
+      }
+
+      .form {
+        display: flex;
+        gap: 4px;
+      }
+
+      .form i {
+        width: 0.8rem;
+        height: 0.8rem;
+        border-radius: 3px;
+        border: 1.5px solid var(--ink-3);
+      }
+
+      .form i.W {
+        background: var(--field);
+        border-color: var(--field);
+      }
+
+      .form i.T {
+        background: linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+      }
+
+      .muted {
+        color: var(--ink-2);
+      }
+
+      .diff {
+        position: relative;
+        height: 1.5rem;
+      }
+
+      .diff::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 0.2rem;
+        bottom: 0.2rem;
+        width: 1px;
+        background: var(--line);
+      }
+
+      .diff .bar {
+        position: absolute;
+        top: 0.5rem;
+        height: 0.5rem;
+        border-radius: 2px;
+        background: var(--field);
+      }
+
+      .diff .bar.neg {
+        background: var(--loss);
+        opacity: 0.75;
+      }
+
+      .diff .label {
+        position: absolute;
+        inset: auto 0 -0.55rem;
+        font-size: 0.65rem;
+        text-align: center;
+        color: var(--ink-3);
+      }
+
+      .chev {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-right: 1.5px solid var(--ink-3);
+        border-bottom: 1.5px solid var(--ink-3);
+        transform: rotate(-45deg);
+        transition: transform 0.25s var(--ease);
+        justify-self: center;
+      }
+
+      details[open] .chev {
+        transform: rotate(45deg);
+      }
+
+      /* Expanded detail */
+
+      .team details::details-content {
+        block-size: 0;
+        overflow: hidden;
+        transition:
+          block-size 0.35s var(--ease),
+          content-visibility 0.35s allow-discrete;
+      }
+
+      .team details[open]::details-content {
+        block-size: auto;
+      }
+
+      :root {
+        interpolate-size: allow-keywords;
+      }
+
+      .detail {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+        gap: 1.5rem 2.5rem;
+        padding: 0.5rem 0.75rem 1.5rem 4.5rem;
+      }
+
+      .detail h3 {
+        margin: 0 0 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .why {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .why li {
+        position: relative;
+        padding-left: 1.1rem;
+        color: var(--ink-2);
+        text-wrap: pretty;
+      }
+
+      .why li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.6em;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 50%;
+        background: var(--ink-3);
+      }
+
+      .why li.key::before {
+        background: var(--signal);
+      }
+
+      .why b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .log {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+        gap: 0.35rem;
+      }
+
+      .game {
+        padding: 0.4rem 0.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        font-size: 0.72rem;
+        line-height: 1.35;
+        min-width: 0;
+      }
+
+      .game .wk {
+        display: flex;
+        justify-content: space-between;
+        color: var(--ink-3);
+      }
+
+      .game .num {
+        white-space: nowrap;
+      }
+
+      .game .res {
+        font-weight: 600;
+        color: var(--loss);
+      }
+
+      .game.W .res {
+        color: var(--field);
+      }
+
+      .game .opp {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--ink-2);
+      }
+
+      .game.playoff {
+        border-color: oklch(from var(--gold) l c h / 0.6);
+      }
+
+      /* Lines and tiebreak notes between rows */
+
+      .marker {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--signal);
+      }
+
+      .marker::after {
+        content: "";
+        flex: 1;
+        height: 0;
+        border-top: 1.5px dashed currentColor;
+        opacity: 0.6;
+      }
+
+      .marker.bye {
+        color: var(--field);
+      }
+
+      .tiebreak {
+        position: relative;
+        margin: -1px 0 0;
+        padding: 0.3rem 0.75rem 0.3rem 4.5rem;
+        border-bottom: 1px solid var(--line-2);
+        font-size: 0.78rem;
+        color: var(--ink-2);
+        background: linear-gradient(90deg, var(--signal-soft), transparent 70%);
+      }
+
+      .tiebreak::before {
+        content: "↑";
+        position: absolute;
+        margin-left: -1rem;
+        font-weight: 600;
+        color: var(--signal);
+      }
+
+      .tiebreak b {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .note {
+        margin: 1.25rem 0 0;
+        padding: 0.8rem 1rem;
+        border-radius: 10px;
+        background: var(--signal-soft);
+        color: var(--ink);
+        font-size: 0.9rem;
+      }
+
+      /* ---------- Explainer ---------- */
+
+      .how {
+        margin-top: clamp(3.5rem, 8vw, 6rem);
+        padding-top: 2rem;
+        border-top: 1px solid var(--ink);
+      }
+
+      .lede {
+        max-width: 38rem;
+        margin: 0.75rem 0 0;
+        color: var(--ink-2);
+        font-size: 1.02rem;
+        text-wrap: pretty;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin: 2rem 0 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: step;
+      }
+
+      .step {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 1.1rem 1rem 1rem;
+        border-radius: var(--radius);
+        background: var(--raised);
+        border: 1px solid var(--line);
+        counter-increment: step;
+      }
+
+      .step::before {
+        content: counter(step, decimal-leading-zero);
+        font: 400 0.8rem var(--mono);
+        color: var(--ink-3);
+      }
+
+      .step h3 {
+        margin: 0.6rem 0 0.35rem;
+        font: 400 1.4rem/1.1 var(--serif);
+        letter-spacing: -0.01em;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--ink-2);
+        font-size: 0.85rem;
+        text-wrap: pretty;
+      }
+
+      .step .used {
+        margin-top: auto;
+        padding-top: 0.9rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--ink-3);
+      }
+
+      .step .used.active {
+        color: var(--signal);
+      }
+
+      .step + .step::after {
+        content: "";
+        position: absolute;
+        left: -0.6rem;
+        top: 1.5rem;
+        width: 0.45rem;
+        height: 0.45rem;
+        border-top: 1.5px solid var(--ink-3);
+        border-right: 1.5px solid var(--ink-3);
+        transform: rotate(45deg);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+        gap: 2.5rem;
+        margin-top: 3rem;
+      }
+
+      .split h3 {
+        margin: 0;
+        font: 400 1.6rem/1.1 var(--serif);
+      }
+
+      .split p,
+      .split li {
+        color: var(--ink-2);
+        font-size: 0.9rem;
+        text-wrap: pretty;
+      }
+
+      .split ul {
+        margin: 0.75rem 0 0;
+        padding-left: 1.1rem;
+      }
+
+      .split li + li {
+        margin-top: 0.35rem;
+      }
+
+      /* Bracket */
+
+      .bracket-label {
+        margin: 0 0 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .bracket {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .round h4 {
+        margin: 0 0 0.5rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--ink-2);
+      }
+
+      .round {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .round .games {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        flex: 1;
+        gap: 0.6rem;
+      }
+
+      .match {
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        overflow: hidden;
+        font-size: 0.82rem;
+      }
+
+      .match .tag-line {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.66rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        border-bottom: 1px solid var(--line-2);
+      }
+
+      .side {
+        display: grid;
+        grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+        gap: 0.4rem;
+        align-items: center;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .side + .side {
+        border-top: 1px solid var(--line-2);
+      }
+
+      .side .sd {
+        font: 0.7rem var(--mono);
+        color: var(--ink-3);
+      }
+
+      .side .nm {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .side.tbd .nm {
+        color: var(--ink-3);
+        font-style: italic;
+      }
+
+      .side.won {
+        font-weight: 600;
+      }
+
+      .side.lost {
+        color: var(--ink-3);
+      }
+
+      footer {
+        margin-top: 4rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        color: var(--ink-3);
+        font-size: 0.8rem;
+      }
+
+      footer a {
+        color: inherit;
+      }
+
+      .status {
+        margin-top: 2rem;
+        color: var(--ink-2);
+      }
+
+      .status.error {
+        color: var(--loss);
+      }
+
+      /* Loading skeleton */
+      .skeleton {
+        height: 3.6rem;
+        border-bottom: 1px solid var(--line-2);
+        background: linear-gradient(90deg, transparent, var(--line-2), transparent) 0 0 / 200% 100%;
+        animation: shimmer 1.4s linear infinite;
+      }
+
+      @keyframes shimmer {
+        to {
+          background-position: -200% 0;
+        }
+      }
+
+      /* ---------- Responsive ---------- */
+
+      @media (max-width: 56rem) {
+        .cols,
+        .row {
+          grid-template-columns: 2.5rem minmax(0, 1fr) 5rem 5.5rem 5rem 1rem;
+        }
+        .c-pa,
+        .c-diff {
+          display: none;
+        }
+        .steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .step + .step::after {
+          display: none;
+        }
+        .split {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 1.5rem;
+        }
+      }
+
+      @media (max-width: 38rem) {
+        body {
+          font-size: 14.5px;
+        }
+        .cols,
+        .row {
+          grid-template-columns: 2rem minmax(0, 1fr) 4.5rem 0.75rem;
+          column-gap: 0.6rem;
+        }
+        .row {
+          padding: 0.8rem 0.25rem;
+        }
+        .cols {
+          padding-inline: 0.25rem;
+        }
+        .c-rec,
+        .c-form {
+          display: none;
+        }
+        .mobile-record {
+          display: inline;
+        }
+        .rank {
+          font-size: 1.6rem;
+        }
+        .detail {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 0.25rem 0.25rem 1.25rem 2.6rem;
+        }
+        .tiebreak {
+          padding-left: 2.85rem;
+        }
+        .highlights {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .highlight,
+        .highlight + .highlight {
+          padding: 0.85rem 0;
+          border-left: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .steps {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .bracket {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        ::view-transition-group(*) {
+          animation: none !important;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
+    <div class="wrap">
       <header>
-        <h1>🏈 Any Given Sunday</h1>
-        <p class="subtitle" id="subtitle">Loading standings…</p>
+        <div class="eyebrow"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</div>
+        <h1>
+          <span class="season">
+            <label for="season" class="sr-only">Season</label>
+            <select id="season" disabled><option>—</option></select>
+          </span>
+          <em id="headline-word">Standings</em>
+        </h1>
+        <p class="meta" id="meta"><span>Loading…</span></p>
       </header>
 
-      <div class="card scroller" id="card" hidden>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Team</th>
-              <th>Record</th>
-              <th>PF</th>
-              <th>PA</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
+      <dl class="highlights" id="highlights" hidden></dl>
 
-      <p class="status" id="status"></p>
-      <p class="note" id="note" hidden></p>
-    </main>
+      <main class="board" id="board">
+        <div class="section-head">
+          <h2 id="board-title">The table</h2>
+          <span class="hint">Tap any team to see why it's there</span>
+        </div>
+        <div class="cols" aria-hidden="true">
+          <span style="text-align: center">#</span>
+          <span>Team</span>
+          <span class="c-rec">Record</span>
+          <span class="c-form">Last 5</span>
+          <span class="r">PF</span>
+          <span class="r c-pa">PA</span>
+          <span class="c-diff" style="text-align: center">Diff</span>
+          <span></span>
+        </div>
+        <ol class="rows" id="rows" aria-labelledby="board-title">
+          <li class="skeleton"></li>
+          <li class="skeleton"></li>
+          <li class="skeleton"></li>
+          <li class="skeleton"></li>
+          <li class="skeleton"></li>
+        </ol>
+        <p class="note" id="note" hidden></p>
+        <p class="status" id="status" role="status"></p>
+      </main>
+
+      <section class="how" id="how" aria-labelledby="how-title" hidden>
+        <h2 id="how-title">How the standings work</h2>
+        <p class="lede">
+          Teams are ranked by regular season wins. When teams finish level on wins, the criteria below
+          break the tie, in order. A step only matters if every step before it ended level.
+        </p>
+        <ol class="steps" id="steps"></ol>
+
+        <div class="split">
+          <div>
+            <h3>The playoffs</h3>
+            <p id="playoff-copy"></p>
+            <ul>
+              <li>The top six make it. Seeds 1 and 2 get a bye in the first round.</li>
+              <li>Quarterfinals: 3 vs 6 and 4 vs 5.</li>
+              <li>Semifinals: seed 1 plays the lowest seed left, seed 2 the highest.</li>
+              <li>The semifinal winners play for the title. The losers play for third.</li>
+              <li>Once a season ends, places 1–4 come from those games. The two quarterfinal losers are 5th and 6th, ordered by the same tiebreakers. Places 7–12 stay in regular season order.</li>
+            </ul>
+          </div>
+          <div>
+            <p class="bracket-label" id="bracket-label"></p>
+            <div class="bracket" id="bracket"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span id="footer-sync">Synced weekly, after the Tuesday recap.</span>
+        <a href="#how">How the standings work</a>
+      </footer>
+    </div>
 
     <script>
-      const MEDALS = ["🥇", "🥈", "🥉"];
+      // ---------- Small DOM helper. Team names are user-supplied, so every
+      // string goes in as a text node; nothing is ever parsed as markup.
+      function h(tag, props, ...children) {
+        const el = document.createElement(tag);
+        for (const [k, v] of Object.entries(props ?? {})) {
+          if (v == null || v === false) continue;
+          if (k === "class") el.className = v;
+          else if (k === "style") el.setAttribute("style", v);
+          else if (k in el && typeof v !== "string") el[k] = v;
+          else el.setAttribute(k, v);
+        }
+        for (const c of children.flat()) {
+          if (c == null || c === false) continue;
+          el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+        }
+        return el;
+      }
+
+      const $ = (id) => document.getElementById(id);
+      const pts = (n) => n.toFixed(1);
+      const record = (t) => (t.ties ? `${t.wins}–${t.losses}–${t.ties}` : `${t.wins}–${t.losses}`);
+      const ordinal = (n) => {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+      };
+      const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+      const FINISH_LABEL = {
+        champion: "Champion",
+        runnerUp: "Runner-up",
+        thirdPlace: "Third place",
+        fourthPlace: "Fourth place",
+        quarterfinal: "Quarterfinal exit",
+        missedPlayoffs: "Missed playoffs",
+      };
+
+      const ROUND_LABEL = {
+        quarterfinal: "Quarterfinal",
+        semifinal: "Semifinal",
+        final: "Final",
+        third_place: "3rd place game",
+      };
+
+      // ---------- Explanations ----------
+
+      const groupRecord = (r) => (r.ties ? `${r.wins}–${r.losses}–${r.ties}` : `${r.wins}–${r.losses}`);
+
+      // What came before points for or against: head-to-head was either level
+      // or, when the tied teams hadn't all played each other, skipped.
+      function h2hStage(a, more = "") {
+        return a.headToHead?.used
+          ? `Level on wins${more ? ", head-to-head" : " and head-to-head"}${more}`
+          : `Level on wins${more}; head-to-head doesn't apply`;
+      }
+
+      // A short note drawn between two rows when a tiebreaker, not wins, put
+      // the upper team ahead.
+      function tiebreakNote(upper, lower) {
+        const a = upper.aheadOfNext;
+        switch (a.by) {
+          case "headToHead": {
+            const [mine, theirs] = a.headToHead.records;
+            return [
+              "Level on wins, separated by ",
+              h("b", null, "head-to-head"),
+              ` · ${groupRecord(mine)} vs ${groupRecord(theirs)} in games among the tied teams`,
+            ];
+          }
+          case "headToHeadSweep":
+            return ["Level on wins, separated by ", h("b", null, "head-to-head"), " · beat every other tied team"];
+          case "pointsFor":
+          case "pointsAgainst": {
+            const isPF = a.by === "pointsFor";
+            const stat = isPF ? "points for" : "points against";
+            const values = isPF
+              ? ` · ${pts(upper.pointsFor)} vs ${pts(lower.pointsFor)}`
+              : ` · ${pts(upper.pointsAgainst)} vs ${pts(lower.pointsAgainst)}`;
+            const before = isPF ? "" : " and points for";
+            return a.headToHead?.used
+              ? [isPF ? "Level on wins and head-to-head, separated by " : "Level on wins, head-to-head and points for, separated by ", h("b", null, stat), values]
+              : [`Level on wins${before}. Not all tied teams have met, so `, h("b", null, stat), " decides", values];
+          }
+          case "coinFlip":
+            return ["Level on everything. ", h("b", null, "A coin flip"), " decided it."];
+          default:
+            return null;
+        }
+      }
+
+      // One sentence for why `upper` is ahead of `lower`, written from the
+      // point of view of `self` (which is one of them).
+      function comparison(upper, lower, self) {
+        const other = self === upper ? lower : upper;
+        const ahead = self === upper;
+        const them = h("b", null, other.name);
+        const a = upper.aheadOfNext;
+        const lead = ahead ? "Above " : "Below ";
+
+        switch (a.by) {
+          case "wins": {
+            const diff = upper.wins - lower.wins;
+            return [lead, them, ` on wins: ${self.wins} to ${other.wins}`, diff === 1 ? ", one game in it." : "."];
+          }
+          case "headToHead": {
+            const [up, low] = a.headToHead.records;
+            const [mine, theirs] = ahead ? [up, low] : [low, up];
+            return [
+              lead,
+              them,
+              ` on head-to-head. Every tied team has played the others, and this team went ${groupRecord(mine)} in those games to their ${groupRecord(theirs)}.`,
+            ];
+          }
+          case "headToHeadSweep":
+            return [
+              lead,
+              them,
+              ahead
+                ? " on head-to-head. Level on wins, but beat every other team in the tie."
+                : " on head-to-head. Level on wins, but they beat every other team in the tie.",
+            ];
+          case "pointsFor":
+            return [
+              lead,
+              them,
+              ` on points for. ${h2hStage(a)}. Scored ${pts(Math.abs(upper.pointsFor - lower.pointsFor))} ${ahead ? "more" : "fewer"} points over the season.`,
+            ];
+          case "pointsAgainst":
+            return [
+              lead,
+              them,
+              ` on points against. ${h2hStage(a, " and points for")}. ${ahead ? "Allowed fewer" : "Allowed more"} points (${pts(self.pointsAgainst)} vs ${pts(other.pointsAgainst)}).`,
+            ];
+          case "coinFlip":
+            return [lead, them, " on a coin flip. Every tiebreaker came out level."];
+          case "playoffs":
+            return [lead, them, ` on playoff results. ${playoffReason(upper, lower, ahead)}`];
+        }
+        return null;
+      }
+
+      function playoffReason(upper, lower, ahead) {
+        switch (upper.finish) {
+          case "champion":
+            return ahead ? "Won the final." : "Lost the final.";
+          case "runnerUp":
+            return ahead ? "Reached the final." : "Lost in the semifinals.";
+          case "thirdPlace":
+            return ahead ? "Won the third-place game." : "Lost the third-place game.";
+          case "fourthPlace":
+            return ahead ? "Reached the semifinals." : "Went out in the quarterfinals.";
+          case "quarterfinal":
+            return ahead ? "Made the playoffs." : "Missed the playoffs.";
+        }
+        return "";
+      }
+
+      function whyList(team, rows, data) {
+        const i = team.rank - 1;
+        const items = [];
+
+        if (team.finish) {
+          const seedNote =
+            team.seed <= 6 ? `, as the ${ordinal(team.seed)} seed` : `, ${ordinal(team.seed)} in the regular season`;
+          items.push(h("li", { class: "key" }, h("b", null, FINISH_LABEL[team.finish]), seedNote, "."));
+        } else if (data.playoffCutoff) {
+          if (team.rank <= data.byeCutoff) items.push(h("li", { class: "key" }, "In line for a ", h("b", null, "first-round bye"), "."));
+          else if (team.rank <= data.playoffCutoff) items.push(h("li", { class: "key" }, "In ", h("b", null, "playoff position"), " as things stand."));
+          else {
+            const last = rows[data.playoffCutoff - 1];
+            const gap = last.wins - team.wins;
+            items.push(
+              h(
+                "li",
+                null,
+                gap === 0
+                  ? ["Level on wins with the last playoff spot (", h("b", null, last.name), ") but behind on tiebreakers."]
+                  : [h("b", null, plural(gap, "win")), " behind the last playoff spot (", last.name, ")."],
+              ),
+            );
+          }
+        }
+
+        if (i > 0) items.push(h("li", null, comparison(rows[i - 1], team, team)));
+        if (team.aheadOfNext) items.push(h("li", null, comparison(team, rows[i + 1], team)));
+
+        if (team.tie) {
+          items.push(
+            h(
+              "li",
+              null,
+              `One of ${team.tie.size} teams on ${plural(team.wins, "win")}. `,
+              team.tie.allPlayed
+                ? ["They've all played each other; this team is ", h("b", null, groupRecord(team.tie.record)), " in those games."]
+                : [
+                    "They haven't all played each other, so head-to-head only counts for a team that beat all the others. This team is ",
+                    h("b", null, groupRecord(team.tie.record)),
+                    " against them.",
+                  ],
+            ),
+          );
+        }
+        return h("ul", { class: "why" }, items);
+      }
+
+      // ---------- Rendering ----------
+
+      function form(team) {
+        const regular = team.games.filter((g) => !g.playoffRound).slice(-5);
+        return h(
+          "span",
+          { class: "form c-form", "aria-label": `Last ${regular.length}: ${regular.map((g) => g.result).join(" ")}` },
+          regular.map((g) => h("i", { class: g.result, title: `Week ${g.week}: ${g.result} ${pts(g.pointsFor)}–${pts(g.pointsAgainst)}` })),
+        );
+      }
+
+      function diffBar(team, maxAbs) {
+        const d = team.pointsFor - team.pointsAgainst;
+        const w = maxAbs ? (Math.abs(d) / maxAbs) * 50 : 0;
+        const style = d >= 0 ? `left:50%;width:${w}%` : `right:50%;width:${w}%`;
+        return h(
+          "span",
+          { class: "diff c-diff", title: `Point differential ${d >= 0 ? "+" : ""}${pts(d)}` },
+          h("span", { class: `bar${d < 0 ? " neg" : ""}`, style }),
+          h("span", { class: "label num" }, `${d >= 0 ? "+" : ""}${pts(d)}`),
+        );
+      }
+
+      function gameLog(team, names) {
+        if (!team.games.length) return h("p", { class: "muted" }, "No games synced yet.");
+        return h(
+          "div",
+          { class: "log" },
+          team.games.map((g) =>
+            h(
+              "div",
+              { class: `game ${g.result}${g.playoffRound ? " playoff" : ""}` },
+              h("span", { class: "wk" }, h("span", null, g.playoffRound ? ROUND_LABEL[g.playoffRound] ?? "Playoff" : `Wk ${g.week}`), h("span", { class: "res" }, g.result)),
+              h("span", { class: "num" }, `${pts(g.pointsFor)}–${pts(g.pointsAgainst)}`),
+              h("span", { class: "opp" }, "vs ", names.get(g.opponentId) ?? "—"),
+            ),
+          ),
+        );
+      }
+
+      function teamRow(team, rows, data, names, maxAbs) {
+        const tags = [];
+        if (team.finish === "champion") tags.push(h("span", { class: "tag gold" }, "Champion"));
+        else if (team.finish && team.finish !== "missedPlayoffs") tags.push(h("span", { class: "tag" }, FINISH_LABEL[team.finish]));
+        if (team.finish && team.seed <= 6) tags.push(h("span", null, `${ordinal(team.seed)} seed`));
+        if (!team.finish && data.playoffCutoff && team.rank <= data.byeCutoff) tags.push(h("span", { class: "tag bye" }, "Bye"));
+        tags.push(h("span", { class: "mobile-record num" }, record(team)));
+
+        const out =
+          (data.playoffCutoff && team.rank > data.playoffCutoff) || team.finish === "missedPlayoffs";
+
+        return h(
+          "li",
+          { class: `team${out ? " out" : ""}`, style: `--i:${team.rank}` },
+          h(
+            "details",
+            null,
+            h(
+              "summary",
+              { class: "row" },
+              h("span", { class: "rank" }, team.rank),
+              h("span", { class: "name" }, h("strong", null, team.name), h("span", { class: "tags" }, tags)),
+              h("span", { class: "record num c-rec" }, record(team)),
+              form(team),
+              h("span", { class: "num r" }, pts(team.pointsFor)),
+              h("span", { class: "num r muted c-pa" }, pts(team.pointsAgainst)),
+              diffBar(team, maxAbs),
+              h("span", { class: "chev", "aria-hidden": "true" }),
+            ),
+            h(
+              "div",
+              { class: "detail" },
+              h("div", null, h("h3", null, `Why ${ordinal(team.rank)}`), whyList(team, rows, data)),
+              h("div", null, h("h3", null, "Season"), gameLog(team, names)),
+            ),
+          ),
+        );
+      }
+
+      function renderRows(data) {
+        const rows = data.standings;
+        const names = new Map(rows.map((r) => [r.userId, r.name]));
+        const maxAbs = Math.max(0, ...rows.map((r) => Math.abs(r.pointsFor - r.pointsAgainst)));
+        const list = $("rows");
+        const items = [];
+
+        rows.forEach((team, i) => {
+          items.push(teamRow(team, rows, data, names, maxAbs));
+          const next = rows[i + 1];
+          if (!next) return;
+
+          if (data.playoffCutoff && team.rank === data.byeCutoff) {
+            items.push(h("li", { class: "marker bye", "aria-hidden": "true" }, "Bye line"));
+          } else if (data.playoffCutoff && team.rank === data.playoffCutoff) {
+            items.push(h("li", { class: "marker", "aria-hidden": "true" }, "Playoff line"));
+          }
+
+          const note = tiebreakNote(team, next);
+          if (note) items.push(h("li", { class: "tiebreak" }, note));
+        });
+
+        list.replaceChildren(...items);
+      }
+
+      function renderHeader(data) {
+        const live = data.status !== "COMPLETE";
+        const meta = [
+          h("span", { class: `pill${live ? " live" : ""}` }, live ? "Live" : "Final"),
+        ];
+        if (data.throughWeek) meta.push(h("span", null, live ? `Through week ${data.throughWeek}` : `${data.throughWeek} weeks`));
+        if (live) {
+          const when = new Date(data.syncedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+          meta.push(h("span", { class: "dot", "aria-hidden": "true" }), h("span", null, `Synced ${when}`));
+        }
+        $("meta").replaceChildren(...meta);
+        $("headline-word").textContent = live ? "Standings" : "Final standings";
+        document.title = `${data.year} ${live ? "Standings" : "Final Standings"} — Any Given Sunday`;
+
+        const select = $("season");
+        const years = data.seasons.length ? data.seasons : [data.year];
+        select.replaceChildren(...years.map((y) => h("option", { value: String(y), selected: y === data.year }, y)));
+        select.disabled = years.length < 2;
+      }
+
+      function renderHighlights(data) {
+        const rows = data.standings;
+        const box = $("highlights");
+        if (!rows.length) {
+          box.hidden = true;
+          return;
+        }
+        const item = (label, big, small) =>
+          h("div", { class: "highlight" }, h("dt", null, label), h("dd", null, h("span", { class: "big" }, big), h("span", { class: "small" }, small)));
+
+        const topScorer = rows.reduce((a, b) => (b.pointsFor > a.pointsFor ? b : a));
+        let cards;
+        if (data.usedPlayoffResults) {
+          cards = [
+            item("Champion", rows[0].name, `${ordinal(rows[0].seed)} seed · ${record(rows[0])} in the regular season`),
+            item("Runner-up", rows[1].name, `${ordinal(rows[1].seed)} seed · ${record(rows[1])}`),
+            item("Most points", topScorer.name, `${pts(topScorer.pointsFor)} in the regular season`),
+          ];
+        } else {
+          const leader = rows[0];
+          const cut = data.playoffCutoff ?? 6;
+          const inLast = rows[cut - 1];
+          const outFirst = rows[cut];
+          let bubble = null;
+          if (inLast && outFirst) {
+            const gap = inLast.wins - outFirst.wins;
+            bubble = item(
+              "On the bubble",
+              outFirst.name,
+              gap === 0 ? `Level with ${inLast.name} on wins, out on tiebreakers` : `${plural(gap, "win")} behind ${inLast.name} for 6th`,
+            );
+          }
+          cards = [
+            item(data.status === "COMPLETE" ? "Best record" : "Leader", leader.name, `${record(leader)} · ${pts(leader.pointsFor)} PF`),
+            item("Most points", topScorer.name, `${pts(topScorer.pointsFor)} scored`),
+            bubble,
+          ].filter(Boolean);
+        }
+        box.replaceChildren(...cards);
+        box.hidden = false;
+      }
+
+      function renderSteps(data) {
+        const counts = {};
+        for (const r of data.standings) {
+          if (!r.aheadOfNext) continue;
+          const key = r.aheadOfNext.by === "headToHeadSweep" ? "headToHead" : r.aheadOfNext.by;
+          counts[key] = (counts[key] ?? 0) + 1;
+        }
+        const used = (key) => {
+          const n = counts[key] ?? 0;
+          return h("span", { class: `used${n ? " active" : ""}` }, n ? `Decided ${plural(n, "spot")} this season` : "Not needed this season");
+        };
+        const steps = [
+          ["Wins", "Most regular season wins ranks first. Playoff games never count here.", "wins"],
+          ["Head-to-head", "Only when it's fair: if every tied team has played the others, the best record in those games goes first. If not, a team that beat all the others goes first. Otherwise skip it.", "headToHead"],
+          ["Points for", "Still level? The team that scored more over the regular season goes first.", "pointsFor"],
+          ["Points against", "Then the team that allowed fewer points.", "pointsAgainst"],
+          ["Coin flip", "If everything is still level, it's random. This almost never happens.", "coinFlip"],
+        ];
+        $("steps").replaceChildren(...steps.map(([t, p, k]) => h("li", { class: "step" }, h("h3", null, t), h("p", null, p), used(k))));
+      }
+
+      // Playoff games appear once per team in the payload; pair them back up.
+      function playoffGames(rows) {
+        const seen = new Map();
+        for (const r of rows) {
+          for (const g of r.games) {
+            if (!g.playoffRound) continue;
+            const key = `${g.week}:${[r.userId, g.opponentId].sort().join("|")}`;
+            if (!seen.has(key)) seen.set(key, { round: g.playoffRound, a: r.userId, b: g.opponentId, aPts: g.pointsFor, bPts: g.pointsAgainst });
+          }
+        }
+        return [...seen.values()];
+      }
+
+      function renderBracket(data) {
+        const rows = data.standings;
+        const bySeed = new Map(rows.map((r) => [r.seed, r]));
+        const byId = new Map(rows.map((r) => [r.userId, r]));
+        // Seeds label the projected bracket only. A played bracket shows the
+        // games as stored, since the seeds recorded with past playoff games
+        // don't always match the regular season order computed here.
+        const side = (team, score, state, showSeed = true) =>
+          h(
+            "div",
+            { class: `side${team ? "" : " tbd"}${state ? ` ${state}` : ""}` },
+            h("span", { class: "sd" }, team && showSeed ? team.seed : ""),
+            h("span", { class: "nm" }, team ? team.name : score),
+            h("span", { class: "num" }, team && typeof score === "number" ? pts(score) : ""),
+          );
+        const match = (label, a, b) => h("div", { class: "match" }, label ? h("div", { class: "tag-line" }, label) : null, a, b);
+        const round = (title, games) => h("div", { class: "round" }, h("h4", null, title), h("div", { class: "games" }, games));
+
+        const games = data.usedPlayoffResults ? playoffGames(rows) : [];
+        let columns;
+
+        if (games.length) {
+          const played = (g) => {
+            const a = byId.get(g.a);
+            const b = byId.get(g.b);
+            const [w, l] = g.aPts >= g.bPts ? [[a, g.aPts], [b, g.bPts]] : [[b, g.bPts], [a, g.aPts]];
+            return [side(w[0], w[1], "won", false), side(l[0], l[1], "lost", false)];
+          };
+          const of = (round) => games.filter((g) => g.round === round);
+          const finals = [
+            ...of("final").map((g) => match("Final", ...played(g))),
+            ...of("third_place").map((g) => match("3rd place", ...played(g))),
+          ];
+          columns = [
+            round("Quarterfinals", of("quarterfinal").map((g) => match(null, ...played(g)))),
+            round("Semifinals", of("semifinal").map((g) => match(null, ...played(g)))),
+            round("Finals", finals),
+          ];
+          $("bracket-label").textContent = `${data.year} bracket`;
+        } else {
+          const s = (n) => side(bySeed.get(n), "", null);
+          const tbd = (label) => side(null, label, null);
+          columns = [
+            round("Quarterfinals", [match(null, s(3), s(6)), match(null, s(4), s(5))]),
+            round("Semifinals", [match(null, s(1), tbd("Lowest seed left")), match(null, s(2), tbd("Highest seed left"))]),
+            round("Finals", [match("Final", tbd("Semifinal winner"), tbd("Semifinal winner")), match("3rd place", tbd("Semifinal loser"), tbd("Semifinal loser"))]),
+          ];
+          $("bracket-label").textContent = data.status === "COMPLETE" ? "Bracket by seed" : "If the season ended today";
+        }
+        $("bracket").replaceChildren(...columns);
+
+        $("playoff-copy").textContent = data.usedPlayoffResults
+          ? "This season is over, so the top of the table comes from the bracket, not regular season record. That's how a lower seed can finish above a higher one."
+          : "While the season is live, the table is regular season order. The six teams above the playoff line are in.";
+      }
 
       function render(data) {
-        document.getElementById("subtitle").textContent =
-          data.status === "COMPLETE"
-            ? `${data.year} final standings`
-            : `${data.year} standings`;
+        renderHeader(data);
+        renderHighlights(data);
+        renderRows(data);
 
-        const tbody = document.getElementById("rows");
-        for (const team of data.standings) {
-          const tr = document.createElement("tr");
+        const note = $("note");
+        note.hidden = !(data.status === "COMPLETE" && !data.usedPlayoffResults);
+        note.textContent = "Playoff results haven't been recorded for this season, so this is regular season order.";
 
-          const rank = MEDALS[team.rank - 1];
-          tr.appendChild(cell(rank ?? String(team.rank), rank ? "medal" : ""));
-          tr.appendChild(cell(team.name));
-          tr.appendChild(cell(`${team.wins}-${team.losses}-${team.ties}`));
-          tr.appendChild(cell(team.pointsFor.toFixed(1)));
-          tr.appendChild(cell(team.pointsAgainst.toFixed(1)));
-
-          if (team.rank === data.playoffCutoff) {
-            tr.className = "cut";
-          }
-          tbody.appendChild(tr);
-
-          if (team.rank === data.playoffCutoff) {
-            const label = document.createElement("tr");
-            const td = document.createElement("td");
-            td.colSpan = 5;
-            td.className = "cut-label";
-            td.textContent = "Playoff line";
-            label.appendChild(td);
-            tbody.appendChild(label);
-          }
-        }
-
-        document.getElementById("card").hidden = false;
-        document.getElementById("status").textContent =
-          "Synced weekly, after the Tuesday recap.";
-
-        if (data.status === "COMPLETE" && !data.usedPlayoffResults) {
-          const note = document.getElementById("note");
-          note.textContent =
-            "⚠️ Playoff results haven't been recorded for this season, so this is regular season order.";
-          note.hidden = false;
-        }
+        renderSteps(data);
+        renderBracket(data);
+        $("how").hidden = false;
+        $("status").textContent = "";
+        $("status").className = "status";
       }
 
-      // textContent throughout — team names are user-supplied and never
-      // interpolated into markup.
-      function cell(text, className) {
-        const td = document.createElement("td");
-        td.textContent = text;
-        if (className) td.className = className;
-        return td;
-      }
+      // ---------- Loading ----------
 
-      async function load() {
+      async function load(year, { push = false } = {}) {
         try {
-          const res = await fetch("/api/standings");
-          if (!res.ok) {
-            throw new Error(`request failed (${res.status})`);
+          // v matches PAYLOAD_VERSION in src/api/standings.ts. The API ignores
+          // it; it only keeps a browser from reusing a payload cached for the
+          // previous version of this page.
+          const params = new URLSearchParams({ v: "2" });
+          if (year) params.set("year", String(year));
+          const res = await fetch(`/api/standings?${params}`);
+          if (!res.ok) throw new Error(`request failed (${res.status})`);
+          const data = await res.json();
+          const apply = () => render(data);
+          if (document.startViewTransition && push) document.startViewTransition(apply);
+          else apply();
+          if (push) {
+            const url = new URL(location.href);
+            url.searchParams.set("year", String(data.year));
+            history.pushState({ year: data.year }, "", url);
           }
-          render(await res.json());
         } catch (err) {
-          document.getElementById("subtitle").textContent = "";
-          const status = document.getElementById("status");
+          $("rows").replaceChildren();
+          const status = $("status");
           status.className = "status error";
           status.textContent = `Couldn't load the standings: ${err.message}`;
         }
       }
 
-      load();
+      $("season").addEventListener("change", (e) => load(Number(e.target.value), { push: true }));
+      window.addEventListener("popstate", () => load(new URLSearchParams(location.search).get("year")));
+
+      const initialYear = Number(new URLSearchParams(location.search).get("year")) || null;
+      load(initialYear);
     </script>
   </body>
 </html>

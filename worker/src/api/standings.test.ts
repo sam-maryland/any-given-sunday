@@ -2,7 +2,7 @@ import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleStandingsRequest, standingsPayload } from "./standings";
 import { SupabaseClient } from "../data/supabase";
-import { Standing } from "../domain/standings";
+import { standingsForLeague } from "../domain/standings";
 import { League, LeagueStatus, Matchup, User, UserMap } from "../domain/types";
 
 function league(status: string): League {
@@ -16,19 +16,6 @@ function league(status: string): League {
   };
 }
 
-function standing(userId: string, overrides: Partial<Standing> = {}): Standing {
-  return {
-    userId,
-    wins: 0,
-    losses: 0,
-    ties: 0,
-    pointsFor: 0,
-    pointsAgainst: 0,
-    h2hWins: new Map(),
-    ...overrides,
-  };
-}
-
 function users(...ids: string[]): UserMap {
   return new Map(
     ids.map((id): [string, User] => [
@@ -38,66 +25,113 @@ function users(...ids: string[]): UserMap {
   );
 }
 
+let nextId = 0;
+function game(week: number, home: string, away: string, homeScore: number, awayScore: number): Matchup {
+  return {
+    id: `m${nextId++}`,
+    year: 2025,
+    week,
+    is_playoff: false,
+    playoff_round: null,
+    home_user_id: home,
+    away_user_id: away,
+    home_seed: null,
+    away_seed: null,
+    home_score: homeScore,
+    away_score: awayScore,
+  };
+}
+
+const SYNCED_AT = new Date("2025-10-14T11:00:00Z");
+
+function payloadFor(status: string, matchups: Matchup[], userMap = users("a", "b", "c")) {
+  const l = league(status);
+  return standingsPayload({
+    league: l,
+    matchups,
+    result: standingsForLeague(l, matchups),
+    users: userMap,
+    seasons: [2025, 2024],
+    syncedAt: SYNCED_AT,
+  });
+}
+
 describe("standingsPayload", () => {
-  it("ranks teams in the order the domain sorted them and resolves names", () => {
-    const payload = standingsPayload(
-      league(LeagueStatus.InProgress),
-      [
-        standing("a", { wins: 3, losses: 1, pointsFor: 400.5, pointsAgainst: 380.2 }),
-        standing("b", { wins: 2, losses: 2, ties: 1 }),
-      ],
-      users("a", "b"),
-      false,
-    );
+  const season = [
+    game(1, "a", "b", 120.5, 100),
+    game(2, "a", "c", 110, 90.25),
+    game(3, "b", "c", 0.1 + 0.2, 0),
+  ];
+
+  it("ranks teams in domain order and resolves names", () => {
+    const payload = payloadFor(LeagueStatus.InProgress, season);
 
     expect(payload.standings.map((s) => [s.rank, s.name])).toEqual([
       [1, "Team A"],
       [2, "Team B"],
+      [3, "Team C"],
     ]);
     expect(payload.standings[0]).toMatchObject({
-      wins: 3,
-      losses: 1,
-      pointsFor: 400.5,
-      pointsAgainst: 380.2,
+      wins: 2,
+      losses: 0,
+      pointsFor: 230.5,
+      pointsAgainst: 190.3,
+      seed: 1,
     });
   });
 
   it("falls back to the user id when the user row is missing", () => {
-    const payload = standingsPayload(
-      league(LeagueStatus.InProgress),
-      [standing("ghost")],
-      users(),
-      false,
-    );
+    const payload = payloadFor(LeagueStatus.InProgress, [game(1, "ghost", "b", 1, 0)], users("b"));
 
     expect(payload.standings[0]!.name).toBe("ghost");
   });
 
   it("rounds away float drift from summed scores", () => {
-    const payload = standingsPayload(
-      league(LeagueStatus.InProgress),
-      [standing("a", { pointsFor: 0.1 + 0.2, pointsAgainst: 100.04 })],
-      users("a"),
-      false,
-    );
+    const payload = payloadFor(LeagueStatus.InProgress, season);
 
-    expect(payload.standings[0]!.pointsFor).toBe(0.3);
-    expect(payload.standings[0]!.pointsAgainst).toBe(100);
+    expect(payload.standings[1]!.pointsFor).toBe(100.3);
+  });
+
+  it("explains which criterion separates each team from the next", () => {
+    const payload = payloadFor(LeagueStatus.InProgress, season);
+
+    expect(payload.standings.map((s) => s.aheadOfNext?.by ?? null)).toEqual([
+      "wins",
+      "wins",
+      null,
+    ]);
+  });
+
+  it("lists each team's games in week order from its own side", () => {
+    const payload = payloadFor(LeagueStatus.InProgress, season);
+    const c = payload.standings.find((s) => s.userId === "c")!;
+
+    expect(c.games).toEqual([
+      { week: 2, opponentId: "a", pointsFor: 90.3, pointsAgainst: 110, result: "L", playoffRound: null },
+      { week: 3, opponentId: "b", pointsFor: 0, pointsAgainst: 0.3, result: "L", playoffRound: null },
+    ]);
+  });
+
+  it("reports the latest synced week, the sync time, and the season list", () => {
+    const payload = payloadFor(LeagueStatus.InProgress, season);
+
+    expect(payload.throughWeek).toBe(3);
+    expect(payload.syncedAt).toBe(SYNCED_AT.toISOString());
+    expect(payload.seasons).toEqual([2025, 2024]);
+    expect(payloadFor(LeagueStatus.InProgress, []).throughWeek).toBeNull();
   });
 
   it("marks the playoff cut line only while a season is in progress", () => {
-    const live = standingsPayload(league(LeagueStatus.InProgress), [], users(), false);
-    expect(live.playoffCutoff).toBe(6);
-
-    const done = standingsPayload(league(LeagueStatus.Complete), [], users(), true);
-    expect(done.playoffCutoff).toBeNull();
+    expect(payloadFor(LeagueStatus.InProgress, season).playoffCutoff).toBe(6);
+    expect(payloadFor(LeagueStatus.Complete, season).playoffCutoff).toBeNull();
   });
 
   it("passes through the playoff-results caveat for completed seasons", () => {
-    const payload = standingsPayload(league(LeagueStatus.Complete), [], users(), false);
+    const payload = payloadFor(LeagueStatus.Complete, season);
 
     expect(payload.status).toBe(LeagueStatus.Complete);
     expect(payload.usedPlayoffResults).toBe(false);
+    expect(payload.standings[0]!.finish).toBeNull();
   });
 });
 
@@ -107,12 +141,13 @@ const AFTER_SYNC = new Date("2026-07-28T12:00:00Z"); // Tuesday, after 11:00 UTC
 const NEXT_WEEK = new Date("2026-08-04T12:00:00Z");
 
 function fakeDb(league: League | null, matchups: Matchup[] = []) {
-  const calls = { league: 0, matchups: 0, users: 0 };
+  const calls = { league: 0, matchups: 0, users: 0, seasons: 0 };
   const db = {
     getLatestLeague: async () => (calls.league++, league),
     getLeagueByYear: async () => (calls.league++, league),
     getMatchupsByYear: async () => (calls.matchups++, matchups),
     getUsers: async () => (calls.users++, users("a")),
+    getSeasonYears: async () => (calls.seasons++, [2025]),
   } as unknown as SupabaseClient;
   return { db, calls };
 }
@@ -149,7 +184,7 @@ describe("handleStandingsRequest caching", () => {
 
     expect(first.headers.get("X-Cache")).toBe("MISS");
     expect(second.headers.get("X-Cache")).toBe("HIT");
-    expect(calls).toEqual({ league: 1, matchups: 1, users: 1 });
+    expect(calls).toEqual({ league: 1, matchups: 1, users: 1, seasons: 1 });
     expect(await second.json()).toEqual(await first.json());
   });
 
