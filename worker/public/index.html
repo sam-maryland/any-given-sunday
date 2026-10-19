@@ -1079,8 +1079,8 @@
             <p id="playoff-copy"></p>
             <ul>
               <li>The top six make it. Seeds 1 and 2 get a bye in the first round.</li>
-              <li>Quarterfinals: 3 vs 6 and 4 vs 5.</li>
-              <li>Semifinals: seed 1 plays the lowest seed left, seed 2 the highest.</li>
+              <li>Quarterfinals: seeds 3–6. The league has run these both ways: by seeding (3 vs 6, 4 vs 5), and with seed 3 picking its opponent.</li>
+              <li>Semifinals: seeds 1 and 2 play the quarterfinal winners, either by seeding (seed 1 gets the lowest seed left) or with seed 1 picking.</li>
               <li>The semifinal winners play for the title. The losers play for third.</li>
               <li>Once a season ends, places 1–4 come from those games. The two quarterfinal losers are 5th and 6th, ordered by the same tiebreakers. Places 7–12 stay in regular season order.</li>
             </ul>
@@ -1126,6 +1126,11 @@
         return n + (s[(v - 20) % 10] || s[v] || s[0]);
       };
       const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+      // Whether higher seeds pick their playoff opponents this season, which
+      // past seasons have done both ways. null while undecided; set true or
+      // false once it's settled. Only the live season's bracket and copy use it.
+      const SEEDS_PICK_OPPONENTS = null;
 
       const FINISH_LABEL = {
         champion: "Champion",
@@ -1547,18 +1552,40 @@
         } else {
           const s = (n) => side(bySeed.get(n), "", null);
           const tbd = (label) => side(null, label, null);
+          const picks = data.status !== "COMPLETE" && SEEDS_PICK_OPPONENTS === true;
           columns = [
-            round("Quarterfinals", [match(null, s(3), s(6)), match(null, s(4), s(5))]),
-            round("Semifinals", [match(null, s(1), tbd("Lowest seed left")), match(null, s(2), tbd("Highest seed left"))]),
+            round(
+              "Quarterfinals",
+              picks
+                ? [match(null, s(3), tbd("Seed 3's pick of 4–6")), match(null, tbd("The other two"), tbd(""))]
+                : [match(null, s(3), s(6)), match(null, s(4), s(5))],
+            ),
+            round(
+              "Semifinals",
+              picks
+                ? [match(null, s(1), tbd("Seed 1's pick")), match(null, s(2), tbd("The other winner"))]
+                : [match(null, s(1), tbd("Lowest seed left")), match(null, s(2), tbd("Highest seed left"))],
+            ),
             round("Finals", [match("Final", tbd("Semifinal winner"), tbd("Semifinal winner")), match("3rd place", tbd("Semifinal loser"), tbd("Semifinal loser"))]),
           ];
-          $("bracket-label").textContent = data.status === "COMPLETE" ? "Bracket by seed" : "If the season ended today";
+          $("bracket-label").textContent =
+            data.status === "COMPLETE"
+              ? "Bracket by seed"
+              : SEEDS_PICK_OPPONENTS === null
+                ? "If the season ended today, by seeding"
+                : "If the season ended today";
         }
         $("bracket").replaceChildren(...columns);
 
         $("playoff-copy").textContent = data.usedPlayoffResults
           ? "This season is over, so the top of the table comes from the bracket, not regular season record. That's how a lower seed can finish above a higher one."
-          : "While the season is live, the table is regular season order. The six teams above the playoff line are in.";
+          : `While the season is live, the table is regular season order. The six teams above the playoff line are in. ${
+              SEEDS_PICK_OPPONENTS === null
+                ? "Whether higher seeds pick their opponents this year hasn't been decided yet, so the bracket shows pairings by seeding."
+                : SEEDS_PICK_OPPONENTS
+                  ? "This year, higher seeds pick their opponents."
+                  : "This year, matchups follow seeding."
+            }`;
       }
 
       function render(data) {
