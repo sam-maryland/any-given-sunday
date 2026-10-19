@@ -136,29 +136,42 @@
         color: var(--ink-3);
       }
 
-      /* The season picker is the year in the headline. */
+      /* The season picker is the year in the headline. The big year is plain
+         text; an invisible select sized to the body font sits over it, so the
+         native menu opens at a normal size instead of the headline's. */
       .season {
         position: relative;
         display: inline-flex;
         align-items: baseline;
-      }
-
-      .season select {
-        appearance: none;
-        margin: 0;
-        padding: 0 0.42em 0 0;
-        border: 0;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        letter-spacing: inherit;
-        cursor: pointer;
         border-radius: 8px;
       }
 
-      .season select:focus-visible {
+      .season-year {
+        padding-right: 0.42em;
+      }
+
+      .season select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        opacity: 0;
+        font: 1rem var(--sans);
+        cursor: pointer;
+      }
+
+      .season:has(select:focus-visible) {
         outline: 2px solid var(--field);
         outline-offset: 4px;
+      }
+
+      .season:has(select:disabled) .season-year {
+        padding-right: 0;
+      }
+
+      .season:has(select:disabled)::after {
+        display: none;
       }
 
       .season::after {
@@ -448,6 +461,11 @@
       .form i.W {
         background: var(--field);
         border-color: var(--field);
+      }
+
+      .form i.L {
+        background: var(--loss);
+        border-color: var(--loss);
       }
 
       .form i.T {
@@ -1010,6 +1028,7 @@
         <div class="eyebrow"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</div>
         <h1>
           <span class="season">
+            <span class="season-year" id="season-year" aria-hidden="true">—</span>
             <label for="season" class="sr-only">Season</label>
             <select id="season" disabled><option>—</option></select>
           </span>
@@ -1407,6 +1426,7 @@
         const years = data.seasons.length ? data.seasons : [data.year];
         select.replaceChildren(...years.map((y) => h("option", { value: String(y), selected: y === data.year }, y)));
         select.disabled = years.length < 2;
+        $("season-year").textContent = data.year;
       }
 
       function renderHighlights(data) {
