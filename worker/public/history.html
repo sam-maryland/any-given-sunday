@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>League History — Any Given Sunday</title>
+    <meta name="description" content="Every champion, the all-time table, and the league's records for the Any Given Sunday fantasy football league." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
+    />
+    <link rel="stylesheet" href="/site.css" />
+    <style>
+      section {
+        margin-top: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      /* ---------- Champions ---------- */
+
+      .champions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .champ {
+        padding: 1.1rem 1.1rem 1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--raised);
+      }
+
+      .champ .yr {
+        font: 400 0.8rem var(--mono);
+        color: var(--ink-3);
+      }
+
+      .champ .winner {
+        display: block;
+        margin: 0.35rem 0 0.75rem;
+        font: 400 1.85rem/1.05 var(--serif);
+        letter-spacing: -0.01em;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .champ .winner::before {
+        content: "";
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        margin-right: 0.5rem;
+        border-radius: 50%;
+        background: var(--gold);
+        vertical-align: 0.3rem;
+      }
+
+      .champ dl {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.2rem 0.75rem;
+        margin: 0;
+        padding-top: 0.6rem;
+        border-top: 1px solid var(--line-2);
+        font-size: 0.85rem;
+      }
+
+      .champ dt {
+        color: var(--ink-3);
+      }
+
+      .champ dd {
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .champ a,
+      .records a,
+      .table a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .champ a:hover,
+      .records a:hover,
+      .table a:hover strong {
+        text-decoration: underline;
+      }
+
+      /* ---------- All-time table ---------- */
+
+      .table-wrap {
+        overflow-x: auto;
+        margin-inline: -0.25rem;
+      }
+
+      .table {
+        width: 100%;
+        min-width: 40rem;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      .table th {
+        padding: 0 0.6rem 0.6rem;
+        border-bottom: 1px solid var(--ink);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .table th:first-child,
+      .table td:first-child {
+        text-align: left;
+      }
+
+      .table th button {
+        all: unset;
+        cursor: pointer;
+      }
+
+      .table th button:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: 2px;
+        border-radius: 3px;
+      }
+
+      .table th[aria-sort] {
+        color: var(--ink);
+      }
+
+      .table th[aria-sort="descending"] button::after {
+        content: " ↓";
+      }
+
+      .table th[aria-sort="ascending"] button::after {
+        content: " ↑";
+      }
+
+      .table td {
+        padding: 0.75rem 0.6rem;
+        border-bottom: 1px solid var(--line-2);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .table tbody tr {
+        transition: background 0.2s var(--ease);
+      }
+
+      .table tbody tr:hover {
+        background: var(--line-2);
+      }
+
+      .table strong {
+        display: block;
+        font-weight: 600;
+      }
+
+      .table .team {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--ink-3);
+      }
+
+      .trophies {
+        display: inline-flex;
+        gap: 3px;
+        vertical-align: middle;
+      }
+
+      .trophies i {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+
+      .trophies i.silver {
+        background: var(--ink-3);
+      }
+
+      .trophies i.bronze {
+        background: oklch(58% 0.11 45);
+      }
+
+      .pos {
+        color: var(--field);
+      }
+
+      .neg {
+        color: var(--loss);
+      }
+
+      .muted {
+        color: var(--ink-2);
+      }
+
+      /* ---------- Records ---------- */
+
+      .records {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .rec {
+        display: flex;
+        flex-direction: column;
+        padding: 1rem 1.1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--raised);
+      }
+
+      .rec h3 {
+        margin: 0;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .rec .fig {
+        margin-top: 0.5rem;
+        font: 400 2.2rem/1 var(--serif);
+        letter-spacing: -0.01em;
+      }
+
+      .rec .who {
+        margin-top: 0.5rem;
+        font-weight: 600;
+      }
+
+      .rec .ctx {
+        margin-top: 0.15rem;
+        font-size: 0.82rem;
+        color: var(--ink-2);
+      }
+
+      .foot-note {
+        margin: 1rem 0 0;
+        color: var(--ink-3);
+        font-size: 0.8rem;
+      }
+
+      @media (max-width: 56rem) {
+        .records {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 38rem) {
+        .records {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        /* Owner, trophies, record, playoffs and earnings fit a phone; win %,
+           points a game and high scores wait for a wider screen. */
+        .table {
+          min-width: 0;
+        }
+        .table th:nth-child(4),
+        .table td:nth-child(4),
+        .table th:nth-child(5),
+        .table td:nth-child(5),
+        .table th:nth-child(7),
+        .table td:nth-child(7) {
+          display: none;
+        }
+        .table th,
+        .table td {
+          padding-inline: 0.3rem;
+        }
+        .table th {
+          font-size: 0.6rem;
+          letter-spacing: 0.03em;
+        }
+        .table td:first-child {
+          white-space: normal;
+        }
+        .table td .muted {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="topbar">
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <nav class="nav" aria-label="Site">
+            <a href="/">Standings</a>
+            <a href="/history" aria-current="page">History</a>
+          </nav>
+        </div>
+        <h1>League <em>history</em></h1>
+        <p class="meta" id="meta"><span>Loading…</span></p>
+      </header>
+
+      <section aria-labelledby="champs-title">
+        <div class="section-head">
+          <h2 id="champs-title">Champions</h2>
+        </div>
+        <ol class="champions" id="champions">
+          <li class="skeleton"></li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="table-title">
+        <div class="section-head">
+          <h2 id="table-title">All-time table</h2>
+          <span class="hint">Tap a heading to sort, a name for the full career</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table" aria-labelledby="table-title">
+            <thead>
+              <tr id="table-head"></tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <p class="foot-note" id="table-note"></p>
+      </section>
+
+      <section aria-labelledby="records-title">
+        <div class="section-head">
+          <h2 id="records-title">Records</h2>
+          <span class="hint">Regular season games</span>
+        </div>
+        <ul class="records" id="records"></ul>
+      </section>
+
+      <p class="status" id="status" role="status"></p>
+
+      <footer>
+        <span id="footer-sync">Synced weekly, after the Tuesday recap.</span>
+        <a href="/">This season's standings</a>
+      </footer>
+    </div>
+
+    <script type="module">
+      import { $, games, h, loadHistory, money, ownerHref, plural, pts, record, score, winPct } from "/site.js";
+
+      let data;
+      let byId;
+      const ownerLink = (id, content) => {
+        const o = byId.get(id);
+        return o ? h("a", { href: ownerHref(o) }, content ?? o.name) : h("span", null, content ?? id);
+      };
+
+      // ---------- Champions ----------
+
+      function renderChampions() {
+        const list = $("champions");
+        if (!data.podiums.length) {
+          list.replaceChildren(h("li", { class: "muted" }, "No season has finished yet."));
+          return;
+        }
+        list.replaceChildren(
+          ...data.podiums.map((p) => {
+            const champ = byId.get(p.first);
+            return h(
+              "li",
+              { class: "champ" },
+              h("span", { class: "yr" }, p.year),
+              champ ? h("a", { class: "winner", href: ownerHref(champ) }, champ.name) : h("span", { class: "winner" }, p.first),
+              h(
+                "dl",
+                null,
+                h("dt", null, "Runner-up"),
+                h("dd", null, ownerLink(p.second)),
+                h("dt", null, "Third"),
+                h("dd", null, ownerLink(p.third)),
+              ),
+            );
+          }),
+        );
+      }
+
+      // ---------- All-time table ----------
+
+      const pct = (r) => (games(r) ? (r.wins + r.ties / 2) / games(r) : 0);
+      const COLUMNS = [
+        { key: "name", label: "Owner", sort: (o) => o.name, asc: true },
+        { key: "titles", label: "Trophies", sort: (o) => o.titles * 1e6 + o.runnerUps * 1e3 + o.thirdPlaces },
+        { key: "record", label: "Record", sort: (o) => pct(o.record) },
+        { key: "pct", label: "Win %", sort: (o) => pct(o.record) },
+        { key: "ppg", label: "Pts / game", sort: (o) => o.pointsFor / Math.max(1, games(o.record)) },
+        { key: "playoffs", label: "Playoffs", sort: (o) => o.playoffAppearances * 1e3 + pct(o.playoffRecord) },
+        { key: "high", label: "High scores", sort: (o) => o.highScoreWeeks },
+        { key: "earnings", label: "Earnings", sort: (o) => o.earnings },
+      ];
+      let sortKey = "titles";
+      let sortDesc = true;
+
+      function trophies(o) {
+        const dots = [
+          ...Array.from({ length: o.titles }, () => h("i", { title: "Champion" })),
+          ...Array.from({ length: o.runnerUps }, () => h("i", { class: "silver", title: "Runner-up" })),
+          ...Array.from({ length: o.thirdPlaces }, () => h("i", { class: "bronze", title: "Third place" })),
+        ];
+        const label = [o.titles && plural(o.titles, "title"), o.runnerUps && `${o.runnerUps}× runner-up`, o.thirdPlaces && `${o.thirdPlaces}× third`].filter(Boolean).join(", ");
+        return dots.length ? h("span", { class: "trophies", "aria-label": label, role: "img" }, dots) : h("span", { class: "muted" }, "—");
+      }
+
+      function renderTable() {
+        const col = COLUMNS.find((c) => c.key === sortKey);
+        const sorted = [...data.owners].sort((a, b) => {
+          const x = col.sort(a);
+          const y = col.sort(b);
+          const cmp = typeof x === "string" ? x.localeCompare(y) : x - y;
+          // Ties fall back to earnings, the league's ultimate scoreboard.
+          return (sortDesc ? -cmp : cmp) || b.earnings - a.earnings;
+        });
+
+        $("table-head").replaceChildren(
+          ...COLUMNS.map((c) =>
+            h(
+              "th",
+              { scope: "col", "aria-sort": c.key === sortKey ? (sortDesc ? "descending" : "ascending") : null },
+              h(
+                "button",
+                {
+                  type: "button",
+                  onclick: () => {
+                    if (sortKey === c.key) sortDesc = !sortDesc;
+                    else {
+                      sortKey = c.key;
+                      sortDesc = !c.asc;
+                    }
+                    renderTable();
+                  },
+                },
+                c.label,
+              ),
+            ),
+          ),
+        );
+
+        $("table-body").replaceChildren(
+          ...sorted.map((o) =>
+            h(
+              "tr",
+              null,
+              h("td", null, h("a", { href: ownerHref(o) }, h("strong", null, o.name), o.teamName ? h("span", { class: "team" }, o.teamName) : null)),
+              h("td", null, trophies(o)),
+              h("td", { class: "num" }, record(o.record)),
+              h("td", { class: "num" }, winPct(o.record)),
+              h("td", { class: "num muted" }, pts(o.pointsFor / Math.max(1, games(o.record)))),
+              h("td", { class: "num" }, `${o.playoffAppearances}/${o.seasons}`, h("span", { class: "muted" }, ` · ${record(o.playoffRecord)}`)),
+              h("td", { class: "num" }, o.highScoreWeeks),
+              h("td", { class: `num ${o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : ""}` }, money(o.earnings)),
+            ),
+          ),
+        );
+
+        $("table-note").textContent =
+          "Record and points are regular season. Playoffs shows appearances out of seasons played, then the record in playoff games. " +
+          "Earnings: −$100 buy-in a season, +$15 per weekly high score, +$600 / $300 / $120 for first, second and third." +
+          (data.currentYear ? ` ${data.currentYear} counts so far.` : "");
+      }
+
+      // ---------- Records ----------
+
+      function renderRecords() {
+        const r = data.records;
+        const when = (g) => `Week ${g.week}, ${g.year}`;
+        const vs = (g) => ["vs ", ownerLink(g.opponentId), ` · ${when(g)}`];
+        const card = (title, game, fig, ctx) =>
+          game
+            ? h("li", { class: "rec" }, h("h3", null, title), h("span", { class: "fig num" }, fig(game)), h("span", { class: "who" }, ownerLink(game.userId)), h("span", { class: "ctx" }, ctx(game)))
+            : null;
+        const own = (g) => score(g.score);
+        const margin = (g) => `+${score(g.score - g.opponentScore)}`;
+        const line = (g) => `${score(g.score)}–${score(g.opponentScore)} `;
+
+        $("records").replaceChildren(
+          ...[
+            card("Highest score", r.highestScore, own, vs),
+            card("Biggest blowout", r.biggestBlowout, margin, (g) => [line(g), ...vs(g)]),
+            card("Highest score in a loss", r.highestInLoss, own, (g) => ["Lost ", line(g), ...vs(g)]),
+            card("Lowest score in a win", r.lowestInWin, own, (g) => ["Won ", line(g), ...vs(g)]),
+            card("Closest game", r.closestGame, margin, (g) => [line(g), ...vs(g)]),
+            card("Lowest score", r.lowestScore, own, vs),
+          ].filter(Boolean),
+        );
+      }
+
+      function renderMeta() {
+        const done = data.podiums.length;
+        const seasons = new Set(data.owners.flatMap((o) => o.seasonLines.map((l) => l.year))).size;
+        const meta = [h("span", { class: "pill" }, `${plural(seasons, "season")}`), h("span", null, `${plural(data.owners.length, "owner")}`)];
+        if (data.currentYear) meta.push(h("span", { class: "dot", "aria-hidden": "true" }), h("span", null, `${data.currentYear} in progress`));
+        else if (done) meta.push(h("span", { class: "dot", "aria-hidden": "true" }), h("span", null, `${plural(done, "season")} complete`));
+        $("meta").replaceChildren(...meta);
+      }
+
+      try {
+        data = await loadHistory();
+        byId = new Map(data.owners.map((o) => [o.userId, o]));
+        renderMeta();
+        renderChampions();
+        renderTable();
+        renderRecords();
+      } catch (err) {
+        $("champions").replaceChildren();
+        const status = $("status");
+        status.className = "status error";
+        status.textContent = `Couldn't load the league history: ${err.message}`;
+      }
+    </script>
+  </body>
+</html>

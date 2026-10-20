@@ -1,10 +1,13 @@
+import { STANDINGS_URL } from "./standings";
 import { CareerStatsRow } from "./types";
 
-const PAY_IN_BUY_IN = 100;
-const PAY_OUT_WEEKLY_HIGH_SCORE = 15;
-const PAY_OUT_FIRST_PLACE = 600;
-const PAY_OUT_SECOND_PLACE = 300;
-const PAY_OUT_THIRD_PLACE = 120;
+// The league's money, unchanged since it started in 2023. The website's
+// owner pages (domain/history.ts) use the same figures.
+export const PAY_IN_BUY_IN = 100;
+export const PAY_OUT_WEEKLY_HIGH_SCORE = 15;
+export const PAY_OUT_FIRST_PLACE = 600;
+export const PAY_OUT_SECOND_PLACE = 300;
+export const PAY_OUT_THIRD_PLACE = 120;
 
 export function calculateCareerEarnings(c: CareerStatsRow): number {
   let earnings = 0;
@@ -64,6 +67,10 @@ export function careerStatsToDiscordMessage(c: CareerStatsRow, username: string)
     b += `   ↳ Points For: ${(c.playoff_points_for ?? 0).toFixed(1)}\n`;
     b += `   ↳ Points Against: ${(c.playoff_points_against ?? 0).toFixed(1)}\n\n`;
   }
+
+  // The owner page has every season and every head-to-head record, which
+  // don't fit here.
+  b += `📜 Every season and rivalry: <${STANDINGS_URL}/owner?id=${encodeURIComponent(c.user_id)}>\n`;
 
   return b;
 }
