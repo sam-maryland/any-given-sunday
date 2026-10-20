@@ -106,13 +106,25 @@ export async function runWeeklyRecap(
   );
   const existingMatchups = await db.getMatchupsByYear(league.year);
 
+  const playoffWeekStart = sleeperLeague.settings?.playoff_week_start;
   const synced = await syncLatestData(
     db,
     league.id,
     league.year,
     lastComplete,
     existingMatchups,
+    typeof playoffWeekStart === "number"
+      ? { weekStart: playoffWeekStart, roundType: sleeperLeague.settings.playoff_round_type ?? 0 }
+      : null,
   );
+
+  // Once the final is in and settled, the season closes itself out: the
+  // podium is recorded and the league goes COMPLETE, which also switches the
+  // standings page to playoff order and quiets this job until next season.
+  if (synced.podium) {
+    await db.completeLeague(league.id, synced.podium);
+    console.log(JSON.stringify({ event: "league_completed", year: league.year, ...synced.podium }));
+  }
 
   const users = await db.getUsers();
   const summary = summaryFromMatchups(league, synced.matchups, users);
@@ -145,7 +157,10 @@ export async function runWeeklyRecap(
     message,
   };
 
-  const held = notificationsHeldReason(nflState.season_type, synced.inserted);
+  // Only new regular season games warrant a recap. The recap reports the
+  // latest regular season week, so letting playoff rows through would resend
+  // the week 12 recap every playoff week.
+  const held = notificationsHeldReason(nflState.season_type, synced.regularSeasonInserted);
   if (held) {
     outcome.notificationsHeld = held;
     outcome.discord = "skipped";
@@ -172,7 +187,7 @@ export function notificationsHeldReason(
     return `NFL season_type is "${seasonType}"`;
   }
   if (insertedMatchups === 0) {
-    return "no new matchups were recorded this run";
+    return "no new regular season matchups were recorded this run";
   }
   return null;
 }

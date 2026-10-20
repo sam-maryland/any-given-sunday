@@ -22,6 +22,18 @@ function weekPayload(scores: [number, number, number, number]) {
   ];
 }
 
+// A four-team bracket starting week 13 with a two-week final round: semis in
+// week 13, then the final and third place game over weeks 14 and 15. Roster 1
+// beats 4 and 2 beats 3 in the semis. The fifth place game must be ignored.
+const PLAYOFFS = { weekStart: 13, roundType: 1 };
+const BRACKET = [
+  { r: 1, m: 1, t1: 1, t2: 4, w: 1, l: 4 },
+  { r: 1, m: 2, t1: 2, t2: 3, w: 2, l: 3 },
+  { r: 2, m: 3, p: 1, t1: 1, t2: 2, w: null, l: null },
+  { r: 2, m: 4, p: 3, t1: 4, t2: 3, w: null, l: null },
+  { r: 2, m: 5, p: 5, t1: 5, t2: 6, w: null, l: null },
+];
+
 let fetchCalls: string[];
 let inserted: NewMatchup[];
 let updated: { id: string; home_score: number; away_score: number }[];
@@ -37,6 +49,9 @@ beforeEach(() => {
     fetchCalls.push(url);
     if (url.includes("/rosters")) {
       return new Response(JSON.stringify(ROSTERS));
+    }
+    if (url.includes("/winners_bracket")) {
+      return new Response(JSON.stringify(BRACKET));
     }
     if (url.includes("/matchups/")) {
       return new Response(JSON.stringify(weekPayload([100, 90, 80, 70])));
@@ -148,7 +163,14 @@ describe("sleeperLastScoredWeek", () => {
 describe("syncLatestData", () => {
   it("does nothing before any week has completed", async () => {
     const result = await syncLatestData(db, "L1", 2025, 0, []);
-    expect(result).toEqual({ weeksFetched: [], inserted: 0, updated: 0, matchups: [] });
+    expect(result).toEqual({
+      weeksFetched: [],
+      inserted: 0,
+      regularSeasonInserted: 0,
+      updated: 0,
+      matchups: [],
+      podium: null,
+    });
     expect(fetchCalls).toHaveLength(0);
   });
 
@@ -266,6 +288,126 @@ describe("syncLatestData", () => {
       // 17 weeks are complete: week 17 is new, and week 16 is re-checked for
       // stat corrections. The other 15 are left alone.
       expect(fetchCalls.filter((c) => c.includes("/matchups/"))).toHaveLength(2);
+    });
+  });
+
+  describe("playoffs", () => {
+    // Weeks 1-12 stored, so only playoff work (and the re-check of week 12
+    // while it is recent) is left.
+    function regularSeason(): Matchup[] {
+      const stored: Matchup[] = [];
+      for (let week = 1; week <= 12; week++) {
+        stored.push(existing({ week, id: `r${week}a` }));
+        stored.push(
+          existing({
+            week,
+            id: `r${week}b`,
+            home_user_id: "u3",
+            away_user_id: "u4",
+            home_score: 80,
+            away_score: 70,
+          }),
+        );
+      }
+      return stored;
+    }
+
+    it("stops treating weeks as regular season once the playoffs start", async () => {
+      const result = await syncLatestData(db, "L1", 2025, 13, regularSeason(), PLAYOFFS);
+
+      expect(inserted.filter((m) => !m.is_playoff)).toHaveLength(0);
+      expect(result.regularSeasonInserted).toBe(0);
+    });
+
+    it("records a finished round from the bracket, with seeds", async () => {
+      const result = await syncLatestData(db, "L1", 2025, 13, regularSeason(), PLAYOFFS);
+
+      expect(result.inserted).toBe(2);
+      expect(inserted).toEqual([
+        expect.objectContaining({
+          week: 13,
+          is_playoff: true,
+          playoff_round: "semifinal",
+          home_user_id: "u1",
+          away_user_id: "u4",
+          // u1 and u3 went 12-0; u1 is ahead on points for.
+          home_seed: 1,
+          away_seed: 4,
+          home_score: 100,
+          away_score: 70,
+        }),
+        expect.objectContaining({ playoff_round: "semifinal", home_user_id: "u2", away_user_id: "u3" }),
+      ]);
+    });
+
+    it("waits for both weeks of a two-week final, then sums them", async () => {
+      await syncLatestData(db, "L1", 2025, 14, regularSeason(), PLAYOFFS);
+      expect(inserted.filter((m) => m.playoff_round === "final")).toHaveLength(0);
+
+      inserted = [];
+      await syncLatestData(db, "L1", 2025, 15, regularSeason(), PLAYOFFS);
+      const final = inserted.find((m) => m.playoff_round === "final");
+      expect(final).toMatchObject({ week: 14, home_user_id: "u1", home_score: 200, away_score: 180 });
+      expect(inserted.find((m) => m.playoff_round === "third_place")).toMatchObject({
+        week: 14,
+        home_user_id: "u4",
+        away_user_id: "u3",
+        home_score: 140,
+        away_score: 160,
+      });
+    });
+
+    it("leaves out the fifth place game", async () => {
+      await syncLatestData(db, "L1", 2025, 15, regularSeason(), PLAYOFFS);
+      expect(inserted.map((m) => m.playoff_round).sort()).toEqual([
+        "final",
+        "semifinal",
+        "semifinal",
+        "third_place",
+      ]);
+    });
+
+    it("updates a stored playoff game rather than inserting it again", async () => {
+      const stored = [
+        ...regularSeason(),
+        existing({
+          id: "sf1",
+          week: 13,
+          is_playoff: true,
+          playoff_round: "semifinal",
+          home_user_id: "u4",
+          away_user_id: "u1",
+          home_score: 70,
+          away_score: 99,
+        }),
+      ];
+      await syncLatestData(db, "L1", 2025, 13, stored, PLAYOFFS);
+
+      expect(inserted.map((m) => m.home_user_id)).toEqual(["u2"]);
+      expect(updated).toEqual([{ id: "sf1", home_score: 70, away_score: 100 }]);
+    });
+
+    it("names the podium only once the week after the final is over", async () => {
+      const atFinal = await syncLatestData(db, "L1", 2025, 15, regularSeason(), PLAYOFFS);
+      expect(atFinal.podium).toBeNull();
+
+      const weekAfter = await syncLatestData(db, "L1", 2025, 16, regularSeason(), PLAYOFFS);
+      expect(weekAfter.podium).toEqual({ first: "u1", second: "u2", third: "u3" });
+    });
+
+    it("does not read the bracket before the playoffs", async () => {
+      await syncLatestData(db, "L1", 2025, 12, regularSeason(), PLAYOFFS);
+      expect(fetchCalls.filter((c) => c.includes("/winners_bracket"))).toHaveLength(0);
+    });
+
+    it("stops fetching playoff weeks once they are stored and settled", async () => {
+      const first = await syncLatestData(db, "L1", 2025, 15, regularSeason(), PLAYOFFS);
+      fetchCalls = [];
+      const stored = first.matchups.map((m, i) => ({ id: `m${i}`, ...m }));
+
+      await syncLatestData(db, "L1", 2025, 18, stored, PLAYOFFS);
+
+      expect(fetchCalls.filter((c) => c.includes("/matchups/"))).toHaveLength(0);
     });
   });
 });
