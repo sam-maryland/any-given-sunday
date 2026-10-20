@@ -55,6 +55,15 @@ The website (ags-hq.org) shows which tiebreaker separated each pair of adjacent 
 - **Seeds 1-2**: Receive first-round byes
 - **Seeds 3-6**: Play in the first round (quarterfinals)
 
+## The Playoff Race
+
+While a season is in progress, the website (ags-hq.org) shows each team's odds of making the playoffs, getting a bye, and finishing as the 1 seed.
+
+- **How the odds are made:** every remaining regular season game is played out 10,000 times. A team's score in each simulated game is drawn around its average so far, pulled toward the league average (worth three league-average games, so one big week early on doesn't make a team a favourite). Every simulated finish is ranked with exactly the tiebreakers above. The page runs the same code the standings do.
+- **"In" and "Out"** are mathematical certainties, not simulation results. A team is in when fewer than six other teams can even reach its current win total; it is out when six teams already have more wins than it can reach. Both assume every tiebreak goes against the team, so they can lag a week behind reality but are never wrong. Everything else is a percentage, and a simulation never shows 0% or 100%.
+- **What-if picks:** viewers can pick winners for the next week's games and watch the odds move. Picks stay on the viewer's page and aren't saved. Each team's card also shows its playoff odds with a win and with a loss.
+- **Where it runs:** the simulation runs in the viewer's browser. The Worker only sends the games played and the schedule still to come (`/api/playoff-race`), cached until the next weekly sync.
+
 ## Post-Season Standings (Final Rankings)
 
 Once the league is complete, the final standings are determined by playoff performance rather than regular season record. This means a team with a worse regular season record can finish ahead of teams with better regular season records if they perform better in the playoffs.

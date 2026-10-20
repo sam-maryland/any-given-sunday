@@ -434,7 +434,7 @@ function keyOf(m: Pick<NewMatchup, "is_playoff" | "playoff_round" | "week" | "ho
  * Bye weeks (no matchup_id) and incomplete pairings are skipped rather than
  * failing the whole sync.
  */
-function groupIntoHeadToHead(
+export function groupIntoHeadToHead(
   sleeperMatchups: SleeperMatchup[],
   rosterToOwner: Map<number, string>,
   year: number,

@@ -1,3 +1,4 @@
+import { handlePlayoffRaceRequest } from "./api/playoffRace";
 import { handleStandingsRequest } from "./api/standings";
 import { SupabaseClient } from "./data/supabase";
 import { verifyDiscordSignature } from "./discord/verify";
@@ -75,6 +76,13 @@ export default {
       }
       if (url.pathname === "/api/standings") {
         return handleStandingsRequest(
+          new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
+          url,
+          ctx,
+        );
+      }
+      if (url.pathname === "/api/playoff-race") {
+        return handlePlayoffRaceRequest(
           new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
           url,
           ctx,
