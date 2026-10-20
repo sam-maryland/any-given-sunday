@@ -1,6 +1,6 @@
 import { SupabaseClient } from "../data/supabase";
 import { getNFLState } from "../data/sleeper";
-import { standingsForLeague, Standing } from "./standings";
+import { standingsForLeague, standingsUrl, Standing } from "./standings";
 import { League, NewMatchup, UserMap } from "./types";
 
 export interface WeeklyHighScore {
@@ -134,6 +134,7 @@ export function formatWeeklySummary(summary: WeeklySummary, users: UserMap): str
   });
   response += "\n";
 
+  response += `📊 Full standings: <${standingsUrl(summary.year)}>\n\n`;
   response += `Next update after Week ${summary.week + 1} games complete! 🏈`;
 
   return response;

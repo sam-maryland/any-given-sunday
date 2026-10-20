@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { User } from "../domain/types";
 import { WeeklySummary } from "../domain/weeklySummary";
 import { sendWeeklyRecap } from "./email";
+import { generateWeeklyRecapHTML } from "./template";
 
 const SUMMARY: WeeklySummary = {
   leagueId: "L1",
@@ -81,5 +82,16 @@ describe("sendWeeklyRecap", () => {
     await expect(
       sendWeeklyRecap("key", "from@x.com", SUMMARY, recipients, new Map()),
     ).rejects.toThrow(/422/);
+  });
+});
+
+describe("generateWeeklyRecapHTML", () => {
+  it("leads with a link to that season's standings page", () => {
+    const html = generateWeeklyRecapHTML(SUMMARY, new Map());
+
+    const standings = html.indexOf('href="https://ags-hq.org/?year=2026"');
+    const sleeper = html.indexOf('href="https://sleeper.com/leagues/L1/league"');
+    expect(standings).toBeGreaterThan(-1);
+    expect(sleeper).toBeGreaterThan(standings);
   });
 });

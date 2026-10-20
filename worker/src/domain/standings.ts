@@ -416,6 +416,13 @@ function discordTiebreak(c: Comparison): string | null {
 
 export const STANDINGS_URL = "https://ags-hq.org";
 
+// A link to one season's standings. Pinned to the year rather than the bare
+// site, so an old email or Discord post still opens the season it was about
+// after the next one starts.
+export function standingsUrl(year: number): string {
+  return `${STANDINGS_URL}/?year=${year}`;
+}
+
 export function standingsToDiscordMessage(
   result: LeagueStandings,
   league: League,
@@ -452,9 +459,10 @@ export function standingsToDiscordMessage(
 
   if (anyTiebreak) {
     b +=
-      "\n-# Ties on wins: head-to-head (only if every tied team has played the others, or one beat them all), then points for, then points against. " +
-      `Full breakdown: <${STANDINGS_URL}>\n`;
+      "\n-# Ties on wins: head-to-head (only if every tied team has played the others, or one beat them all), then points for, then points against.\n";
   }
+  // Angle brackets stop Discord from unfurling a preview card under the post.
+  b += `\n📊 Every game, tiebreak and result: <${standingsUrl(league.year)}>\n`;
 
   return b;
 }
