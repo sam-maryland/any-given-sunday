@@ -30,6 +30,13 @@
   // asset request is served straight from the edge. The root is worker-first
   // because Discord POSTs its interactions there — the Worker hands non-POST
   // root requests back to ASSETS so index.html is still served.
+  // The dashboard's playoff odds run in the browser, from the same standings
+  // code the Worker uses, bundled into public/race.js. Wrangler runs this
+  // before every deploy and dev session, so the page and the Worker can never
+  // disagree on a tiebreaker. The bundle is generated, not committed.
+  "build": {
+    "command": "npm run build:site"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

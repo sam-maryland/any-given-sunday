@@ -74,7 +74,7 @@ export interface PayloadInput {
   syncedAt: Date;
 }
 
-const BYE_SEEDS = 2;
+export const BYE_SEEDS = 2;
 
 function gamesByUser(matchups: NewMatchup[]): Map<string, GameRow[]> {
   const games = new Map<string, GameRow[]>();

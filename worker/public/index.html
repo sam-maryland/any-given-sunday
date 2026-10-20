@@ -700,6 +700,236 @@
         font-size: 0.9rem;
       }
 
+      /* ---------- Playoff race ---------- */
+
+      .race {
+        margin-top: clamp(3rem, 7vw, 5rem);
+      }
+
+      .race .lede {
+        margin-bottom: 1.5rem;
+      }
+
+      .race-cols,
+      .race-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) repeat(3, 8.5rem);
+        align-items: center;
+        column-gap: 1rem;
+        padding: 0 0.75rem;
+      }
+
+      .race-cols {
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid var(--ink);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .race-rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .race-row {
+        padding-block: 0.7rem;
+        border-bottom: 1px solid var(--line-2);
+      }
+
+      .race-row .name strong {
+        font-size: 0.95rem;
+      }
+
+      .race-row.out .name strong {
+        color: var(--ink-3);
+      }
+
+      .odds {
+        position: relative;
+        display: grid;
+        grid-template-columns: 3.4rem minmax(0, 1fr);
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .odds .pct {
+        text-align: right;
+        font-weight: 500;
+      }
+
+      .odds .pct.settled {
+        font-family: var(--sans);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .odds .pct.settled.in {
+        color: var(--field);
+      }
+
+      .odds .pct.settled.gone {
+        color: var(--ink-3);
+      }
+
+      .meter {
+        position: relative;
+        height: 0.4rem;
+        border-radius: 999px;
+        background: var(--line-2);
+        overflow: hidden;
+      }
+
+      .meter i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+        background: var(--field);
+        transition: width 0.4s var(--ease);
+      }
+
+      /* Hangs below the meter rather than taking a line of its own, so
+         picking a winner never changes the height of a row. */
+      .delta {
+        position: absolute;
+        top: calc(100% + 0.1rem);
+        left: calc(3.4rem + 0.5rem);
+        font: 500 0.68rem/1 var(--mono);
+        color: var(--field);
+      }
+
+      .delta.neg {
+        color: var(--loss);
+      }
+
+      .picks-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        margin: 2.5rem 0 0.9rem;
+      }
+
+      .picks-head h3 {
+        margin: 0;
+        font: 400 1.6rem/1.1 var(--serif);
+      }
+
+      .clear {
+        padding: 0.3rem 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--raised);
+        color: var(--ink);
+        font: 500 0.78rem var(--sans);
+        cursor: pointer;
+      }
+
+      .clear:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .clear:focus-visible,
+      .pick:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: 2px;
+      }
+
+      .picks {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .pick-game {
+        display: grid;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        overflow: hidden;
+      }
+
+      .pick {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.1rem 0.75rem;
+        padding: 0.65rem 0.8rem;
+        border: 0;
+        background: none;
+        color: var(--ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.2s var(--ease), color 0.2s var(--ease);
+      }
+
+      .pick + .pick {
+        border-top: 1px solid var(--line-2);
+      }
+
+      .pick:hover {
+        background: var(--line-2);
+      }
+
+      .pick .nm {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+
+      .pick .rec {
+        font-size: 0.78rem;
+        color: var(--ink-3);
+      }
+
+      .pick .if {
+        grid-column: 1 / -1;
+        font-size: 0.75rem;
+        color: var(--ink-2);
+      }
+
+      .pick .if b {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .pick[aria-pressed="true"] {
+        background: var(--field-soft);
+        box-shadow: inset 3px 0 0 var(--field);
+      }
+
+      .pick[aria-pressed="true"] .rec {
+        color: var(--field);
+        font-weight: 600;
+      }
+
+      .pick.loses {
+        color: var(--ink-3);
+      }
+
+      .pick.loses .nm {
+        font-weight: 500;
+      }
+
+      .race-foot {
+        margin: 1rem 0 0;
+        color: var(--ink-3);
+        font-size: 0.8rem;
+        text-wrap: pretty;
+      }
+
       /* ---------- Explainer ---------- */
 
       .how {
@@ -958,6 +1188,13 @@
           grid-template-columns: minmax(0, 1fr);
           gap: 1.5rem;
         }
+        .race-cols,
+        .race-row {
+          grid-template-columns: minmax(0, 1fr) repeat(2, 7.5rem);
+        }
+        .c-top {
+          display: none;
+        }
       }
 
       @media (max-width: 38rem) {
@@ -1006,6 +1243,22 @@
         }
         .bracket {
           grid-template-columns: minmax(0, 1fr);
+        }
+        .race-cols,
+        .race-row {
+          grid-template-columns: minmax(0, 1fr) repeat(2, 5.25rem);
+          column-gap: 0.6rem;
+          padding-inline: 0.25rem;
+        }
+        .odds {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0.25rem;
+        }
+        .odds .pct {
+          text-align: left;
+        }
+        .delta {
+          left: 0;
         }
       }
 
@@ -1064,6 +1317,28 @@
         <p class="note" id="note" hidden></p>
         <p class="status" id="status" role="status"></p>
       </main>
+
+      <section class="race" id="race" aria-labelledby="race-title" hidden>
+        <div class="section-head">
+          <h2 id="race-title">The playoff race</h2>
+          <span class="hint" id="race-hint"></span>
+        </div>
+        <p class="lede" id="race-lede"></p>
+        <div class="race-cols" aria-hidden="true">
+          <span>Team</span>
+          <span>Playoffs</span>
+          <span>Bye</span>
+          <span class="c-top">No. 1 seed</span>
+        </div>
+        <ol class="race-rows" id="race-rows" aria-labelledby="race-title"></ol>
+
+        <div class="picks-head">
+          <h3 id="picks-title"></h3>
+          <button type="button" class="clear" id="clear-picks" disabled>Clear picks</button>
+        </div>
+        <ul class="picks" id="picks" aria-labelledby="picks-title"></ul>
+        <p class="race-foot" id="race-foot"></p>
+      </section>
 
       <section class="how" id="how" aria-labelledby="how-title" hidden>
         <h2 id="how-title">How the standings work</h2>
@@ -1595,6 +1870,10 @@
       }
 
       function render(data) {
+        // The playoff race (its own module script below) draws from the same
+        // standings, so tell it whenever they change.
+        window.agsStandings = data;
+        document.dispatchEvent(new CustomEvent("standings", { detail: data }));
         renderHeader(data);
         renderHighlights(data);
         renderRows(data);
@@ -1643,6 +1922,246 @@
 
       const initialYear = Number(new URLSearchParams(location.search).get("year")) || null;
       load(initialYear);
+    </script>
+    <script type="module">
+      // ---------- Playoff race ----------
+      // Plays out the rest of the regular season in the browser with the
+      // same tiebreaker code the Worker uses (bundled into race.js at deploy).
+      // The Worker only sends the schedule; it would run out of CPU long
+      // before it finished this many seasons.
+      import { clinchStatus, pairingKey, simulatePlayoffRace } from "/race.js";
+
+      const RUNS = 10000;
+
+      const $ = (id) => document.getElementById(id);
+      // Same text-node-only helper as the main script: team names are
+      // user-supplied.
+      function h(tag, props, ...children) {
+        const el = document.createElement(tag);
+        for (const [k, v] of Object.entries(props ?? {})) {
+          if (v == null || v === false) continue;
+          if (k === "class") el.className = v;
+          else if (k === "style") el.setAttribute("style", v);
+          else if (k in el && typeof v !== "string") el[k] = v;
+          else el.setAttribute(k, v);
+        }
+        for (const c of children.flat()) {
+          if (c == null || c === false) continue;
+          el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+        }
+        return el;
+      }
+
+      let race = null; // the /api/playoff-race payload, once loaded
+      let standings = null; // the season the table is showing
+      let played = [];
+      let baseline = null; // odds with no picks, for the deltas
+      let clinch = new Map();
+      const picks = new Map();
+
+      // Simulations can't prove anything — a team that missed the playoffs in
+      // every run can still get in — so the ends read as "<1%" and ">99%".
+      // Only the exact clinch check gets to say "In" or "Out".
+      function pct(p) {
+        if (p >= 0.995) return ">99%";
+        if (p < 0.005) return "<1%";
+        return `${Math.round(p * 100)}%`;
+      }
+
+      // The whole percentage shown, clamped the same way, for deltas.
+      const shownPct = (p) => Math.min(99, Math.max(1, Math.round(p * 100)));
+
+      function oddsCell(p, base, settled, extraClass = "") {
+        if (settled === "clinched") {
+          return h("span", { class: `odds ${extraClass}` }, h("span", { class: "pct settled in" }, "In"), h("span", { class: "meter" }, h("i", { style: "width:100%" })));
+        }
+        if (settled === "eliminated") {
+          return h("span", { class: `odds ${extraClass}` }, h("span", { class: "pct settled gone" }, "Out"), h("span", { class: "meter" }));
+        }
+        const delta = base == null || picks.size === 0 ? 0 : shownPct(p) - shownPct(base);
+        return h(
+          "span",
+          { class: `odds ${extraClass}` },
+          h("span", { class: "pct num" }, pct(p)),
+          h("span", { class: "meter" }, h("i", { style: `width:${(p * 100).toFixed(1)}%` })),
+          delta ? h("span", { class: `delta${delta < 0 ? " neg" : ""}` }, `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`) : null,
+        );
+      }
+
+      // Pick-adjusted clinch marks: a pick is a result, so treat it as played.
+      function clinchWithPicks() {
+        if (picks.size === 0) return clinch;
+        const decided = [];
+        const left = [];
+        for (const p of race.remaining) {
+          const winner = picks.get(pairingKey(p));
+          if (!winner) left.push(p);
+          else decided.push({ ...asMatchup(p), home_score: winner === p.homeId ? 1 : 0, away_score: winner === p.awayId ? 1 : 0 });
+        }
+        return new Map(clinchStatus([...played, ...decided], left, race.playoffTeams, race.byeTeams).map((c) => [c.userId, c]));
+      }
+
+      function asMatchup(g) {
+        return {
+          year: race.year,
+          week: g.week,
+          is_playoff: false,
+          playoff_round: null,
+          home_user_id: g.homeId,
+          away_user_id: g.awayId,
+          home_seed: null,
+          away_seed: null,
+          home_score: g.homeScore ?? 0,
+          away_score: g.awayScore ?? 0,
+        };
+      }
+
+      // Mulberry32. Every run starts from the same seed, so a pick changes
+      // only the games it decides: the no-picks baseline and the picked run
+      // draw identical scores everywhere else, and the deltas on the table
+      // are the pick's effect rather than noise between two simulations.
+      function seeded(seed) {
+        return () => {
+          seed = (seed + 0x6d2b79f5) | 0;
+          let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function run() {
+        return simulatePlayoffRace({
+          played,
+          remaining: race.remaining,
+          picks,
+          playoffTeams: race.playoffTeams,
+          byeTeams: race.byeTeams,
+          runs: RUNS,
+          random: seeded(race.throughWeek),
+        });
+      }
+
+      function render() {
+        const odds = picks.size === 0 ? baseline : run();
+        const byId = new Map(odds.map((o) => [o.userId, o]));
+        const baseById = new Map(baseline.map((o) => [o.userId, o]));
+        const settled = clinchWithPicks();
+        const team = new Map(standings.standings.map((r) => [r.userId, r]));
+        const name = (id) => team.get(id)?.name ?? id;
+        const record = (id) => {
+          const t = team.get(id);
+          return t ? (t.ties ? `${t.wins}–${t.losses}–${t.ties}` : `${t.wins}–${t.losses}`) : "";
+        };
+
+        const order = [...odds].sort(
+          (a, b) => b.playoffs - a.playoffs || b.bye - a.bye || b.topSeed - a.topSeed || (team.get(a.userId)?.rank ?? 99) - (team.get(b.userId)?.rank ?? 99),
+        );
+        $("race-rows").replaceChildren(
+          ...order.map((o) => {
+            const c = settled.get(o.userId);
+            const base = baseById.get(o.userId);
+            return h(
+              "li",
+              { class: `race-row${c?.playoffs === "eliminated" ? " out" : ""}` },
+              h("span", { class: "name" }, h("strong", null, name(o.userId)), h("span", { class: "tags" }, h("span", { class: "num" }, record(o.userId)))),
+              oddsCell(o.playoffs, base?.playoffs, c?.playoffs),
+              oddsCell(o.bye, base?.bye, c?.bye),
+              oddsCell(o.topSeed, base?.topSeed, null, "c-top"),
+            );
+          }),
+        );
+
+        // This week's games: the first week with anything left to play.
+        const week = Math.min(...race.remaining.map((p) => p.week));
+        const games = race.remaining.filter((p) => p.week === week);
+        $("picks-title").textContent = `Week ${week}: pick the winners`;
+        $("clear-picks").disabled = picks.size === 0;
+
+        // "With a win" splits come from the no-picks simulation for teams
+        // whose game is still open, so they answer "what does this game mean
+        // for me?" and don't shift as other games get picked.
+        const split = (id) => {
+          const n = byId.get(id)?.nextGame;
+          if (!n || n.week !== week) return null;
+          const c = settled.get(id)?.playoffs;
+          if (c) return h("span", { class: "if" }, c === "clinched" ? "Playoff spot clinched" : "Out of the playoff race");
+          return h("span", { class: "if" }, "Playoffs: ", h("b", null, pct(n.ifWin)), " with a win · ", h("b", null, pct(n.ifLose)), " with a loss");
+        };
+
+        $("picks").replaceChildren(
+          ...games.map((p) => {
+            const key = pairingKey(p);
+            const pick = picks.get(key);
+            const side = (id) =>
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: `pick${pick && pick !== id ? " loses" : ""}`,
+                  "aria-pressed": String(pick === id),
+                  onclick: () => {
+                    if (pick === id) picks.delete(key);
+                    else picks.set(key, id);
+                    render();
+                  },
+                },
+                h("span", { class: "nm" }, name(id)),
+                h("span", { class: "rec num" }, pick === id ? "Wins" : record(id)),
+                pick ? null : split(id),
+              );
+            return h("li", { class: "pick-game" }, side(p.homeId), side(p.awayId));
+          }),
+        );
+
+        $("race-foot").textContent =
+          picks.size > 0
+            ? `Odds assume your ${picks.size === 1 ? "pick" : `${picks.size} picks`}. The small numbers show the change from no picks.`
+            : "Pick a winner to see how it moves the odds. Picks stay on this page; nothing is saved.";
+      }
+
+      function show(data) {
+        standings = data;
+        const section = $("race");
+        // Only the season in progress has a race, and only once its schedule
+        // has loaded.
+        if (!race?.active || data.year !== race.year || !race.remaining.length) {
+          section.hidden = true;
+          return;
+        }
+        section.hidden = false;
+        render();
+      }
+
+      async function init() {
+        try {
+          const res = await fetch("/api/playoff-race?v=1");
+          if (!res.ok) return;
+          race = await res.json();
+          if (!race.active) return;
+
+          played = race.played.map(asMatchup);
+          baseline = run();
+          clinch = new Map(clinchStatus(played, race.remaining, race.playoffTeams, race.byeTeams).map((c) => [c.userId, c]));
+
+          const weeksLeft = new Set(race.remaining.map((p) => p.week)).size;
+          $("race-hint").textContent = `${weeksLeft} ${weeksLeft === 1 ? "week" : "weeks"} left · ${RUNS.toLocaleString()} simulations`;
+          $("race-lede").textContent =
+            `Every game left in the regular season, played out ${RUNS.toLocaleString()} times. Each team scores like it has so far, ` +
+            "pulled toward the league average, and every finish is ranked with the same tiebreakers as the table. " +
+            "“In” and “Out” are certain, whatever happens; percentages are odds.";
+        } catch {
+          // The race is extra; the standings stand on their own without it.
+          return;
+        }
+        $("clear-picks").addEventListener("click", () => {
+          picks.clear();
+          render();
+        });
+        document.addEventListener("standings", (e) => show(e.detail));
+        if (window.agsStandings) show(window.agsStandings);
+      }
+
+      init();
     </script>
   </body>
 </html>
