@@ -679,7 +679,7 @@
       }
 
       .tiebreak::before {
-        content: "↑";
+        content: "↳";
         position: absolute;
         margin-left: -1rem;
         font-weight: 600;
@@ -1434,9 +1434,31 @@
           : `Level on wins${more}; head-to-head doesn't apply`;
       }
 
-      // A short note drawn between two rows when a tiebreaker, not wins, put
-      // the upper team ahead.
+      // A one-line note drawn right under a team when a tiebreaker, not wins,
+      // put it above the next team: the criterion and the numbers it compared.
       function tiebreakNote(upper, lower) {
+        const a = upper.aheadOfNext;
+        const ahead = (how, detail) => ["Ahead of ", h("b", null, lower.name), ` on ${how}`, detail ? ` · ${detail}` : ""];
+        switch (a.by) {
+          case "headToHead": {
+            const [mine, theirs] = a.headToHead.records;
+            return ahead("head-to-head", `${groupRecord(mine)} vs ${groupRecord(theirs)}`);
+          }
+          case "headToHeadSweep":
+            return ahead("head-to-head", "beat every tied team");
+          case "pointsFor":
+            return ahead("points for", `${pts(upper.pointsFor)} vs ${pts(lower.pointsFor)}`);
+          case "pointsAgainst":
+            return ahead("points against", `${pts(upper.pointsAgainst)} vs ${pts(lower.pointsAgainst)} allowed`);
+          case "coinFlip":
+            return ahead("a coin flip");
+          default:
+            return null;
+        }
+      }
+
+      // The full sentence behind a note, shown on hover.
+      function tiebreakDetail(upper, lower) {
         const a = upper.aheadOfNext;
         switch (a.by) {
           case "headToHead": {
@@ -1674,14 +1696,18 @@
           const next = rows[i + 1];
           if (!next) return;
 
+          // The note belongs to the team above it, so it sits before any line.
+          const note = tiebreakNote(team, next);
+          if (note) {
+            const title = h("span", null, tiebreakDetail(team, next)).textContent;
+            items.push(h("li", { class: "tiebreak", title }, note));
+          }
+
           if (data.playoffCutoff && team.rank === data.byeCutoff) {
             items.push(h("li", { class: "marker bye", "aria-hidden": "true" }, "Bye line"));
           } else if (data.playoffCutoff && team.rank === data.playoffCutoff) {
             items.push(h("li", { class: "marker", "aria-hidden": "true" }, "Playoff line"));
           }
-
-          const note = tiebreakNote(team, next);
-          if (note) items.push(h("li", { class: "tiebreak" }, note));
         });
 
         list.replaceChildren(...items);
