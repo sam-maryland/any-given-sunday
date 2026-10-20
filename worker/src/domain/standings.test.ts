@@ -376,4 +376,15 @@ describe("standingsToDiscordMessage", () => {
     // B is ahead of Y on wins, which needs no note.
     expect(message).not.toContain("ahead of Team Y");
   });
+
+  it("links to that season's standings page, tiebreaks or not", () => {
+    const l = league(LeagueStatus.InProgress);
+    const result = standingsForLeague(l, [
+      matchup({ home_user_id: "a", away_user_id: "b", home_score: 150, away_score: 10 }),
+    ]);
+
+    const message = standingsToDiscordMessage(result, l, new Map());
+
+    expect(message).toContain(`<https://ags-hq.org/?year=${l.year}>`);
+  });
 });
