@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Owner — Any Given Sunday</title>
+    <meta name="description" content="An owner's career in the Any Given Sunday fantasy football league: trophies, earnings, every season and every rivalry." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
+    />
+    <link rel="stylesheet" href="/site.css" />
+    <style>
+      section {
+        margin-top: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      .back {
+        display: inline-block;
+        margin-top: 1.75rem;
+        font-size: 0.85rem;
+        color: var(--ink-2);
+        text-decoration: none;
+      }
+
+      .back:hover {
+        color: var(--ink);
+      }
+
+      h1 {
+        margin-top: 0.5rem;
+      }
+
+      .highlights {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        row-gap: 0.5rem;
+      }
+
+      /* Six tiles in two rows: rules between columns, not before each row. */
+      .highlight:nth-child(3n + 1) {
+        padding-left: 0;
+        border-left: 0;
+      }
+
+      .pos {
+        color: var(--field);
+      }
+
+      .neg {
+        color: var(--loss);
+      }
+
+      .muted {
+        color: var(--ink-2);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      /* ---------- Tables ---------- */
+
+      .table-wrap {
+        overflow-x: auto;
+        margin-inline: -0.25rem;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      .table th {
+        padding: 0 0.6rem 0.6rem;
+        border-bottom: 1px solid var(--ink);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .table td {
+        padding: 0.7rem 0.6rem;
+        border-bottom: 1px solid var(--line-2);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .table th:first-child,
+      .table td:first-child {
+        text-align: left;
+      }
+
+      .table .yr {
+        font: 400 1.5rem/1 var(--serif);
+      }
+
+      .table td a {
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .table td a:hover {
+        text-decoration: underline;
+      }
+
+      .finish {
+        display: inline-block;
+        padding: 0.05rem 0.5rem;
+        border-radius: 999px;
+        background: var(--line-2);
+        color: var(--ink-2);
+        font-size: 0.78rem;
+        font-weight: 500;
+      }
+
+      .finish.champion {
+        background: oklch(from var(--gold) l c h / 0.18);
+        color: oklch(from var(--gold) calc(l - 0.18) c h);
+      }
+
+      .finish.live {
+        background: var(--field-soft);
+        color: var(--field);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .finish.champion {
+          color: var(--gold);
+        }
+      }
+
+      /* ---------- Rivalries ---------- */
+
+      .rivals {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin: 0 0 1.5rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .rival {
+        padding: 1rem 1.1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--raised);
+      }
+
+      .rival h3 {
+        margin: 0;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .rival .who {
+        display: block;
+        margin-top: 0.4rem;
+        font: 400 1.7rem/1.1 var(--serif);
+        text-decoration: none;
+      }
+
+      .rival .who:hover {
+        text-decoration: underline;
+      }
+
+      .rival p {
+        margin: 0.3rem 0 0;
+        color: var(--ink-2);
+        font-size: 0.85rem;
+      }
+
+      .bar {
+        display: inline-flex;
+        width: 5rem;
+        height: 0.45rem;
+        border-radius: 999px;
+        overflow: hidden;
+        background: var(--loss);
+        vertical-align: middle;
+      }
+
+      .bar i {
+        background: var(--field);
+      }
+
+      .others {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .others a {
+        display: inline-block;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: background 0.2s var(--ease);
+      }
+
+      .others a:hover {
+        background: var(--line-2);
+      }
+
+      .notice {
+        margin-top: 2rem;
+        font-size: 1.05rem;
+        color: var(--ink-2);
+      }
+
+      @media (max-width: 38rem) {
+        .highlights {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          column-gap: 1rem;
+        }
+        .highlight,
+        .highlight + .highlight,
+        .highlight:nth-child(3n + 1) {
+          padding: 0.85rem 0;
+          border-left: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .rivals {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .c-hide {
+          display: none;
+        }
+        .table th,
+        .table td {
+          padding-inline: 0.3rem;
+        }
+        .table .yr {
+          font-size: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="topbar">
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <nav class="nav" aria-label="Site">
+            <a href="/">Standings</a>
+            <a href="/history">History</a>
+          </nav>
+        </div>
+        <a class="back" href="/history">← League history</a>
+        <h1 id="owner-name">—</h1>
+        <p class="meta" id="meta"><span>Loading…</span></p>
+      </header>
+
+      <dl class="highlights" id="highlights" hidden></dl>
+
+      <section id="seasons-section" aria-labelledby="seasons-title" hidden>
+        <div class="section-head">
+          <h2 id="seasons-title">Season by season</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="table" aria-labelledby="seasons-title">
+            <thead>
+              <tr>
+                <th scope="col">Season</th>
+                <th scope="col">Record</th>
+                <th scope="col" class="c-hide">PF</th>
+                <th scope="col" class="c-hide">PA</th>
+                <th scope="col">Seed</th>
+                <th scope="col">Finish</th>
+                <th scope="col" class="c-hide">High scores</th>
+                <th scope="col">$</th>
+              </tr>
+            </thead>
+            <tbody id="seasons"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="h2h-section" aria-labelledby="h2h-title" hidden>
+        <div class="section-head">
+          <h2 id="h2h-title">Head-to-head</h2>
+          <span class="hint">Every meeting, playoffs included</span>
+        </div>
+        <ul class="rivals" id="rivals"></ul>
+        <div class="table-wrap">
+          <table class="table" aria-labelledby="h2h-title">
+            <thead>
+              <tr>
+                <th scope="col">Opponent</th>
+                <th scope="col">Record</th>
+                <th scope="col" class="c-hide"></th>
+                <th scope="col">Playoffs</th>
+                <th scope="col" title="Average points margin per game">Margin</th>
+              </tr>
+            </thead>
+            <tbody id="h2h"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="others-title">
+        <div class="section-head">
+          <h2 id="others-title">Other owners</h2>
+        </div>
+        <ul class="others" id="others"></ul>
+      </section>
+
+      <p class="status" id="status" role="status"></p>
+
+      <footer>
+        <span>Synced weekly, after the Tuesday recap.</span>
+        <a href="/history">League history</a>
+      </footer>
+    </div>
+
+    <script type="module">
+      import { $, FINISH_LABEL, games, h, loadHistory, money, ordinal, ownerHref, plural, pts, record, score, winPct } from "/site.js";
+
+      // Short enough that the season table fits a phone; the full label is
+      // the tooltip.
+      const FINISH_SHORT = {
+        champion: "Champion",
+        runnerUp: "Runner-up",
+        thirdPlace: "3rd",
+        fourthPlace: "4th",
+        quarterfinal: "Quarterfinal",
+        missedPlayoffs: "Missed",
+      };
+
+      // Rivalries need a few games before a record says anything.
+      const MIN_RIVAL_GAMES = 3;
+
+      const params = new URLSearchParams(location.search);
+      let data;
+      let byId;
+
+      const tile = (label, big, small, cls = "") =>
+        h("div", { class: "highlight" }, h("dt", null, label), h("dd", null, h("span", { class: `big ${cls}` }, big), h("span", { class: "small" }, small)));
+
+      function renderHighlights(o) {
+        const yearsWon = (place) => data.podiums.filter((p) => p[place] === o.userId).map((p) => p.year);
+        const trophyNote = [
+          o.titles ? `Won ${yearsWon("first").join(", ")}` : null,
+          o.runnerUps ? `Runner-up ${yearsWon("second").join(", ")}` : null,
+          o.thirdPlaces ? `Third ${yearsWon("third").join(", ")}` : null,
+        ].filter(Boolean);
+        const best = o.bestWeek;
+
+        $("highlights").replaceChildren(
+          tile("Titles", o.titles ? `${o.titles}×` : "None yet", trophyNote.length ? trophyNote.join(" · ") : `${plural(o.playoffAppearances, "playoff trip")} so far`),
+          tile("Career earnings", money(o.earnings), o.earnings >= 0 ? "In the black" : "Funding everyone else's", o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : ""),
+          tile("Regular season", record(o.record), `${winPct(o.record)} · ${pts(o.pointsFor / Math.max(1, games(o.record)))} points a game`),
+          tile("Playoffs", record(o.playoffRecord), `${o.playoffAppearances} of ${plural(o.seasons, "season")}`),
+          tile("High-score weeks", o.highScoreWeeks, `${money(o.highScoreWeeks * 15).replace("+", "")} in bonuses`),
+          best ? tile("Best week", score(best.score), `Week ${best.week}, ${best.year} vs ${byId.get(best.opponentId)?.name ?? "—"}`) : null,
+        );
+        $("highlights").hidden = false;
+      }
+
+      function finishTag(line) {
+        if (line.inProgress) return h("span", { class: "finish live" }, "In progress");
+        if (!line.finish) return h("span", { class: "muted" }, "—");
+        return h("span", { class: `finish ${line.finish}`, title: FINISH_LABEL[line.finish] }, FINISH_SHORT[line.finish]);
+      }
+
+      function renderSeasons(o) {
+        $("seasons").replaceChildren(
+          ...[...o.seasonLines].reverse().map((l) =>
+            h(
+              "tr",
+              null,
+              h("td", null, h("a", { class: "yr", href: `/?year=${l.year}` }, l.year)),
+              h("td", { class: "num" }, record(l.record)),
+              h("td", { class: "num c-hide" }, pts(l.pointsFor)),
+              h("td", { class: "num muted c-hide" }, pts(l.pointsAgainst)),
+              h("td", { class: "num" }, l.inProgress ? h("span", { class: "muted" }, `${ordinal(l.seed)} now`) : ordinal(l.seed)),
+              h("td", null, finishTag(l)),
+              h("td", { class: "num c-hide" }, l.highScoreWeeks || h("span", { class: "muted" }, "—")),
+              h("td", { class: `num ${l.earnings > 0 ? "pos" : l.earnings < 0 ? "neg" : ""}` }, money(l.earnings)),
+            ),
+          ),
+        );
+        $("seasons-section").hidden = false;
+      }
+
+      const share = (r) => (games(r) ? (r.wins + r.ties / 2) / games(r) : 0);
+
+      function renderH2H(o) {
+        const rows = o.headToHead.filter((r) => byId.has(r.opponentId));
+        const qualified = rows.filter((r) => games(r.record) >= MIN_RIVAL_GAMES);
+        // Best and worst records against anyone met enough times; margin
+        // breaks a tie in record.
+        const margin = (r) => (r.pointsFor - r.pointsAgainst) / games(r.record);
+        const ranked = [...qualified].sort((a, b) => share(b.record) - share(a.record) || margin(b) - margin(a));
+        const owns = ranked[0];
+        const nemesis = ranked[ranked.length - 1];
+
+        const rival = (title, r, blurb) =>
+          h(
+            "li",
+            { class: "rival" },
+            h("h3", null, title),
+            h("a", { class: "who", href: ownerHref(byId.get(r.opponentId)) }, byId.get(r.opponentId).name),
+            h("p", null, `${record(r.record)} all-time · ${blurb}`),
+          );
+        const cards = [];
+        if (owns && share(owns.record) > 0.5) cards.push(rival("Has their number", owns, `wins by ${pts(Math.abs(margin(owns)))} on average`));
+        if (nemesis && nemesis !== owns && share(nemesis.record) < 0.5) cards.push(rival("Nemesis", nemesis, `loses by ${pts(Math.abs(margin(nemesis)))} on average`));
+        $("rivals").replaceChildren(...cards);
+        $("rivals").hidden = cards.length === 0;
+
+        $("h2h").replaceChildren(
+          ...rows.map((r) => {
+            const opp = byId.get(r.opponentId);
+            const m = margin(r);
+            return h(
+              "tr",
+              null,
+              h("td", null, h("a", { href: ownerHref(opp) }, opp.name)),
+              h("td", { class: "num" }, record(r.record)),
+              h(
+                "td",
+                { class: "c-hide" },
+                h("span", { class: "bar", role: "img", "aria-label": `${Math.round(share(r.record) * 100)}% won` }, h("i", { style: `width:${share(r.record) * 100}%` })),
+              ),
+              h("td", { class: "num" }, games(r.playoffRecord) ? record(r.playoffRecord) : h("span", { class: "muted" }, "—")),
+              h("td", { class: `num ${m > 0 ? "pos" : m < 0 ? "neg" : ""}` }, `${m > 0 ? "+" : m < 0 ? "−" : ""}${pts(Math.abs(m))}`),
+            );
+          }),
+        );
+        $("h2h-section").hidden = rows.length === 0;
+      }
+
+      function renderOthers(current) {
+        const others = [...data.owners].filter((o) => o !== current).sort((a, b) => a.name.localeCompare(b.name));
+        $("others").replaceChildren(...others.map((o) => h("li", null, h("a", { href: ownerHref(o) }, o.name))));
+        $("others-title").textContent = current ? "Other owners" : "Owners";
+      }
+
+      function render() {
+        // ?o=<slug> is the address the site links to; ?id=<sleeper user id>
+        // comes from the standings page, which only knows ids.
+        const slug = params.get("o");
+        const id = params.get("id");
+        const o = data.owners.find((x) => (slug && x.slug === slug) || (id && x.userId === id));
+
+        if (!o) {
+          $("owner-name").textContent = "Owner not found";
+          $("meta").replaceChildren(h("span", null, "Pick someone below."));
+          renderOthers(null);
+          return;
+        }
+        // Settle on the readable address, so a shared link is the nice one.
+        if (o.slug !== slug) history.replaceState(null, "", ownerHref(o));
+
+        document.title = `${o.name} — Any Given Sunday`;
+        $("owner-name").textContent = o.name;
+        const first = o.seasonLines[0]?.year;
+        $("meta").replaceChildren(
+          ...[
+            o.teamName ? h("span", { class: "pill" }, o.teamName) : null,
+            h("span", null, `${plural(o.seasons, "season")}${first ? ` · since ${first}` : ""}`),
+          ].filter(Boolean),
+        );
+        renderHighlights(o);
+        renderSeasons(o);
+        renderH2H(o);
+        renderOthers(o);
+      }
+
+      try {
+        data = await loadHistory();
+        byId = new Map(data.owners.map((o) => [o.userId, o]));
+        render();
+      } catch (err) {
+        const status = $("status");
+        status.className = "status error";
+        status.textContent = `Couldn't load this owner: ${err.message}`;
+        $("meta").replaceChildren();
+      }
+    </script>
+  </body>
+</html>

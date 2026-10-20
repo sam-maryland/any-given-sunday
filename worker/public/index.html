@@ -13,129 +13,8 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
     />
+    <link rel="stylesheet" href="/site.css" />
     <style>
-      :root {
-        --paper: oklch(97.2% 0.008 85);
-        --raised: oklch(99% 0.004 85);
-        --ink: oklch(21% 0.015 70);
-        --ink-2: oklch(43% 0.012 70);
-        --ink-3: oklch(60% 0.01 70);
-        --line: oklch(89% 0.01 80);
-        --line-2: oklch(93% 0.008 80);
-        --field: oklch(47% 0.11 155);
-        --field-soft: oklch(47% 0.11 155 / 0.1);
-        --signal: oklch(60% 0.17 42);
-        --signal-soft: oklch(60% 0.17 42 / 0.1);
-        --gold: oklch(68% 0.13 80);
-        --loss: oklch(55% 0.13 25);
-
-        --serif: "Instrument Serif", ui-serif, Georgia, serif;
-        --sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-        --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-
-        --radius: 14px;
-        --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --paper: oklch(16% 0.008 70);
-          --raised: oklch(19.5% 0.009 70);
-          --ink: oklch(94% 0.01 85);
-          --ink-2: oklch(76% 0.01 80);
-          --ink-3: oklch(58% 0.01 75);
-          --line: oklch(29% 0.01 70);
-          --line-2: oklch(24% 0.009 70);
-          --field: oklch(74% 0.13 155);
-          --field-soft: oklch(74% 0.13 155 / 0.12);
-          --signal: oklch(74% 0.15 50);
-          --signal-soft: oklch(74% 0.15 50 / 0.12);
-          --gold: oklch(80% 0.12 85);
-          --loss: oklch(70% 0.12 25);
-        }
-      }
-
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-      }
-
-      html {
-        -webkit-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-      }
-
-      body {
-        margin: 0;
-        background: var(--paper);
-        color: var(--ink);
-        font: 15px/1.55 var(--sans);
-        font-feature-settings: "ss01", "cv11";
-        -webkit-font-smoothing: antialiased;
-      }
-
-      .wrap {
-        max-width: 64rem;
-        margin: 0 auto;
-        padding: clamp(1.5rem, 5vw, 4rem) clamp(1rem, 4vw, 2.5rem) 5rem;
-      }
-
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-      }
-
-      .num {
-        font-family: var(--mono);
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.01em;
-      }
-
-      /* ---------- Masthead ---------- */
-
-      .eyebrow {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        font-size: 0.78rem;
-        font-weight: 500;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--ink-2);
-      }
-
-      .mark {
-        display: grid;
-        place-items: center;
-        width: 1.75rem;
-        height: 1.75rem;
-        border-radius: 7px;
-        background: var(--ink);
-        color: var(--paper);
-        font: italic 1.05rem/1 var(--serif);
-        letter-spacing: 0;
-        text-transform: none;
-      }
-
-      h1 {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 0 0.3em;
-        margin: 1.25rem 0 0;
-        font: 400 clamp(3rem, 11vw, 6.5rem) / 0.95 var(--serif);
-        letter-spacing: -0.025em;
-      }
-
-      h1 em {
-        color: var(--ink-3);
-      }
-
       /* The season picker is the year in the headline. The big year is plain
          text; an invisible select sized to the body font sits over it, so the
          native menu opens at a normal size instead of the headline's. */
@@ -187,127 +66,10 @@
         pointer-events: none;
       }
 
-      .meta {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.5rem 0.9rem;
-        margin: 1.25rem 0 0;
-        color: var(--ink-2);
-        font-size: 0.9rem;
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        font-size: 0.75rem;
-        font-weight: 500;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--ink);
-      }
-
-      .pill.live::before {
-        content: "";
-        width: 0.45rem;
-        height: 0.45rem;
-        border-radius: 50%;
-        background: var(--field);
-        box-shadow: 0 0 0 0 var(--field);
-        animation: pulse 2.4s var(--ease) infinite;
-      }
-
-      @keyframes pulse {
-        0% {
-          box-shadow: 0 0 0 0 oklch(from var(--field) l c h / 0.5);
-        }
-        70%,
-        100% {
-          box-shadow: 0 0 0 0.45rem oklch(from var(--field) l c h / 0);
-        }
-      }
-
-      .meta .dot {
-        width: 3px;
-        height: 3px;
-        border-radius: 50%;
-        background: var(--ink-3);
-      }
-
-      /* ---------- Highlights ---------- */
-
-      .highlights {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        margin: clamp(2rem, 5vw, 3.25rem) 0 0;
-        border-top: 1px solid var(--ink);
-      }
-
-      .highlight {
-        padding: 1rem 1.25rem 0.25rem 0;
-        min-width: 0;
-      }
-
-      .highlight + .highlight {
-        padding-left: 1.25rem;
-        border-left: 1px solid var(--line);
-      }
-
-      .highlight dt {
-        font-size: 0.72rem;
-        font-weight: 500;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--ink-3);
-      }
-
-      .highlight dd {
-        margin: 0.35rem 0 0;
-      }
-
-      .highlight .big {
-        display: block;
-        font: 400 clamp(1.5rem, 3.2vw, 2.1rem) / 1.1 var(--serif);
-        letter-spacing: -0.01em;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .highlight .small {
-        display: block;
-        margin-top: 0.2rem;
-        font-size: 0.85rem;
-        color: var(--ink-2);
-      }
-
       /* ---------- Board ---------- */
 
       .board {
         margin-top: clamp(2.5rem, 6vw, 4rem);
-      }
-
-      .section-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      h2 {
-        margin: 0;
-        font: 400 clamp(1.75rem, 4vw, 2.5rem) / 1.05 var(--serif);
-        letter-spacing: -0.015em;
-      }
-
-      .hint {
-        color: var(--ink-3);
-        font-size: 0.85rem;
       }
 
       .cols,
@@ -549,6 +311,19 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
         gap: 1.5rem 2.5rem;
         padding: 0.5rem 0.75rem 1.5rem 4.5rem;
+      }
+
+      .career {
+        display: inline-block;
+        margin-top: 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--field);
+        text-decoration: none;
+      }
+
+      .career:hover {
+        text-decoration: underline;
       }
 
       .detail h3 {
@@ -1128,45 +903,6 @@
         color: var(--ink-3);
       }
 
-      footer {
-        margin-top: 4rem;
-        padding-top: 1.25rem;
-        border-top: 1px solid var(--line);
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 0.5rem 1rem;
-        color: var(--ink-3);
-        font-size: 0.8rem;
-      }
-
-      footer a {
-        color: inherit;
-      }
-
-      .status {
-        margin-top: 2rem;
-        color: var(--ink-2);
-      }
-
-      .status.error {
-        color: var(--loss);
-      }
-
-      /* Loading skeleton */
-      .skeleton {
-        height: 3.6rem;
-        border-bottom: 1px solid var(--line-2);
-        background: linear-gradient(90deg, transparent, var(--line-2), transparent) 0 0 / 200% 100%;
-        animation: shimmer 1.4s linear infinite;
-      }
-
-      @keyframes shimmer {
-        to {
-          background-position: -200% 0;
-        }
-      }
-
       /* ---------- Responsive ---------- */
 
       @media (max-width: 56rem) {
@@ -1229,15 +965,6 @@
         .tiebreak {
           padding-left: 2.85rem;
         }
-        .highlights {
-          grid-template-columns: minmax(0, 1fr);
-        }
-        .highlight,
-        .highlight + .highlight {
-          padding: 0.85rem 0;
-          border-left: 0;
-          border-bottom: 1px solid var(--line);
-        }
         .steps {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -1262,23 +989,18 @@
         }
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation: none !important;
-          transition: none !important;
-        }
-        ::view-transition-group(*) {
-          animation: none !important;
-        }
-      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
-        <div class="eyebrow"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</div>
+        <div class="topbar">
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <nav class="nav" aria-label="Site">
+            <a href="/" aria-current="page">Standings</a>
+            <a href="/history">History</a>
+          </nav>
+        </div>
         <h1>
           <span class="season">
             <span class="season-year" id="season-year" aria-hidden="true">—</span>
@@ -1678,7 +1400,13 @@
               "div",
               { class: "detail" },
               h("div", null, h("h3", null, `Why ${ordinal(team.rank)}`), whyList(team, rows, data)),
-              h("div", null, h("h3", null, "Season"), gameLog(team, names)),
+              h(
+                "div",
+                null,
+                h("h3", null, "Season"),
+                gameLog(team, names),
+                h("a", { class: "career", href: `/owner?id=${encodeURIComponent(team.userId)}` }, "Career history →"),
+              ),
             ),
           ),
         );

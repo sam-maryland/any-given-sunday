@@ -75,8 +75,12 @@ SELECT
                      WHEN m.is_playoff = FALSE AND m.away_user_id = u.id THEN m.home_score
         END)::FLOAT, 0) AS regular_season_points_against,
 
-    -- Highest Regular Season Score
-    MAX(CASE WHEN m.is_playoff = FALSE THEN GREATEST(m.home_score, m.away_score) END)::FLOAT AS highest_regular_season_score,
+    -- Highest Regular Season Score: this owner's own score, not the higher
+    -- of the two in a game they played (which could be the opponent's).
+    MAX(CASE
+            WHEN m.is_playoff = FALSE AND m.home_user_id = u.id THEN m.home_score
+            WHEN m.is_playoff = FALSE AND m.away_user_id = u.id THEN m.away_score
+        END)::FLOAT AS highest_regular_season_score,
 
     -- Weekly High Scores
     (

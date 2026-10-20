@@ -70,6 +70,18 @@ export class SupabaseClient {
     return rows.map((r) => r.year);
   }
 
+  // Every season that has started, oldest first.
+  async getStartedLeagues(): Promise<League[]> {
+    return this.request<League[]>(`leagues?status=neq.${LeagueStatus.Pending}&order=year.asc`);
+  }
+
+  // Every matchup ever played. About 80 rows a season, so this stays well
+  // under PostgREST's default 1000-row page for another decade; past that it
+  // would need paging.
+  async getAllMatchups(): Promise<Matchup[]> {
+    return this.request<Matchup[]>("matchups?order=year.asc,week.asc,id.asc");
+  }
+
   async getMatchupsByYear(year: number): Promise<Matchup[]> {
     return this.request<Matchup[]>(`matchups?year=eq.${year}&order=week.asc,id.asc`);
   }
