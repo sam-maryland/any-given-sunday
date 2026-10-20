@@ -107,6 +107,27 @@ export class SupabaseClient {
     });
   }
 
+  // Records the podium and closes out the season. Only an IN_PROGRESS league
+  // is touched, so a re-run cannot overwrite a finish someone corrected by hand.
+  async completeLeague(
+    id: string,
+    podium: { first: string; second: string; third: string },
+  ): Promise<void> {
+    await this.request<void>(
+      `leagues?id=eq.${encodeURIComponent(id)}&status=eq.${LeagueStatus.InProgress}`,
+      {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          first_place: podium.first,
+          second_place: podium.second,
+          third_place: podium.third,
+          status: LeagueStatus.Complete,
+        }),
+      },
+    );
+  }
+
   async getUsersWithoutDiscordId(): Promise<User[]> {
     return this.request<User[]>(
       "users?or=(discord_id.eq.,discord_id.is.null)&order=name.asc",

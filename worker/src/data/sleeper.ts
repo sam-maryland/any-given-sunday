@@ -33,7 +33,29 @@ export interface SleeperLeague {
      */
     last_scored_leg?: number;
     playoff_week_start?: number;
+    /**
+     * How many weeks each playoff round lasts: 0 is one week per round, 1 is
+     * one week per round except a two-week final round, 2 is two weeks per
+     * round. This league has always used 1.
+     */
+    playoff_round_type?: number;
   };
+}
+
+/**
+ * One game in Sleeper's playoff bracket. Teams are roster ids, null until the
+ * game that feeds them is decided. `p` marks a placement game (1 is the
+ * final, 3 the third place game, 5 the fifth place game); games without it
+ * are the bracket proper.
+ */
+export interface SleeperBracketMatch {
+  r: number;
+  m: number;
+  t1: number | null;
+  t2: number | null;
+  w: number | null;
+  l: number | null;
+  p?: number;
 }
 
 export interface SleeperGame {
@@ -102,6 +124,10 @@ export function getNFLState(): Promise<NFLState> {
 
 export function getMatchupsForWeek(leagueId: string, week: number): Promise<SleeperMatchup[]> {
   return get<SleeperMatchup[]>(`/league/${encodeURIComponent(leagueId)}/matchups/${week}`);
+}
+
+export function getWinnersBracket(leagueId: string): Promise<SleeperBracketMatch[]> {
+  return get<SleeperBracketMatch[]>(`/league/${encodeURIComponent(leagueId)}/winners_bracket`);
 }
 
 export function getUsersInLeague(leagueId: string): Promise<SleeperUser[]> {

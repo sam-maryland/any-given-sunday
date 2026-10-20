@@ -31,7 +31,7 @@ describe("notificationsHeldReason", () => {
     // Covers a second run in the same week: the first run already stored the
     // week's games, so re-running must not send the recap again.
     expect(notificationsHeldReason("regular", 0)).toBe(
-      "no new matchups were recorded this run",
+      "no new regular season matchups were recorded this run",
     );
   });
 
