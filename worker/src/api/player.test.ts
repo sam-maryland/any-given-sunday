@@ -1,6 +1,6 @@
 import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { handlePlayerRequest, handlePlayersRequest } from "./player";
+import { handlePlayerHighlightsRequest, handlePlayerRequest, handlePlayersRequest } from "./player";
 import { SupabaseClient } from "../data/supabase";
 import { DraftPick, League, LeagueStatus, Player, Transaction, User } from "../domain/types";
 
@@ -56,6 +56,8 @@ function fakeDb(known = true) {
     getPlayersByIds: async (ids: string[]) => (calls.lookedUp.push(ids), known ? players.filter((p) => ids.includes(p.id)) : []),
     getDraftPicksBySlots: async () => [],
     getAllPlayers: async () => [...players].reverse(),
+    getAllTransactions: async () => (calls.transactions++, known ? [trade] : []),
+    getAllDraftPicks: async () => (known ? [draftPick] : []),
   } as unknown as SupabaseClient;
   return { db, calls };
 }
@@ -155,5 +157,40 @@ describe("handlePlayersRequest", () => {
   it("lists everyone who has been through the league by name", async () => {
     const body = await (await get(handlePlayersRequest, fakeDb().db, "/api/players")).json<any>();
     expect(body.players.map((p: Player) => p.name)).toEqual(["Rookie Receiver", "Veteran Back"]);
+  });
+});
+
+describe("handlePlayerHighlightsRequest", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("returns the lists with every owner they mention named, cached on the weekly sync", async () => {
+    stubSleeper();
+    const { db, calls } = fakeDb();
+    const now = new Date("2026-09-08T12:00:00Z");
+    const body = await (await get(handlePlayerHighlightsRequest, db, "/api/player-highlights", now)).json<any>();
+    const again = await get(handlePlayerHighlightsRequest, db, "/api/player-highlights", now);
+
+    expect(body.recent).toHaveLength(1);
+    expect(body.recent[0]).toMatchObject({
+      kind: "trade",
+      sides: [
+        { ownerId: "a", gets: [{ kind: "player", name: "Veteran Back" }] },
+        { ownerId: "b", gets: [{ kind: "player", name: "Rookie Receiver" }] },
+      ],
+    });
+    expect(body.owners).toEqual({ a: { label: "aaa", name: "Owner a" }, b: { label: "New Name", name: "Owner b" } });
+    expect(again.headers.get("X-Cache")).toBe("HIT");
+    expect(calls.transactions).toBe(1);
+  });
+
+  it("reports a database failure as a 500", async () => {
+    const { db } = fakeDb();
+    (db as any).getAllTransactions = async () => {
+      throw new Error("supabase down");
+    };
+    expect((await get(handlePlayerHighlightsRequest, db, "/api/player-highlights", new Date("2026-09-01T12:00:00Z"))).status).toBe(500);
   });
 });

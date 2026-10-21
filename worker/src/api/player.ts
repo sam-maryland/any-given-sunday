@@ -1,5 +1,6 @@
 import { ownerLabels } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
+import { PlayerHighlights, buildPlayerHighlights } from "../domain/playerHighlights";
 import { PlayerHistory, buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
 import { Player } from "../domain/types";
 import { lastSyncBoundary } from "../recap/schedule";
@@ -16,6 +17,12 @@ export interface PlayerPayload extends Omit<PlayerHistory, "ownerIds"> {
   syncedAt: string;
 }
 
+export interface PlayerHighlightsPayload extends Omit<PlayerHighlights, "ownerIds"> {
+  /** Every owner the lists mention, named as in PlayerPayload. */
+  owners: Record<string, { label: string; name: string }>;
+  syncedAt: string;
+}
+
 export interface PlayersPayload {
   /** Everyone who has been through the league, by name. */
   players: Player[];
@@ -27,8 +34,12 @@ export interface PlayersPayload {
 // sync-players Action writes two hours after the epoch.
 const BROWSER_MAX_AGE_SECONDS = 300;
 const EDGE_MAX_AGE_SECONDS = 3600;
-// Bump whenever PlayerPayload or PlayersPayload changes shape.
+// Bump whenever PlayerPayload, PlayersPayload or PlayerHighlightsPayload changes shape.
 const PAYLOAD_VERSION = "3";
+
+// The page shows the first few and reveals the rest on request, so they all
+// come in the one cached response: about a month of moves in season.
+const RECENT_MOVES = 30;
 
 // Sleeper player ids are digits; a defense's is its team abbreviation.
 const PLAYER_ID = /^[A-Za-z0-9]{1,12}$/;
@@ -36,12 +47,11 @@ const PLAYER_ID = /^[A-Za-z0-9]{1,12}$/;
 class PlayerNotFound extends Error {}
 
 async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date): Promise<PlayerPayload> {
-  const [draftPicks, transactions, rosters, leagues, users] = await Promise.all([
+  const [draftPicks, transactions, rosters, leagues] = await Promise.all([
     db.getDraftPicksForPlayer(playerId),
     db.getPlayerTransactions(playerId),
     db.getAllRosters(),
     db.getStartedLeagues(),
-    db.getUsers(),
   ]);
   const { playerIds, pickSlots } = lookupsFor(transactions);
   const [named, pickResults] = await Promise.all([
@@ -69,18 +79,45 @@ async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date):
     players,
     pickResults,
   });
-  const labels = await ownerLabels([...leagues].reverse(), ownerIds);
   return {
     player: player ?? { id: playerId, name: `Player ${playerId}`, position: null, team: null },
     ...built,
-    owners: Object.fromEntries(
-      ownerIds.map((id) => {
-        const name = users.get(id)?.name || id;
-        return [id, { label: labels.get(id) ?? name, name }];
-      }),
-    ),
+    owners: await ownerNames(db, leagues, ownerIds),
     syncedAt: syncedAt.toISOString(),
   };
+}
+
+async function ownerNames(
+  db: SupabaseClient,
+  leagues: { id: string }[],
+  ownerIds: string[],
+): Promise<Record<string, { label: string; name: string }>> {
+  const [users, labels] = await Promise.all([db.getUsers(), ownerLabels([...leagues].reverse(), ownerIds)]);
+  return Object.fromEntries(
+    ownerIds.map((id) => {
+      const name = users.get(id)?.name || id;
+      return [id, { label: labels.get(id) ?? name, name }];
+    }),
+  );
+}
+
+async function loadHighlights(db: SupabaseClient, syncedAt: Date): Promise<PlayerHighlightsPayload> {
+  const [transactions, draftPicks, rosters, leagues, players] = await Promise.all([
+    db.getAllTransactions(),
+    db.getAllDraftPicks(),
+    db.getAllRosters(),
+    db.getStartedLeagues(),
+    db.getAllPlayers(),
+  ]);
+  const { ownerIds, ...built } = buildPlayerHighlights({
+    transactions,
+    draftPicks,
+    rosters,
+    players: new Map(players.map((p) => [p.id, p])),
+    startupYear: leagues[0]?.year ?? null,
+    recentLimit: RECENT_MOVES,
+  });
+  return { ...built, owners: await ownerNames(db, leagues, ownerIds), syncedAt: syncedAt.toISOString() };
 }
 
 function errorResponse(message: string, status: number): Response {
@@ -142,5 +179,35 @@ export async function handlePlayersRequest(db: SupabaseClient, url: URL, ctx: Ex
   } catch (err) {
     console.error(JSON.stringify({ event: "api_players_error", key, error: err instanceof Error ? err.message : String(err) }));
     return errorResponse("could not load players", 500);
+  }
+}
+
+/**
+ * GET /api/player-highlights
+ *
+ * The players page before a search: the latest moves, the longest pick
+ * trails, the startup picks who never moved, and the players who have been
+ * on the most rosters. Built from every transaction and pick, which is a
+ * few hundred rows each; the weekly cache means a miss is rare.
+ */
+export async function handlePlayerHighlightsRequest(
+  db: SupabaseClient,
+  url: URL,
+  ctx: ExecutionContext,
+  now = new Date(),
+): Promise<Response> {
+  const syncedAt = lastSyncBoundary(now);
+  const key = epochCacheKey(url, syncedAt.getTime(), { v: PAYLOAD_VERSION });
+  try {
+    return await cachedJsonResponse<PlayerHighlightsPayload>({
+      key,
+      ctx,
+      browserMaxAge: BROWSER_MAX_AGE_SECONDS,
+      edgeMaxAge: EDGE_MAX_AGE_SECONDS,
+      load: () => loadHighlights(db, syncedAt),
+    });
+  } catch (err) {
+    console.error(JSON.stringify({ event: "api_player_highlights_error", key, error: err instanceof Error ? err.message : String(err) }));
+    return errorResponse("could not load player highlights", 500);
   }
 }

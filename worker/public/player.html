@@ -93,6 +93,11 @@
 
       /* ---------- Profile ---------- */
 
+      /* A display rule outranks the hidden attribute, so restate it. */
+      .profile[hidden] {
+        display: none;
+      }
+
       .profile {
         display: flex;
         align-items: center;
@@ -264,6 +269,112 @@
         color: var(--ink-2);
       }
 
+      /* ---------- Landing: latest moves and the three lists ---------- */
+
+      .event .detail + .detail {
+        margin-top: 0.15rem;
+      }
+
+      .more {
+        display: block;
+        margin: 1rem auto 0;
+        padding: 0.5rem 1.1rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        color: var(--ink-2);
+        font: 500 0.85rem var(--sans);
+        cursor: pointer;
+      }
+
+      .more:hover {
+        color: var(--ink);
+        border-color: var(--ink-3);
+      }
+
+      .more:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: 2px;
+      }
+
+      .more[hidden] {
+        display: none;
+      }
+
+      .boards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+        gap: clamp(2rem, 4vw, 2.75rem);
+        margin-top: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      .boards section {
+        margin-top: 0;
+      }
+
+      .board h2 {
+        font-size: clamp(1.5rem, 3vw, 1.9rem);
+      }
+
+      .board-note {
+        margin: 0.4rem 0 0.9rem;
+        color: var(--ink-2);
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .board ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--ink);
+      }
+
+      .board li {
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--line-2);
+      }
+
+      .board .row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .board .row a {
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .board .row a:hover,
+      .board .sub a:hover {
+        text-decoration: underline;
+      }
+
+      .board .stat {
+        flex: none;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--ink-3);
+      }
+
+      .board .sub {
+        margin: 0.2rem 0 0;
+        color: var(--ink-2);
+        font-size: 0.85rem;
+        line-height: 1.45;
+      }
+
+      .board .sub a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .board .arrow {
+        color: var(--ink-3);
+      }
+
       @media (max-width: 38rem) {
         .event {
           grid-template-columns: minmax(0, 1fr);
@@ -323,6 +434,35 @@
         </div>
         <ol class="timeline" id="timeline"></ol>
       </section>
+
+      <div id="landing" hidden>
+        <section aria-labelledby="recent-title">
+          <div class="section-head">
+            <h2 id="recent-title">Latest moves</h2>
+            <span class="hint">Trades and pickups</span>
+          </div>
+          <ol class="timeline" id="recent"></ol>
+          <button type="button" class="more" id="recent-more" aria-controls="recent" hidden>Show more</button>
+        </section>
+
+        <div class="boards">
+          <section class="board" aria-labelledby="trails-title">
+            <h2 id="trails-title">Pick trails</h2>
+            <p class="board-note">Picks that changed hands the most before anyone used them.</p>
+            <ol id="trails"></ol>
+          </section>
+          <section class="board" aria-labelledby="lifers-title">
+            <h2 id="lifers-title">Lifers</h2>
+            <p class="board-note" id="lifers-note">Startup picks still with the team that drafted them.</p>
+            <ol id="lifers"></ol>
+          </section>
+          <section class="board" aria-labelledby="journeymen-title">
+            <h2 id="journeymen-title">Journeymen</h2>
+            <p class="board-note">Players who have been on the most teams.</p>
+            <ol id="journeymen"></ol>
+          </section>
+        </div>
+      </div>
 
       <p class="status" id="status" role="status"></p>
 
@@ -602,6 +742,124 @@
         if (!data.events.length) $("status").textContent = "No moves on record.";
       }
 
+      // ---------- Landing ----------
+
+      const DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+      const slot = (round, pickInRound) => `${round}.${String(pickInRound).padStart(2, "0")}`;
+      const playerLink = (p) => h("a", { href: playerHref(p.id) }, p.name);
+
+      function recentItem(m) {
+        const date = h("span", { class: "when" }, DAY.format(new Date(m.at)));
+        if (m.kind === "trade") {
+          return h(
+            "li",
+            { class: "event" },
+            date,
+            h(
+              "div",
+              null,
+              h(
+                "p",
+                { class: "what" },
+                h("span", { class: "tag traded" }, "Trade"),
+                m.sides.flatMap((s, i) => [i > 0 ? (i === m.sides.length - 1 ? " and " : ", ") : null, owner(s.ownerId)]),
+                ".",
+              ),
+              m.sides.map((s) => (s.gets.length ? h("p", { class: "detail" }, h("b", null, `${team(s.ownerId)} got `), list(s.gets)) : null)),
+            ),
+          );
+        }
+        return h(
+          "li",
+          { class: "event" },
+          date,
+          h(
+            "div",
+            null,
+            h("p", { class: "what" }, h("span", { class: "tag added" }, ADDED_TAG[m.via]), list(m.added), m.via === "waiver" ? ", claimed by " : m.via === "free_agent" ? ", signed by " : ", added to ", owner(m.ownerId), "."),
+            detail("Letting go of", m.dropped),
+          ),
+        );
+      }
+
+      const row = (name, stat, sub) => h("li", null, h("div", { class: "row" }, name, h("span", { class: "stat" }, stat)), sub ? h("p", { class: "sub" }, sub) : null);
+      const empty = (text) => h("li", { class: "sub" }, text);
+
+      function trailItem(t) {
+        const path = [];
+        t.ownerIds.forEach((id, i) => {
+          if (i > 0) path.push(h("span", { class: "arrow", "aria-label": "then" }, " → "));
+          path.push(owner(id));
+        });
+        return row(playerLink(t.player), `${t.year} ${slot(t.round, t.pickInRound)}`, path);
+      }
+
+      // The latest few, then more on request, from moves already loaded.
+      const RECENT_FIRST = 5;
+      const RECENT_STEP = 10;
+      let recentShown = 0;
+
+      function showRecent(count) {
+        const moves = data.recent;
+        const from = recentShown;
+        recentShown = Math.min(count, moves.length);
+        const items = moves.slice(from, recentShown).map(recentItem);
+        if (from === 0) $("recent").replaceChildren(...items);
+        else $("recent").append(...items);
+        const more = $("recent-more");
+        more.hidden = recentShown >= moves.length;
+        // Keyboard focus would otherwise fall to the page when the button goes.
+        if (from > 0) (more.hidden ? items[0]?.querySelector("a") : more)?.focus();
+      }
+
+      $("recent-more").addEventListener("click", () => showRecent(recentShown + RECENT_STEP));
+
+      function renderLanding(d) {
+        data = d;
+        if (d.recent.length) showRecent(RECENT_FIRST);
+        else $("recent").replaceChildren(h("li", { class: "event" }, h("span"), h("p", { class: "what muted" }, "No moves yet.")));
+        $("trails").replaceChildren(...(d.pickTrails.length ? d.pickTrails.map(trailItem) : [empty("No pick has been traded twice yet.")]));
+
+        const l = d.lifers;
+        if (l.of) {
+          $("lifers-note").replaceChildren(
+            `${l.count} of the ${l.of} picks from the ${l.year} startup draft have never been traded, dropped or claimed.`,
+            ...(l.leader ? [" ", owner(l.leader.ownerId), ` has kept the most: ${l.leader.count}.`] : []),
+          );
+        }
+        $("lifers").replaceChildren(
+          ...(l.players.length ? l.players.map((p) => row(playerLink(p.player), slot(p.round, p.pickInRound), ["With ", owner(p.ownerId), " since day one"])) : [empty("Every startup pick has moved at least once.")]),
+        );
+
+        $("journeymen").replaceChildren(
+          ...(d.journeymen.length
+            ? d.journeymen.map((j) =>
+                row(
+                  playerLink(j.player),
+                  `${j.owners} teams`,
+                  [j.trades ? plural(j.trades, "trade") : null, j.pickups ? plural(j.pickups, "pickup") : null].filter(Boolean).join(" · "),
+                ),
+              )
+            : [empty("Nobody has been on three teams yet.")]),
+        );
+      }
+
+      async function loadLanding() {
+        $("landing").hidden = false;
+        $("recent").replaceChildren(...Array.from({ length: 4 }, () => h("li", { class: "skeleton", "aria-hidden": "true" })));
+        try {
+          const res = await fetch("/api/player-highlights?v=3");
+          if (!res.ok) throw new Error(`request failed (${res.status})`);
+          renderLanding(await res.json());
+        } catch (err) {
+          // The search still works without the lists.
+          $("landing").hidden = true;
+          const status = $("status");
+          status.className = "status error";
+          status.textContent = `Couldn't load the latest moves: ${err.message}`;
+        }
+      }
+
       const id = params.get("id");
       if (id) {
         try {
@@ -617,6 +875,7 @@
         }
       } else {
         $("q").focus();
+        loadLanding();
       }
     </script>
   </body>
