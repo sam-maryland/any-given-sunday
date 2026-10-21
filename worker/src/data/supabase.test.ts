@@ -87,3 +87,22 @@ describe("SupabaseClient write responses", () => {
     await expect(db().insertMatchups([matchup])).rejects.toThrow(/409.*foreign key/);
   });
 });
+
+describe("SupabaseClient paged reads", () => {
+  const db = () => new SupabaseClient("https://example.supabase.co", "service-key");
+  const rows = (n: number, from = 0) => new Response(JSON.stringify(Array.from({ length: n }, (_, i) => ({ id: `t${from + i}` }))));
+
+  it("keeps reading transactions past PostgREST's 1000-row page", async () => {
+    responses = [rows(1000), rows(250, 1000)];
+    const all = await db().getAllTransactions();
+    expect(all).toHaveLength(1250);
+    expect(requests.map((r) => new URL(r.url).searchParams.get("offset"))).toEqual(["0", "1000"]);
+    expect(new URL(requests[0]!.url).searchParams.get("order")).toBe("id.asc");
+  });
+
+  it("asks once more when the last page is exactly full", async () => {
+    responses = [rows(1000), rows(0)];
+    expect(await db().getAllTransactions()).toHaveLength(1000);
+    expect(requests).toHaveLength(2);
+  });
+});

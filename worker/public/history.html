@@ -272,7 +272,7 @@
           grid-template-columns: minmax(0, 1fr);
         }
         /* Owner, trophies, record, playoffs and earnings fit a phone; win %,
-           points a game and high scores wait for a wider screen. */
+           points a game, high scores and trades wait for a wider screen. */
         .table {
           min-width: 0;
         }
@@ -281,7 +281,9 @@
         .table th:nth-child(5),
         .table td:nth-child(5),
         .table th:nth-child(7),
-        .table td:nth-child(7) {
+        .table td:nth-child(7),
+        .table th:nth-child(8),
+        .table td:nth-child(8) {
           display: none;
         }
         .table th,
@@ -406,6 +408,7 @@
         { key: "ppg", label: "Pts / game", sort: (o) => o.pointsFor / Math.max(1, games(o.record)) },
         { key: "playoffs", label: "Playoffs", sort: (o) => o.playoffAppearances * 1e3 + pct(o.playoffRecord) },
         { key: "high", label: "High scores", sort: (o) => o.highScoreWeeks },
+        { key: "trades", label: "Trades", sort: (o) => o.trades.trades * 1e3 + o.trades.picksSent + o.trades.picksReceived },
         { key: "earnings", label: "Earnings", sort: (o) => o.earnings },
       ];
       let sortKey = "titles";
@@ -467,6 +470,12 @@
               h("td", { class: "num muted" }, pts(o.pointsFor / Math.max(1, games(o.record)))),
               h("td", { class: "num" }, `${o.playoffAppearances}/${o.seasons}`, h("span", { class: "muted" }, ` · ${record(o.playoffRecord)}`)),
               h("td", { class: "num" }, o.highScoreWeeks),
+              h(
+                "td",
+                { class: "num" },
+                o.trades.trades,
+                h("span", { class: "muted" }, ` · ${plural(o.trades.picksSent + o.trades.picksReceived, "pick")}`),
+              ),
               h("td", { class: `num ${o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : ""}` }, money(o.earnings)),
             ),
           ),
@@ -474,6 +483,7 @@
 
         $("table-note").textContent =
           "Record and points are regular season. Playoffs shows appearances out of seasons played, then the record in playoff games. " +
+          "Trades counts completed trades, then the draft picks sent and received in them. " +
           "Earnings: −$100 buy-in a season, +$15 per weekly high score, +$600 / $300 / $120 for first, second and third." +
           (data.currentYear ? ` ${data.currentYear} counts so far.` : "");
       }

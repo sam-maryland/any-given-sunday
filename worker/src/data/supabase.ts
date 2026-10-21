@@ -11,6 +11,9 @@ import {
   UserMap,
 } from "../domain/types";
 
+// PostgREST's default max-rows: a page never holds more than this.
+const PAGE_SIZE = 1000;
+
 // Minimal Supabase PostgREST client. The service role key bypasses RLS, so
 // this must only ever run server-side (it lives in a Worker secret).
 export class SupabaseClient {
@@ -83,6 +86,30 @@ export class SupabaseClient {
   // would need paging.
   async getAllMatchups(): Promise<Matchup[]> {
     return this.request<Matchup[]>("matchups?order=year.asc,week.asc,id.asc");
+  }
+
+  // Every transaction ever made: trades, claims and pickups, about 200 a
+  // season. That reaches PostgREST's default 1000-row page within a season
+  // (809 rows after 2023–2026), so this reads page by page.
+  async getAllTransactions(): Promise<Transaction[]> {
+    return this.getAllPages<Transaction>("transactions?order=id.asc");
+  }
+
+  // Who held every roster in every league, a dozen rows a season.
+  async getAllRosters(): Promise<Roster[]> {
+    return this.request<Roster[]>("rosters?order=league_id.asc,roster_id.asc");
+  }
+
+  // Reads a GET past PostgREST's 1000-row default page. The path must carry
+  // an order with a unique tiebreak, or rows could repeat or go missing
+  // between pages.
+  private async getAllPages<T>(path: string): Promise<T[]> {
+    const rows: T[] = [];
+    for (;;) {
+      const page = await this.request<T[]>(`${path}&limit=${PAGE_SIZE}&offset=${rows.length}`);
+      rows.push(...page);
+      if (page.length < PAGE_SIZE) return rows;
+    }
   }
 
   async getMatchupsByYear(year: number): Promise<Matchup[]> {

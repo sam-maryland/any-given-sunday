@@ -13,13 +13,15 @@ export interface HistoryPayload extends LeagueHistory {
 const BROWSER_MAX_AGE_SECONDS = 300;
 const EDGE_MAX_AGE_SECONDS = 3600;
 // Bump whenever HistoryPayload changes shape.
-const PAYLOAD_VERSION = "1";
+const PAYLOAD_VERSION = "2";
 
 async function loadHistory(db: SupabaseClient, syncedAt: Date): Promise<HistoryPayload> {
-  const [leagues, matchups, users] = await Promise.all([
+  const [leagues, matchups, users, transactions, rosters] = await Promise.all([
     db.getStartedLeagues(),
     db.getAllMatchups(),
     db.getUsers(),
+    db.getAllTransactions(),
+    db.getAllRosters(),
   ]);
 
   // Current team names, cosmetic only: owners are named by owner, and a
@@ -40,7 +42,7 @@ async function loadHistory(db: SupabaseClient, syncedAt: Date): Promise<HistoryP
     }
   }
 
-  return { ...buildLeagueHistory(leagues, matchups, users, teamNames), syncedAt: syncedAt.toISOString() };
+  return { ...buildLeagueHistory(leagues, matchups, users, teamNames, transactions, rosters), syncedAt: syncedAt.toISOString() };
 }
 
 /**
