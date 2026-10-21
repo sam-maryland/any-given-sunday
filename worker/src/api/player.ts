@@ -1,3 +1,4 @@
+import { getUsersInLeague } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { PlayerHistory, buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
 import { Player } from "../domain/types";
@@ -8,6 +9,13 @@ export interface PlayerPayload extends Omit<PlayerHistory, "ownerIds"> {
   player: Player;
   /** Names for every owner the events mention, by user id. */
   owners: Record<string, string>;
+  /**
+   * Team names as each season had them: year → user id → name. Only owners
+   * who set one are listed; the page falls back to the owner's name.
+   */
+  teams: Record<string, Record<string, string>>;
+  /** The latest season, whose team names are the current ones. */
+  currentYear: number | null;
   syncedAt: string;
 }
 
@@ -23,7 +31,7 @@ export interface PlayersPayload {
 const BROWSER_MAX_AGE_SECONDS = 300;
 const EDGE_MAX_AGE_SECONDS = 3600;
 // Bump whenever PlayerPayload or PlayersPayload changes shape.
-const PAYLOAD_VERSION = "1";
+const PAYLOAD_VERSION = "2";
 
 // Sleeper player ids are digits; a defense's is its team abbreviation.
 const PLAYER_ID = /^[A-Za-z0-9]{1,12}$/;
@@ -55,7 +63,7 @@ async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date):
     players.get(playerId) ?? (drafted ? { id: playerId, name: drafted.player_name, position: drafted.position, team: null } : undefined);
   if (!player && transactions.length === 0) throw new PlayerNotFound(playerId);
 
-  const { ownerIds, ...history } = buildPlayerHistory({
+  const { ownerIds, ...built } = buildPlayerHistory({
     playerId,
     draftPicks,
     transactions,
@@ -64,12 +72,40 @@ async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date):
     players,
     pickResults,
   });
+  const currentYear = leagues[leagues.length - 1]?.year ?? null;
+  const years = new Set<number>(currentYear === null ? [] : [currentYear]);
+  for (const e of built.events) {
+    years.add(e.year);
+    if (e.kind === "drafted") for (const l of e.pickTrades) years.add(l.year);
+  }
   return {
     player: player ?? { id: playerId, name: `Player ${playerId}`, position: null, team: null },
-    ...history,
+    ...built,
     owners: Object.fromEntries(ownerIds.map((id) => [id, users.get(id)?.name || id])),
+    teams: await teamNames(leagues.filter((l) => years.has(l.year))),
+    currentYear,
     syncedAt: syncedAt.toISOString(),
   };
+}
+
+/**
+ * Each season's team names, read from Sleeper, which keeps them per league.
+ * One request per season the history touches. Cosmetic, like the history
+ * page's: a season Sleeper can't serve just falls back to owner names.
+ */
+async function teamNames(leagues: { id: string; year: number }[]): Promise<Record<string, Record<string, string>>> {
+  const teams: Record<string, Record<string, string>> = {};
+  const results = await Promise.allSettled(leagues.map((l) => getUsersInLeague(l.id)));
+  results.forEach((r, i) => {
+    const league = leagues[i]!;
+    if (r.status === "rejected") {
+      console.warn(JSON.stringify({ event: "team_names_unavailable", leagueId: league.id, error: String(r.reason) }));
+      return;
+    }
+    const named = r.value.filter((u) => u.metadata?.team_name).map((u): [string, string] => [u.user_id, u.metadata!.team_name!]);
+    if (named.length) teams[league.year] = Object.fromEntries(named);
+  });
+  return teams;
 }
 
 function errorResponse(message: string, status: number): Response {

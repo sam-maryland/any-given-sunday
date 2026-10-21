@@ -438,7 +438,14 @@
       // ---------- Player ----------
 
       let data;
-      const owner = (id) => (id ? h("a", { href: ownerHref(id) }, data.owners[id] ?? "Unknown owner") : h("span", null, "an unknown owner"));
+      // Owners go by their team name as it was that season, with the owner's
+      // own name on hover. Owners who never set one go by their name.
+      const team = (id, year) => data.teams[year]?.[id] ?? data.owners[id] ?? "Unknown owner";
+      const owner = (id, year) => {
+        if (!id) return h("span", null, "an unknown team");
+        const name = team(id, year);
+        return h("a", { href: ownerHref(id), title: name === data.owners[id] ? null : data.owners[id] }, name);
+      };
 
       function asset(a) {
         if (a.kind === "player") return h("a", { href: playerHref(a.id) }, a.name);
@@ -486,15 +493,15 @@
             ? h(
                 "ol",
                 { class: "trail", "aria-label": "How the pick got there" },
-                h("li", { class: "leg muted" }, "The pick was ", owner(e.originalOwnerId), "'s to start with."),
+                h("li", { class: "leg muted" }, "The pick was ", owner(e.originalOwnerId, e.pickTrades[0]?.year ?? e.year), "'s to start with."),
                 e.pickTrades.map((l) =>
                   h(
                     "li",
                     { class: "leg" },
                     h("span", { class: "when" }, when(l.at)),
-                    owner(l.fromId),
+                    owner(l.fromId, l.year),
                     " traded it to ",
-                    owner(l.toId),
+                    owner(l.toId, l.year),
                     ".",
                     detail("With", l.sentWith),
                     detail("For", l.receivedFor),
@@ -514,7 +521,7 @@
                 { class: "what" },
                 h("span", { class: "tag drafted" }, "Drafted"),
                 `Pick ${slot} in the ${e.year} ${e.startup ? "startup" : "rookie"} draft, by `,
-                owner(e.byId),
+                owner(e.byId, e.year),
                 ".",
               ),
               trail,
@@ -529,7 +536,7 @@
             h(
               "div",
               null,
-              h("p", { class: "what" }, h("span", { class: "tag traded" }, "Traded"), "From ", owner(e.fromId), " to ", owner(e.toId), "."),
+              h("p", { class: "what" }, h("span", { class: "tag traded" }, "Traded"), "From ", owner(e.fromId, e.year), " to ", owner(e.toId, e.year), "."),
               detail("Along with", e.sentWith),
               detail("For", e.receivedFor),
             ),
@@ -548,7 +555,7 @@
               { class: "what" },
               h("span", { class: `tag ${e.kind}` }, added ? ADDED_TAG[e.via] : "Dropped"),
               added ? `${ADDED[e.via]} ` : "Dropped by ",
-              owner(e.byId),
+              owner(e.byId, e.year),
               ".",
             ),
             detail(added ? "Letting go of" : "To make room for", e.alongside),
@@ -569,7 +576,7 @@
         $("meta").replaceChildren(
           ...[
             data.currentOwnerId
-              ? h("span", { class: "pill held" }, h("span", null, "On ", h("a", { href: ownerHref(data.currentOwnerId) }, data.owners[data.currentOwnerId]), "’s roster"))
+              ? h("span", { class: "pill held" }, h("span", null, "On ", owner(data.currentOwnerId, data.currentYear)))
               : h("span", { class: "pill free" }, "Free agent"),
             h("span", null, [p.position, p.team ?? "No NFL team"].filter(Boolean).join(" · ")),
           ],
@@ -583,7 +590,7 @@
         const pickups = data.events.filter((e) => e.kind === "added").length;
         $("highlights").replaceChildren(
           draft
-            ? tile("Drafted", `${draft.round}.${String(draft.pickInRound).padStart(2, "0")}`, `${draft.year} ${draft.startup ? "startup" : "rookie"} draft · ${data.owners[draft.byId] ?? "—"}`)
+            ? tile("Drafted", `${draft.round}.${String(draft.pickInRound).padStart(2, "0")}`, `${draft.year} ${draft.startup ? "startup" : "rookie"} draft · ${draft.byId ? team(draft.byId, draft.year) : "—"}`)
             : tile("Drafted", "Undrafted", "Came in off the wire"),
           tile("Owners", held.size, held.size === 1 ? "Never changed hands" : "Have had a turn"),
           tile("Moves", plural(trades, "trade"), `${plural(pickups, "pickup")} · ${plural(data.events.filter((e) => e.kind === "dropped").length, "drop")}`),
@@ -598,7 +605,7 @@
       const id = params.get("id");
       if (id) {
         try {
-          const res = await fetch(`/api/player?id=${encodeURIComponent(id)}&v=1`);
+          const res = await fetch(`/api/player?id=${encodeURIComponent(id)}&v=2`);
           if (res.status === 404) throw new Error("no one with that id has been through the league");
           if (!res.ok) throw new Error(`request failed (${res.status})`);
           data = await res.json();

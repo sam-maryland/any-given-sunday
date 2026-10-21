@@ -1,5 +1,5 @@
 import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handlePlayerRequest, handlePlayersRequest } from "./player";
 import { SupabaseClient } from "../data/supabase";
 import { DraftPick, League, LeagueStatus, Player, Transaction, User } from "../domain/types";
@@ -67,12 +67,34 @@ async function get(handler: typeof handlePlayerRequest, db: SupabaseClient, path
   return res;
 }
 
+// Sleeper's users for each league, with that season's team names: b renamed
+// the team for 2024, and a never set one.
+function stubSleeper(down = false) {
+  const requested: string[] = [];
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+    const url = String(input);
+    requested.push(url);
+    if (down) return new Response("down", { status: 503 });
+    const year = url.includes("/L2023/") ? 2023 : 2024;
+    return new Response(
+      JSON.stringify([
+        { user_id: "a", username: "a", display_name: "aaa", metadata: {} },
+        { user_id: "b", username: "b", display_name: "bbb", metadata: { team_name: year === 2023 ? "Old Name" : "New Name" } },
+      ]),
+    );
+  });
+  return requested;
+}
+
 describe("handlePlayerRequest", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("returns the player's path with every owner it mentions named, and caches it per player", async () => {
+    const requested = stubSleeper();
     const { db, calls } = fakeDb();
     const now = new Date("2026-09-15T12:00:00Z");
     const body = await (await get(handlePlayerRequest, db, "/api/player?id=100", now)).json<any>();
@@ -83,10 +105,21 @@ describe("handlePlayerRequest", () => {
     expect(body.events[1]).toMatchObject({ fromId: "a", toId: "b", receivedFor: [{ kind: "player", id: "200", name: "Veteran Back" }] });
     expect(body.currentOwnerId).toBe("b");
     expect(body.owners).toEqual({ a: "Owner a", b: "Owner b" });
+    // Only the seasons the path touches, and only owners who set a name.
+    expect(body.teams).toEqual({ 2024: { b: "New Name" } });
+    expect(body.currentYear).toBe(2024);
+    expect(requested).toEqual(["https://api.sleeper.app/v1/league/L2024/users"]);
     expect(body.events[0].startup).toBe(false);
     expect(calls.lookedUp[0]).toEqual(["100", "200"]);
     expect(again.headers.get("X-Cache")).toBe("HIT");
     expect(calls.transactions).toBe(1);
+  });
+
+  it("still answers when Sleeper is down, with owner names only", async () => {
+    stubSleeper(true);
+    const res = await get(handlePlayerRequest, fakeDb().db, "/api/player?id=100", new Date("2026-10-06T12:00:00Z"));
+    expect(res.status).toBe(200);
+    expect((await res.json<any>()).teams).toEqual({});
   });
 
   it("answers 404 for someone who was never in the league, and does not cache it", async () => {
