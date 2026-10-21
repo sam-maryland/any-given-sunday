@@ -1,4 +1,4 @@
-import { getUsersInLeague, teamName } from "../data/sleeper";
+import { ownerLabels } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { PlayerHistory, buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
 import { Player } from "../domain/types";
@@ -69,7 +69,7 @@ async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date):
     players,
     pickResults,
   });
-  const labels = await ownerLabels(leagues, ownerIds);
+  const labels = await ownerLabels([...leagues].reverse(), ownerIds);
   return {
     player: player ?? { id: playerId, name: `Player ${playerId}`, position: null, team: null },
     ...built,
@@ -81,30 +81,6 @@ async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date):
     ),
     syncedAt: syncedAt.toISOString(),
   };
-}
-
-/**
- * What each owner is called on Sleeper today: the team name, else the
- * username. Read from the latest league; an owner who has since left goes by
- * the last season they played, which costs a request per season walked back.
- * Cosmetic, like the history page's team names: a season Sleeper can't serve
- * is skipped, and whoever is left goes by their own name.
- */
-async function ownerLabels(leagues: { id: string; year: number }[], ownerIds: string[]): Promise<Map<string, string>> {
-  const labels = new Map<string, string>();
-  for (const league of [...leagues].reverse()) {
-    if (labels.size === ownerIds.length) break;
-    try {
-      for (const u of await getUsersInLeague(league.id)) {
-        if (ownerIds.includes(u.user_id) && !labels.has(u.user_id)) labels.set(u.user_id, teamName(u));
-      }
-    } catch (err) {
-      console.warn(
-        JSON.stringify({ event: "team_names_unavailable", leagueId: league.id, error: err instanceof Error ? err.message : String(err) }),
-      );
-    }
-  }
-  return labels;
 }
 
 function errorResponse(message: string, status: number): Response {

@@ -77,7 +77,7 @@ describe("handleHistoryRequest", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("adds current team names, and serves a repeat from cache", async () => {
+  it("names owners by current team name, and serves a repeat from cache", async () => {
     vi.stubGlobal("fetch", async () =>
       new Response(JSON.stringify([{ user_id: "a", username: "a", display_name: "A", metadata: { team_name: "The Aces" } }])),
     );
@@ -87,14 +87,16 @@ describe("handleHistoryRequest", () => {
     const body = await (await request(db, now)).json<any>();
     const second = await request(db, now);
 
-    expect(body.owners.find((o: any) => o.userId === "a")).toMatchObject({ name: "Owner a", teamName: "The Aces", slug: "owner-a" });
+    expect(body.owners.find((o: any) => o.userId === "a")).toMatchObject({ name: "Owner a", label: "The Aces", slug: "owner-a" });
+    // Not in the Sleeper league, so the owner's own name stands in.
+    expect(body.owners.find((o: any) => o.userId === "b").label).toBe("Owner b");
     expect(body.owners.find((o: any) => o.userId === "a").trades).toMatchObject({ trades: 1, picksSent: 1, partners: [{ userId: "b", trades: 1 }] });
     expect(body.syncedAt).toBe("2026-09-15T11:00:00.000Z");
     expect(second.headers.get("X-Cache")).toBe("HIT");
     expect(calls.matchups).toBe(1);
   });
 
-  it("still answers when Sleeper is down, without team names", async () => {
+  it("still answers when Sleeper is down, with owners' own names", async () => {
     vi.stubGlobal("fetch", async () => new Response("down", { status: 503 }));
     const { db } = fakeDb();
 
@@ -102,7 +104,7 @@ describe("handleHistoryRequest", () => {
     const body = await res.json<any>();
 
     expect(res.status).toBe(200);
-    expect(body.owners.every((o: any) => o.teamName === null)).toBe(true);
+    expect(body.owners.every((o: any) => o.label === o.name)).toBe(true);
   });
 
   it("does not cache a database failure", async () => {

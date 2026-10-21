@@ -364,7 +364,7 @@
 
       <section aria-labelledby="others-title">
         <div class="section-head">
-          <h2 id="others-title">Other owners</h2>
+          <h2 id="others-title">Other teams</h2>
         </div>
         <ul class="others" id="others"></ul>
       </section>
@@ -398,6 +398,10 @@
       let data;
       let byId;
 
+      // Owners go by team name, with the owner's own name on hover.
+      const ownerLink = (o, props = {}, ...extra) =>
+        h("a", { ...props, href: ownerHref(o), title: o.label !== o.name ? o.name : null }, o.label, ...extra);
+
       const tile = (label, big, small, cls = "") =>
         h("div", { class: "highlight" }, h("dt", null, label), h("dd", null, h("span", { class: `big ${cls}` }, big), h("span", { class: "small" }, small)));
 
@@ -416,7 +420,7 @@
           tile("Regular season", record(o.record), `${winPct(o.record)} · ${pts(o.pointsFor / Math.max(1, games(o.record)))} points a game`),
           tile("Playoffs", record(o.playoffRecord), `${o.playoffAppearances} of ${plural(o.seasons, "season")}`),
           tile("High-score weeks", o.highScoreWeeks, `${money(o.highScoreWeeks * 15).replace("+", "")} in bonuses`),
-          best ? tile("Best week", score(best.score), `Week ${best.week}, ${best.year} vs ${byId.get(best.opponentId)?.name ?? "—"}`) : null,
+          best ? tile("Best week", score(best.score), `Week ${best.week}, ${best.year} vs ${byId.get(best.opponentId)?.label ?? "—"}`) : null,
         );
         $("highlights").hidden = false;
       }
@@ -464,7 +468,7 @@
             "li",
             { class: "rival" },
             h("h3", null, title),
-            h("a", { class: "who", href: ownerHref(byId.get(r.opponentId)) }, byId.get(r.opponentId).name),
+            ownerLink(byId.get(r.opponentId), { class: "who" }),
             h("p", null, `${record(r.record)} all-time · ${blurb}`),
           );
         const cards = [];
@@ -480,7 +484,7 @@
             return h(
               "tr",
               null,
-              h("td", null, h("a", { href: ownerHref(opp) }, opp.name)),
+              h("td", null, ownerLink(opp)),
               h("td", { class: "num" }, record(r.record)),
               h(
                 "td",
@@ -499,7 +503,7 @@
         const t = o.trades;
         const partners = t.partners
           .filter((p) => byId.has(p.userId))
-          .sort((a, b) => b.trades - a.trades || byId.get(a.userId).name.localeCompare(byId.get(b.userId).name));
+          .sort((a, b) => b.trades - a.trades || byId.get(a.userId).label.localeCompare(byId.get(b.userId).label));
         const top = partners[0];
         // Only a clear favourite gets named; a tie at the top is just a spread.
         const favourite = top && top.trades > 1 && partners[1]?.trades !== top.trades ? top : null;
@@ -513,7 +517,7 @@
             !t.trades
               ? "Holding steady"
               : favourite
-                ? `Most with ${byId.get(favourite.userId).name} (${favourite.trades})`
+                ? `Most with ${byId.get(favourite.userId).label} (${favourite.trades})`
                 : `With ${plural(partners.length, "owner")}`,
           ),
           tile(
@@ -525,7 +529,7 @@
         );
         $("partners").replaceChildren(
           ...partners.map((p) =>
-            h("li", null, h("a", { href: ownerHref(byId.get(p.userId)) }, byId.get(p.userId).name, h("span", { class: "n" }, `×${p.trades}`))),
+            h("li", null, ownerLink(byId.get(p.userId), {}, h("span", { class: "n" }, `×${p.trades}`))),
           ),
         );
         $("partners").hidden = partners.length === 0;
@@ -533,9 +537,9 @@
       }
 
       function renderOthers(current) {
-        const others = [...data.owners].filter((o) => o !== current).sort((a, b) => a.name.localeCompare(b.name));
-        $("others").replaceChildren(...others.map((o) => h("li", null, h("a", { href: ownerHref(o) }, o.name))));
-        $("others-title").textContent = current ? "Other owners" : "Owners";
+        const others = [...data.owners].filter((o) => o !== current).sort((a, b) => a.label.localeCompare(b.label));
+        $("others").replaceChildren(...others.map((o) => h("li", null, ownerLink(o))));
+        $("others-title").textContent = current ? "Other teams" : "Teams";
       }
 
       function render() {
@@ -554,12 +558,12 @@
         // Settle on the readable address, so a shared link is the nice one.
         if (o.slug !== slug) history.replaceState(null, "", ownerHref(o));
 
-        document.title = `${o.name} — Any Given Sunday`;
-        $("owner-name").textContent = o.name;
+        document.title = `${o.label} — Any Given Sunday`;
+        $("owner-name").textContent = o.label;
         const first = o.seasonLines[0]?.year;
         $("meta").replaceChildren(
           ...[
-            o.teamName ? h("span", { class: "pill" }, o.teamName) : null,
+            o.label !== o.name ? h("span", { class: "pill" }, o.name) : null,
             h("span", null, `${plural(o.seasons, "season")}${first ? ` · since ${first}` : ""}`),
           ].filter(Boolean),
         );

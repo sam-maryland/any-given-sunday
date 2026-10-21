@@ -1625,7 +1625,7 @@
           // v matches PAYLOAD_VERSION in src/api/standings.ts. The API ignores
           // it; it only keeps a browser from reusing a payload cached for the
           // previous version of this page.
-          const params = new URLSearchParams({ v: "2" });
+          const params = new URLSearchParams({ v: "3" });
           if (year) params.set("year", String(year));
           const res = await fetch(`/api/standings?${params}`);
           if (!res.ok) throw new Error(`request failed (${res.status})`);

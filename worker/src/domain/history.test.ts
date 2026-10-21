@@ -106,8 +106,9 @@ describe("buildLeagueHistory", () => {
   });
 
   it("names owners by owner, with the current team name alongside", () => {
-    expect(owner("a")).toMatchObject({ name: "Owner A", slug: "owner-a", teamName: "The Aces" });
-    expect(owner("b").teamName).toBeNull();
+    expect(owner("a")).toMatchObject({ name: "Owner A", slug: "owner-a", label: "The Aces" });
+    // Sleeper couldn't name b: the owner's own name stands in.
+    expect(owner("b").label).toBe("Owner B");
     expect(history.currentYear).toBe(2026);
   });
 
