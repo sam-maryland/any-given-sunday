@@ -66,7 +66,7 @@ export const ownerHref = (o) => `/owner?o=${encodeURIComponent(o.slug)}`;
 // v matches PAYLOAD_VERSION in src/api/history.ts, so a browser never reuses
 // a payload cached for an older page.
 export async function loadHistory() {
-  const res = await fetch("/api/history?v=1");
+  const res = await fetch("/api/history?v=2");
   if (!res.ok) throw new Error(`request failed (${res.status})`);
   return res.json();
 }

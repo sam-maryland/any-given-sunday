@@ -96,6 +96,41 @@ export class SupabaseClient {
     return this.getAllPages<Transaction>("transactions?order=id.asc");
   }
 
+  // Every player who has been through the league, for the player search.
+  async getAllPlayers(): Promise<Player[]> {
+    return this.getAllPages<Player>("players?select=id,name,position,team&order=id.asc");
+  }
+
+  async getPlayersByIds(ids: string[]): Promise<Player[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const list = ids.map((id) => `"${id.replace(/["\\]/g, "")}"`).join(",");
+    return this.request<Player[]>(`players?select=id,name,position,team&id=in.(${encodeURIComponent(list)})`);
+  }
+
+  // Every transaction that moved a player, or the pick he was drafted with.
+  // A database function, because PostgREST has no filter for "this key is in
+  // the jsonb object", and reading every transaction per player would not.
+  async getPlayerTransactions(playerId: string): Promise<Transaction[]> {
+    return this.request<Transaction[]>(`rpc/player_transactions?player_id=${encodeURIComponent(playerId)}`);
+  }
+
+  async getDraftPicksForPlayer(playerId: string): Promise<DraftPick[]> {
+    return this.request<DraftPick[]>(`draft_picks?player_id=eq.${encodeURIComponent(playerId)}`);
+  }
+
+  // The picks made with these slots, for saying what a traded pick became.
+  async getDraftPicksBySlots(slots: { year: number; round: number; originalRosterId: number }[]): Promise<DraftPick[]> {
+    if (slots.length === 0) {
+      return [];
+    }
+    const or = slots
+      .map((s) => `and(year.eq.${Math.trunc(s.year)},round.eq.${Math.trunc(s.round)},original_roster_id.eq.${Math.trunc(s.originalRosterId)})`)
+      .join(",");
+    return this.request<DraftPick[]>(`draft_picks?or=(${encodeURIComponent(or)})`);
+  }
+
   // Every pick of every league draft, about 160 a season.
   async getAllDraftPicks(): Promise<DraftPick[]> {
     return this.getAllPages<DraftPick>("draft_picks?order=draft_id.asc,pick_no.asc");

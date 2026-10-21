@@ -108,6 +108,30 @@ alter table transactions enable row level security;
 alter table draft_picks enable row level security;
 alter table players enable row level security;
 
+-- Every transaction that moved one player, or the pick he was drafted with,
+-- for the player page. PostgREST has no filter for "this key is in the jsonb
+-- object", and reading every transaction per player would not fit the
+-- Worker's CPU budget. A traded pick is named by the roster it was issued to,
+-- which is what draft_picks.original_roster_id records. Only the service
+-- role may call it.
+create or replace function player_transactions(player_id text)
+returns setof transactions
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select t.* from transactions t
+  where t.adds ? player_id or t.drops ? player_id
+  union
+  select t.* from transactions t
+  join draft_picks d on d.player_id = player_transactions.player_id
+  where t.type = 'trade' and t.status = 'complete'
+    and t.draft_picks @> jsonb_build_array(jsonb_build_object(
+      'season', d.year::text, 'round', d.round, 'roster_id', d.original_roster_id))
+$$;
+revoke execute on function player_transactions(text) from public, anon, authenticated;
+
 CREATE OR REPLACE VIEW career_stats with (security_invoker = on) AS
 SELECT
     u.id AS user_id,

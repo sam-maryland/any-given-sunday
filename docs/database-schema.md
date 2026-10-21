@@ -115,6 +115,11 @@ Every NFL player who has been through the league: drafted, traded, claimed or dr
 | team | text | NULL | Current NFL team; null for a free agent or retired player |
 | updated_at | timestamptz | NOT NULL, DEFAULT now() | When the sync last wrote the row |
 
+## Functions
+
+### player_transactions(player_id text)
+Every transaction that moved one player (in `adds` or `drops`), plus every completed trade that moved the pick he was drafted with — matched on season, round and the roster the pick was issued to. Backs `GET /api/player`, so a player page reads a handful of rows instead of every transaction. Called as `GET /rest/v1/rpc/player_transactions?player_id=…`; execute is revoked from `anon` and `authenticated`, leaving the Worker's service role.
+
 ## Views
 
 ### career_stats
