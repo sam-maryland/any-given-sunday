@@ -121,6 +121,14 @@ export interface Transaction {
   completed_at: string | null;
 }
 
+/** An NFL player as last synced from Sleeper. */
+export interface Player {
+  id: string;
+  name: string;
+  position: string | null;
+  team: string | null;
+}
+
 export interface DraftPick {
   draft_id: string;
   league_id: string;

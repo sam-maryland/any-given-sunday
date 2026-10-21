@@ -77,6 +77,18 @@ describe("SupabaseClient write responses", () => {
     expect(requests[0]?.prefer).toBe("resolution=merge-duplicates,return=minimal");
   });
 
+  it("stamps players with the time of the sync", async () => {
+    let body: unknown;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), method: init?.method ?? "GET", prefer: null });
+      body = JSON.parse(String(init?.body));
+      return new Response("", { status: 201 });
+    });
+    await db().upsertPlayers([{ id: "4046", name: "Patrick Mahomes", position: "QB", team: "KC" }]);
+    expect(requests[0]?.url).toBe("https://example.supabase.co/rest/v1/players?on_conflict=id");
+    expect(body).toEqual([{ id: "4046", name: "Patrick Mahomes", position: "QB", team: "KC", updated_at: expect.any(String) }]);
+  });
+
   it("writes nothing when there are no rows to upsert", async () => {
     await db().upsertTransactions([]);
     expect(requests).toHaveLength(0);

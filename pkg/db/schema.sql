@@ -88,12 +88,25 @@ create table if not exists draft_picks (
 create unique index if not exists idx_draft_picks_draft_pick on draft_picks(draft_id, pick_no);
 create index if not exists idx_draft_picks_player on draft_picks(player_id);
 
+-- Every NFL player who has been through the league: drafted, traded, claimed
+-- or dropped. Transactions and picks name players by Sleeper id only. Filled
+-- weekly by the sync-players GitHub Action, since Sleeper's full player list
+-- is too big for the Worker to parse on the free plan.
+create table if not exists players (
+                                       id text primary key,                            -- Sleeper player ID (a team abbreviation for a defense)
+                                       name text not null,                             -- Current name
+                                       position text,                                  -- Current position
+                                       team text,                                      -- Current NFL team, null for a free agent or retired player
+                                       updated_at timestamptz default now() not null   -- When the sync last wrote the row
+);
+
 -- Only the Worker reads and writes these, with the service role key, which
 -- bypasses RLS. Enabling it with no policies keeps them out of reach of the
 -- public anon key, as with users and matchups.
 alter table rosters enable row level security;
 alter table transactions enable row level security;
 alter table draft_picks enable row level security;
+alter table players enable row level security;
 
 CREATE OR REPLACE VIEW career_stats with (security_invoker = on) AS
 SELECT

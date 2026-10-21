@@ -5,6 +5,7 @@ import {
   LeagueStatus,
   Matchup,
   NewMatchup,
+  Player,
   Roster,
   Transaction,
   User,
@@ -95,6 +96,11 @@ export class SupabaseClient {
     return this.getAllPages<Transaction>("transactions?order=id.asc");
   }
 
+  // Every pick of every league draft, about 160 a season.
+  async getAllDraftPicks(): Promise<DraftPick[]> {
+    return this.getAllPages<DraftPick>("draft_picks?order=draft_id.asc,pick_no.asc");
+  }
+
   // Who held every roster in every league, a dozen rows a season.
   async getAllRosters(): Promise<Roster[]> {
     return this.request<Roster[]>("rosters?order=league_id.asc,roster_id.asc");
@@ -161,6 +167,13 @@ export class SupabaseClient {
 
   async upsertDraftPicks(rows: DraftPick[]): Promise<void> {
     await this.upsert("draft_picks", "draft_id,pick_no", rows);
+  }
+
+  async upsertPlayers(rows: Player[]): Promise<void> {
+    // Stamped here so a re-sync shows when each row was last refreshed; the
+    // column default only covers the first insert.
+    const updated_at = new Date().toISOString();
+    await this.upsert("players", "id", rows.map((r) => ({ ...r, updated_at })));
   }
 
   // The latest week with a stored transaction for a league, or null if none.
