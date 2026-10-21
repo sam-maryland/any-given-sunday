@@ -1,4 +1,4 @@
-import { getUsersInLeague } from "../data/sleeper";
+import { getUsersInLeague, teamName } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { PlayerHistory, buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
 import { Player } from "../domain/types";
@@ -7,15 +7,12 @@ import { cachedJsonResponse, epochCacheKey } from "./cache";
 
 export interface PlayerPayload extends Omit<PlayerHistory, "ownerIds"> {
   player: Player;
-  /** Names for every owner the events mention, by user id. */
-  owners: Record<string, string>;
   /**
-   * Team names as each season had them: year → user id → name. Only owners
-   * who set one are listed; the page falls back to the owner's name.
+   * Every owner the events mention, by user id: the name to show (their
+   * current Sleeper team name, else Sleeper username, else their own name)
+   * and their own name, for a hover.
    */
-  teams: Record<string, Record<string, string>>;
-  /** The latest season, whose team names are the current ones. */
-  currentYear: number | null;
+  owners: Record<string, { label: string; name: string }>;
   syncedAt: string;
 }
 
@@ -31,7 +28,7 @@ export interface PlayersPayload {
 const BROWSER_MAX_AGE_SECONDS = 300;
 const EDGE_MAX_AGE_SECONDS = 3600;
 // Bump whenever PlayerPayload or PlayersPayload changes shape.
-const PAYLOAD_VERSION = "2";
+const PAYLOAD_VERSION = "3";
 
 // Sleeper player ids are digits; a defense's is its team abbreviation.
 const PLAYER_ID = /^[A-Za-z0-9]{1,12}$/;
@@ -72,40 +69,42 @@ async function loadPlayer(db: SupabaseClient, playerId: string, syncedAt: Date):
     players,
     pickResults,
   });
-  const currentYear = leagues[leagues.length - 1]?.year ?? null;
-  const years = new Set<number>(currentYear === null ? [] : [currentYear]);
-  for (const e of built.events) {
-    years.add(e.year);
-    if (e.kind === "drafted") for (const l of e.pickTrades) years.add(l.year);
-  }
+  const labels = await ownerLabels(leagues, ownerIds);
   return {
     player: player ?? { id: playerId, name: `Player ${playerId}`, position: null, team: null },
     ...built,
-    owners: Object.fromEntries(ownerIds.map((id) => [id, users.get(id)?.name || id])),
-    teams: await teamNames(leagues.filter((l) => years.has(l.year))),
-    currentYear,
+    owners: Object.fromEntries(
+      ownerIds.map((id) => {
+        const name = users.get(id)?.name || id;
+        return [id, { label: labels.get(id) ?? name, name }];
+      }),
+    ),
     syncedAt: syncedAt.toISOString(),
   };
 }
 
 /**
- * Each season's team names, read from Sleeper, which keeps them per league.
- * One request per season the history touches. Cosmetic, like the history
- * page's: a season Sleeper can't serve just falls back to owner names.
+ * What each owner is called on Sleeper today: the team name, else the
+ * username. Read from the latest league; an owner who has since left goes by
+ * the last season they played, which costs a request per season walked back.
+ * Cosmetic, like the history page's team names: a season Sleeper can't serve
+ * is skipped, and whoever is left goes by their own name.
  */
-async function teamNames(leagues: { id: string; year: number }[]): Promise<Record<string, Record<string, string>>> {
-  const teams: Record<string, Record<string, string>> = {};
-  const results = await Promise.allSettled(leagues.map((l) => getUsersInLeague(l.id)));
-  results.forEach((r, i) => {
-    const league = leagues[i]!;
-    if (r.status === "rejected") {
-      console.warn(JSON.stringify({ event: "team_names_unavailable", leagueId: league.id, error: String(r.reason) }));
-      return;
+async function ownerLabels(leagues: { id: string; year: number }[], ownerIds: string[]): Promise<Map<string, string>> {
+  const labels = new Map<string, string>();
+  for (const league of [...leagues].reverse()) {
+    if (labels.size === ownerIds.length) break;
+    try {
+      for (const u of await getUsersInLeague(league.id)) {
+        if (ownerIds.includes(u.user_id) && !labels.has(u.user_id)) labels.set(u.user_id, teamName(u));
+      }
+    } catch (err) {
+      console.warn(
+        JSON.stringify({ event: "team_names_unavailable", leagueId: league.id, error: err instanceof Error ? err.message : String(err) }),
+      );
     }
-    const named = r.value.filter((u) => u.metadata?.team_name).map((u): [string, string] => [u.user_id, u.metadata!.team_name!]);
-    if (named.length) teams[league.year] = Object.fromEntries(named);
-  });
-  return teams;
+  }
+  return labels;
 }
 
 function errorResponse(message: string, status: number): Response {

@@ -67,21 +67,20 @@ async function get(handler: typeof handlePlayerRequest, db: SupabaseClient, path
   return res;
 }
 
-// Sleeper's users for each league, with that season's team names: b renamed
-// the team for 2024, and a never set one.
-function stubSleeper(down = false) {
+// Sleeper's users for each league. b's team was renamed for 2024; a never
+// set a team name; with `bLeft`, b is gone from the 2024 league.
+function stubSleeper({ down = false, bLeft = false } = {}) {
   const requested: string[] = [];
   vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = String(input);
     requested.push(url);
     if (down) return new Response("down", { status: 503 });
     const year = url.includes("/L2023/") ? 2023 : 2024;
-    return new Response(
-      JSON.stringify([
-        { user_id: "a", username: "a", display_name: "aaa", metadata: {} },
-        { user_id: "b", username: "b", display_name: "bbb", metadata: { team_name: year === 2023 ? "Old Name" : "New Name" } },
-      ]),
-    );
+    const users = [
+      { user_id: "a", username: "a", display_name: "aaa", metadata: {} },
+      { user_id: "b", username: "b", display_name: "bbb", metadata: { team_name: year === 2023 ? "Old Name" : "New Name" } },
+    ];
+    return new Response(JSON.stringify(bLeft && year === 2024 ? users.slice(0, 1) : users));
   });
   return requested;
 }
@@ -104,10 +103,9 @@ describe("handlePlayerRequest", () => {
     expect(body.events.map((e: any) => e.kind)).toEqual(["drafted", "traded"]);
     expect(body.events[1]).toMatchObject({ fromId: "a", toId: "b", receivedFor: [{ kind: "player", id: "200", name: "Veteran Back" }] });
     expect(body.currentOwnerId).toBe("b");
-    expect(body.owners).toEqual({ a: "Owner a", b: "Owner b" });
-    // Only the seasons the path touches, and only owners who set a name.
-    expect(body.teams).toEqual({ 2024: { b: "New Name" } });
-    expect(body.currentYear).toBe(2024);
+    // Today's team name, else the Sleeper username; read from the latest
+    // league alone when everyone is still in it.
+    expect(body.owners).toEqual({ a: { label: "aaa", name: "Owner a" }, b: { label: "New Name", name: "Owner b" } });
     expect(requested).toEqual(["https://api.sleeper.app/v1/league/L2024/users"]);
     expect(body.events[0].startup).toBe(false);
     expect(calls.lookedUp[0]).toEqual(["100", "200"]);
@@ -115,11 +113,18 @@ describe("handlePlayerRequest", () => {
     expect(calls.transactions).toBe(1);
   });
 
-  it("still answers when Sleeper is down, with owner names only", async () => {
-    stubSleeper(true);
+  it("names an owner who has left by the last season they played", async () => {
+    const requested = stubSleeper({ bLeft: true });
+    const body = await (await get(handlePlayerRequest, fakeDb().db, "/api/player?id=100", new Date("2026-10-13T12:00:00Z"))).json<any>();
+    expect(body.owners.b).toEqual({ label: "Old Name", name: "Owner b" });
+    expect(requested).toHaveLength(2);
+  });
+
+  it("still answers when Sleeper is down, with owners' own names", async () => {
+    stubSleeper({ down: true });
     const res = await get(handlePlayerRequest, fakeDb().db, "/api/player?id=100", new Date("2026-10-06T12:00:00Z"));
     expect(res.status).toBe(200);
-    expect((await res.json<any>()).teams).toEqual({});
+    expect((await res.json<any>()).owners.a).toEqual({ label: "Owner a", name: "Owner a" });
   });
 
   it("answers 404 for someone who was never in the league, and does not cache it", async () => {
