@@ -148,6 +148,7 @@ function fakeDb(league: League | null, matchups: Matchup[] = []) {
     getMatchupsByYear: async () => (calls.matchups++, matchups),
     getUsers: async () => (calls.users++, users("a")),
     getSeasonYears: async () => (calls.seasons++, [2025]),
+    getStartedLeagues: async () => (league ? [league] : []),
   } as unknown as SupabaseClient;
   return { db, calls };
 }
@@ -170,7 +171,7 @@ describe("handleStandingsRequest caching", () => {
   beforeEach(() => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
-    // withTeamNames calls Sleeper; let it fail so it falls back to DB names.
+    // Owner names come from Sleeper; let it fail so it falls back to DB names.
     vi.stubGlobal("fetch", async () => new Response("nope", { status: 500 }));
   });
 
@@ -206,6 +207,44 @@ describe("handleStandingsRequest caching", () => {
 
     expect(calls.matchups).toBe(2);
     expect((await request(db, 2003, AFTER_SYNC)).headers.get("X-Cache")).toBe("HIT");
+  });
+
+  it("names a past season's teams as they are called today", async () => {
+    const past = { ...league(LeagueStatus.Complete), id: "L2024", year: 2024 };
+    const latest = { ...league(LeagueStatus.InProgress), id: "L2026", year: 2026 };
+    const requested: string[] = [];
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+      requested.push(String(input));
+      return new Response(JSON.stringify([{ user_id: "a", username: "a", display_name: "aaa", metadata: { team_name: "Today's Name" } }]));
+    });
+    const matchup: Matchup = {
+      id: "m1",
+      year: 2024,
+      week: 1,
+      is_playoff: false,
+      playoff_round: null,
+      home_user_id: "a",
+      away_user_id: "b",
+      home_seed: null,
+      away_seed: null,
+      home_score: 100,
+      away_score: 90,
+    };
+    const db = {
+      getLeagueByYear: async () => past,
+      getMatchupsByYear: async () => [matchup],
+      getUsers: async () => users("a", "b"),
+      getSeasonYears: async () => [2026, 2024],
+      getStartedLeagues: async () => [past, latest],
+    } as unknown as SupabaseClient;
+
+    const body = await (await request(db, 2007, AFTER_SYNC)).json<any>();
+    const names = Object.fromEntries(body.standings.map((r: any) => [r.userId, r.name]));
+
+    // The newest league names a; b has left, so the walk goes back a season
+    // and, Sleeper not knowing b there either, falls back to the stored name.
+    expect(names).toEqual({ a: "Today's Name", b: "Team B" });
+    expect(requested[0]).toBe("https://api.sleeper.app/v1/league/L2026/users");
   });
 
   it("does not cache a missing league", async () => {

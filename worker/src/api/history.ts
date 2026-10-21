@@ -1,4 +1,4 @@
-import { getUsersInLeague, teamName } from "../data/sleeper";
+import { ownerLabels } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import { LeagueHistory, buildLeagueHistory } from "../domain/history";
 import { lastSyncBoundary } from "../recap/schedule";
@@ -13,7 +13,7 @@ export interface HistoryPayload extends LeagueHistory {
 const BROWSER_MAX_AGE_SECONDS = 300;
 const EDGE_MAX_AGE_SECONDS = 3600;
 // Bump whenever HistoryPayload changes shape.
-const PAYLOAD_VERSION = "2";
+const PAYLOAD_VERSION = "3";
 
 async function loadHistory(db: SupabaseClient, syncedAt: Date): Promise<HistoryPayload> {
   const [leagues, matchups, users, transactions, rosters] = await Promise.all([
@@ -24,25 +24,12 @@ async function loadHistory(db: SupabaseClient, syncedAt: Date): Promise<HistoryP
     db.getAllRosters(),
   ]);
 
-  // Current team names, cosmetic only: owners are named by owner, and a
-  // Sleeper outage just leaves the team name off.
-  const teamNames = new Map<string, string>();
-  const latest = leagues[leagues.length - 1];
-  if (latest) {
-    try {
-      for (const u of await getUsersInLeague(latest.id)) teamNames.set(u.user_id, teamName(u));
-    } catch (err) {
-      console.warn(
-        JSON.stringify({
-          event: "team_names_unavailable",
-          leagueId: latest.id,
-          error: err instanceof Error ? err.message : String(err),
-        }),
-      );
-    }
-  }
+  // What the site calls each owner: current team name, else Sleeper
+  // username. Cosmetic: a Sleeper outage leaves owners under their own name.
+  const ownerIds = new Set(matchups.flatMap((m) => [m.home_user_id, m.away_user_id]));
+  const labels = await ownerLabels([...leagues].reverse(), ownerIds);
 
-  return { ...buildLeagueHistory(leagues, matchups, users, teamNames, transactions, rosters), syncedAt: syncedAt.toISOString() };
+  return { ...buildLeagueHistory(leagues, matchups, users, labels, transactions, rosters), syncedAt: syncedAt.toISOString() };
 }
 
 /**

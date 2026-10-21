@@ -238,6 +238,38 @@ export function teamName(user: SleeperUser): string {
 }
 
 /**
+ * What the website calls each owner: their current Sleeper team name, else
+ * their Sleeper username (both from `teamName`). Read from the newest league
+ * first; an owner who has since left goes by the last season they played,
+ * which costs one more request per season walked back. Owners missing from
+ * the result — Sleeper unreachable, or never in a league — are for the
+ * caller to name, by their own name.
+ *
+ * @param leagues newest first
+ */
+export async function ownerLabels(leagues: { id: string }[], userIds: Iterable<string>): Promise<Map<string, string>> {
+  const wanted = new Set(userIds);
+  const labels = new Map<string, string>();
+  for (const league of leagues) {
+    if (labels.size === wanted.size) break;
+    try {
+      for (const u of await getUsersInLeague(league.id)) {
+        if (wanted.has(u.user_id) && !labels.has(u.user_id)) labels.set(u.user_id, teamName(u));
+      }
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          event: "team_names_unavailable",
+          leagueId: league.id,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }
+  return labels;
+}
+
+/**
  * Returns the league's users with Sleeper team names in place of the names
  * stored in the database, so displays read "The Ducks" rather than the
  * owner's name. Costs one request for the whole league.

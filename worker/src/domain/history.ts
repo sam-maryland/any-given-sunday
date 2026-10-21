@@ -63,8 +63,12 @@ export interface OwnerHistory {
   name: string;
   /** For the page address: /owner?o=<slug>. */
   slug: string;
-  /** The current Sleeper team name, when the owner is in the latest league. */
-  teamName: string | null;
+  /**
+   * What the site calls the owner: their current Sleeper team name, else
+   * Sleeper username, else their own name. Changes when a team is renamed,
+   * which is why pages and slugs key on the owner's name instead.
+   */
+  label: string;
   seasons: number;
   /** Regular season only, as the standings count it. */
   record: Record3;
@@ -172,7 +176,8 @@ export function buildLeagueHistory(
   leagues: League[],
   matchups: NewMatchup[],
   users: UserMap,
-  teamNames: Map<string, string>,
+  /** user id → label, for owners Sleeper could name; the rest use their name. */
+  labels: Map<string, string>,
   transactions: Transaction[] = [],
   rosters: Roster[] = [],
 ): LeagueHistory {
@@ -262,7 +267,7 @@ export function buildLeagueHistory(
       userId,
       name,
       slug,
-      teamName: teamNames.get(userId) ?? null,
+      label: labels.get(userId) ?? name,
       seasons: years.size,
       record,
       pointsFor: round2(pointsFor),

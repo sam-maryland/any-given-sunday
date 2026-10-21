@@ -366,7 +366,7 @@
       let byId;
       const ownerLink = (id, content) => {
         const o = byId.get(id);
-        return o ? h("a", { href: ownerHref(o) }, content ?? o.name) : h("span", null, content ?? id);
+        return o ? h("a", { href: ownerHref(o), title: o.label !== o.name ? o.name : null }, content ?? o.label) : h("span", null, content ?? id);
       };
 
       // ---------- Champions ----------
@@ -384,7 +384,7 @@
               "li",
               { class: "champ" },
               h("span", { class: "yr" }, p.year),
-              champ ? h("a", { class: "winner", href: ownerHref(champ) }, champ.name) : h("span", { class: "winner" }, p.first),
+              champ ? h("a", { class: "winner", href: ownerHref(champ), title: champ.label !== champ.name ? champ.name : null }, champ.label) : h("span", { class: "winner" }, p.first),
               h(
                 "dl",
                 null,
@@ -402,7 +402,7 @@
 
       const pct = (r) => (games(r) ? (r.wins + r.ties / 2) / games(r) : 0);
       const COLUMNS = [
-        { key: "name", label: "Owner", sort: (o) => o.name, asc: true },
+        { key: "name", label: "Team", sort: (o) => o.label, asc: true },
         { key: "titles", label: "Trophies", sort: (o) => o.titles * 1e6 + o.runnerUps * 1e3 + o.thirdPlaces },
         { key: "record", label: "Record", sort: (o) => pct(o.record) },
         { key: "pct", label: "Win %", sort: (o) => pct(o.record) },
@@ -464,7 +464,7 @@
             h(
               "tr",
               null,
-              h("td", null, h("a", { href: ownerHref(o) }, h("strong", null, o.name), o.teamName ? h("span", { class: "team" }, o.teamName) : null)),
+              h("td", null, h("a", { href: ownerHref(o) }, h("strong", null, o.label), o.label !== o.name ? h("span", { class: "team" }, o.name) : null)),
               h("td", null, trophies(o)),
               h("td", { class: "num" }, record(o.record)),
               h("td", { class: "num" }, winPct(o.record)),

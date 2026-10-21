@@ -1,4 +1,4 @@
-import { withTeamNames } from "../data/sleeper";
+import { ownerLabels } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
 import {
   Finish,
@@ -157,7 +157,7 @@ function round1(n: number): number {
 const BROWSER_MAX_AGE_SECONDS = 300;
 // Part of the cache key. Bump it whenever StandingsPayload changes shape, so a
 // deploy never serves the new page a payload cached by the old code.
-const PAYLOAD_VERSION = "2";
+const PAYLOAD_VERSION = "3";
 const EDGE_MAX_AGE_SECONDS = 3600;
 
 function errorResponse(error: string, status: number): Response {
@@ -181,15 +181,23 @@ async function loadStandings(
     throw new LeagueNotFound(`no league for ${year ?? "latest"}`);
   }
 
-  const [matchups, seasons] = await Promise.all([
+  const [matchups, seasons, leagues, stored] = await Promise.all([
     db.getMatchupsByYear(league.year),
     db.getSeasonYears(),
+    db.getStartedLeagues(),
+    db.getUsers(),
   ]);
   const result = standingsForLeague(league, matchups);
-  // Team names, not owner names — the same display the recap email uses.
-  // For a past season this reads that season's league, so the names are the
-  // ones that were in use then.
-  const users = await withTeamNames(await db.getUsers(), league.id);
+  // Owners go by what the site calls them everywhere: their current team
+  // name, else Sleeper username, else their own name. A past season shows
+  // today's names too, so a team reads the same on every page.
+  const labels = await ownerLabels(
+    [...leagues].reverse(),
+    result.standings.map((s) => s.userId),
+  );
+  const users: UserMap = new Map(
+    [...stored].map(([id, u]) => [id, { ...u, name: labels.get(id) ?? u.name }]),
+  );
 
   return standingsPayload({ league, matchups, result, users, seasons, syncedAt });
 }
