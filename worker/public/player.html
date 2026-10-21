@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Players — Any Given Sunday</title>
+    <meta name="description" content="Every player's path through the Any Given Sunday fantasy football league: who drafted them, every trade, pickup and drop." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
+    />
+    <link rel="stylesheet" href="/site.css" />
+    <style>
+      section {
+        margin-top: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .muted {
+        color: var(--ink-2);
+      }
+
+      /* ---------- Search ---------- */
+
+      .search {
+        position: relative;
+        margin-top: 1.75rem;
+        max-width: 28rem;
+      }
+
+      .search input {
+        width: 100%;
+        padding: 0.65rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        color: var(--ink);
+        font: 400 0.95rem var(--sans);
+      }
+
+      .search input:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: 1px;
+      }
+
+      .results {
+        position: absolute;
+        z-index: 2;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 0.3rem;
+        list-style: none;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--raised);
+        box-shadow: 0 12px 30px oklch(0% 0 0 / 0.12);
+      }
+
+      .results a {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.5rem 0.65rem;
+        border-radius: 8px;
+        text-decoration: none;
+      }
+
+      .results a[aria-selected="true"],
+      .results a:hover {
+        background: var(--line-2);
+      }
+
+      .results .pos {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--ink-3);
+      }
+
+      .results .none {
+        padding: 0.5rem 0.65rem;
+        color: var(--ink-3);
+      }
+
+      /* ---------- Profile ---------- */
+
+      .profile {
+        display: flex;
+        align-items: center;
+        gap: clamp(1rem, 3vw, 1.75rem);
+        margin-top: 2rem;
+      }
+
+      .photo {
+        flex: none;
+        width: clamp(4.5rem, 14vw, 7rem);
+        height: auto;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--line-2);
+        object-fit: cover;
+      }
+
+      .photo.initials {
+        display: grid;
+        place-items: center;
+        font: 400 clamp(1.6rem, 5vw, 2.4rem) / 1 var(--serif);
+        color: var(--ink-2);
+      }
+
+      .profile h1 {
+        margin: 0;
+        font-size: clamp(2.4rem, 8vw, 4.75rem);
+      }
+
+      .profile .meta {
+        margin-top: 0.6rem;
+      }
+
+      .pill.free {
+        color: var(--ink-2);
+      }
+
+      .pill.held {
+        border-color: transparent;
+        background: var(--field-soft);
+        color: var(--field);
+      }
+
+      .pill a {
+        text-decoration: none;
+      }
+
+      .pill a:hover {
+        text-decoration: underline;
+      }
+
+      /* ---------- Timeline ---------- */
+
+      .timeline {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--ink);
+      }
+
+      .event {
+        display: grid;
+        grid-template-columns: 6.5rem minmax(0, 1fr);
+        gap: 0 1.25rem;
+        padding: 1.1rem 0;
+        border-bottom: 1px solid var(--line-2);
+      }
+
+      .when {
+        padding-top: 0.15rem;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--ink-3);
+      }
+
+      .tag {
+        display: inline-block;
+        margin-right: 0.5rem;
+        padding: 0.05rem 0.5rem;
+        border-radius: 999px;
+        background: var(--line-2);
+        color: var(--ink-2);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        vertical-align: 0.1em;
+      }
+
+      .tag.drafted {
+        background: oklch(from var(--gold) l c h / 0.18);
+        color: oklch(from var(--gold) calc(l - 0.18) c h);
+      }
+
+      .tag.traded {
+        background: var(--signal-soft);
+        color: var(--signal);
+      }
+
+      .tag.added {
+        background: var(--field-soft);
+        color: var(--field);
+      }
+
+      .tag.dropped {
+        color: var(--loss);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .tag.drafted {
+          color: var(--gold);
+        }
+      }
+
+      .what {
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .what a,
+      .detail a,
+      .trail a {
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .what a:hover,
+      .detail a:hover,
+      .trail a:hover {
+        text-decoration: underline;
+      }
+
+      .detail {
+        margin: 0.3rem 0 0;
+        color: var(--ink-2);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .detail b {
+        font-weight: 500;
+        color: var(--ink-3);
+      }
+
+      /* The pick's own trail, inside the draft entry. */
+      .trail {
+        margin: 0.85rem 0 0;
+        padding: 0 0 0 1rem;
+        list-style: none;
+        border-left: 2px solid var(--line);
+      }
+
+      .trail li + li {
+        margin-top: 0.65rem;
+      }
+
+      .trail .leg {
+        font-size: 0.9rem;
+      }
+
+      .trail .when {
+        display: inline;
+        margin-right: 0.5rem;
+      }
+
+      .empty {
+        margin-top: 2rem;
+        color: var(--ink-2);
+      }
+
+      @media (max-width: 38rem) {
+        .event {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .event > .when {
+          margin-bottom: 0.3rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="topbar">
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <nav class="nav" aria-label="Site">
+            <a href="/">Standings</a>
+            <a href="/history">History</a>
+            <a href="/player" aria-current="page">Players</a>
+          </nav>
+        </div>
+
+        <div class="search" role="search">
+          <label class="sr-only" for="q">Find a player</label>
+          <input
+            id="q"
+            type="search"
+            placeholder="Find a player…"
+            autocomplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="results"
+          />
+          <ul class="results" id="results" role="listbox" hidden></ul>
+        </div>
+
+        <div class="profile" id="profile" hidden>
+          <span id="photo"></span>
+          <div>
+            <h1 id="player-name">—</h1>
+            <p class="meta" id="meta"></p>
+          </div>
+        </div>
+        <div id="intro">
+          <h1>Players</h1>
+          <p class="meta"><span>Every player who has passed through the league: who drafted them, and every trade, pickup and drop since.</span></p>
+        </div>
+      </header>
+
+      <dl class="highlights" id="highlights" hidden></dl>
+
+      <section id="path-section" aria-labelledby="path-title" hidden>
+        <div class="section-head">
+          <h2 id="path-title">The path</h2>
+          <span class="hint">Oldest first</span>
+        </div>
+        <ol class="timeline" id="timeline"></ol>
+      </section>
+
+      <p class="status" id="status" role="status"></p>
+
+      <footer>
+        <span>Synced weekly, after the Tuesday recap.</span>
+        <a href="/history">League history</a>
+      </footer>
+    </div>
+
+    <script type="module">
+      import { $, h, ordinal, plural } from "/site.js";
+
+      const params = new URLSearchParams(location.search);
+      const MONTH = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "America/New_York" });
+      const when = (iso) => MONTH.format(new Date(iso));
+
+      const playerHref = (id) => `/player?id=${encodeURIComponent(id)}`;
+      const ownerHref = (id) => `/owner?id=${encodeURIComponent(id)}`;
+
+      // ---------- Search ----------
+
+      const fold = (s) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, "");
+      let index = null;
+      let active = -1;
+
+      async function loadIndex() {
+        if (!index) {
+          const res = await fetch("/api/players?v=1");
+          if (!res.ok) throw new Error(`request failed (${res.status})`);
+          index = (await res.json()).players.map((p) => ({ ...p, key: fold(p.name) }));
+        }
+        return index;
+      }
+
+      function search(q) {
+        const needle = fold(q.trim());
+        if (!needle) return [];
+        // Names that start with the query first, then any word in the name,
+        // then anywhere in it.
+        const rank = (p) => (p.key.startsWith(needle) ? 0 : p.key.includes(` ${needle}`) ? 1 : p.key.includes(needle) ? 2 : 3);
+        return index
+          .map((p) => [rank(p), p])
+          .filter(([r]) => r < 3)
+          .sort((a, b) => a[0] - b[0])
+          .slice(0, 8)
+          .map(([, p]) => p);
+      }
+
+      function showResults(list, q) {
+        const box = $("results");
+        active = -1;
+        if (!q.trim()) {
+          box.hidden = true;
+          $("q").setAttribute("aria-expanded", "false");
+          return;
+        }
+        box.replaceChildren(
+          ...(list.length
+            ? list.map((p, i) =>
+                h(
+                  "li",
+                  null,
+                  h(
+                    "a",
+                    { href: playerHref(p.id), role: "option", id: `opt-${i}`, "aria-selected": "false" },
+                    h("span", null, p.name),
+                    h("span", { class: "pos" }, [p.position, p.team].filter(Boolean).join(" · ")),
+                  ),
+                ),
+              )
+            : [h("li", { class: "none" }, "No one by that name has been through the league.")]),
+        );
+        box.hidden = false;
+        $("q").setAttribute("aria-expanded", "true");
+      }
+
+      function setActive(i) {
+        const options = [...$("results").querySelectorAll("[role=option]")];
+        if (!options.length) return;
+        active = (i + options.length) % options.length;
+        options.forEach((o, j) => o.setAttribute("aria-selected", String(j === active)));
+        $("q").setAttribute("aria-activedescendant", options[active].id);
+      }
+
+      $("q").addEventListener("input", async (e) => {
+        try {
+          await loadIndex();
+          showResults(search(e.target.value), e.target.value);
+        } catch (err) {
+          showResults([], "");
+        }
+      });
+      $("q").addEventListener("focus", () => loadIndex().catch(() => {}));
+      $("q").addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          setActive(active + (e.key === "ArrowDown" ? 1 : -1));
+        } else if (e.key === "Enter") {
+          const options = $("results").querySelectorAll("[role=option]");
+          const pick = options[Math.max(active, 0)];
+          if (pick) {
+            e.preventDefault();
+            location.href = pick.href;
+          }
+        } else if (e.key === "Escape") {
+          showResults([], "");
+        }
+      });
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".search")) showResults([], "");
+      });
+
+      // ---------- Player ----------
+
+      let data;
+      // Owners go by their current Sleeper team name (else username), with
+      // their own name on hover.
+      const team = (id) => data.owners[id]?.label ?? "Unknown team";
+      const owner = (id) => {
+        if (!id) return h("span", null, "an unknown team");
+        const o = data.owners[id];
+        return h("a", { href: ownerHref(id), title: o && o.label !== o.name ? o.name : null }, team(id));
+      };
+
+      function asset(a) {
+        if (a.kind === "player") return h("a", { href: playerHref(a.id) }, a.name);
+        const label = `${a.season} ${ordinal(a.round)}`;
+        return a.became ? h("span", null, `${label} (`, h("a", { href: playerHref(a.became.id) }, a.became.name), ")") : h("span", null, label);
+      }
+
+      /** "A, B and C" as nodes. */
+      function list(assets) {
+        const out = [];
+        assets.forEach((a, i) => {
+          if (i > 0) out.push(i === assets.length - 1 ? " and " : ", ");
+          out.push(asset(a));
+        });
+        return out;
+      }
+
+      const detail = (label, assets) => (assets.length ? h("p", { class: "detail" }, h("b", null, `${label} `), list(assets)) : null);
+
+      function photo(p) {
+        const initials = p.name
+          .split(/\s+/)
+          .map((w) => w[0])
+          .slice(0, 2)
+          .join("");
+        const fallback = () => h("span", { class: "photo initials", "aria-hidden": "true" }, initials);
+        // Defenses go by their team's logo; everyone else by headshot. About
+        // one player in forty has no headshot, and Sleeper answers 403.
+        const src =
+          p.position === "DEF"
+            ? `https://sleepercdn.com/images/team_logos/nfl/${p.id.toLowerCase()}.png`
+            : `https://sleepercdn.com/content/nfl/players/thumb/${encodeURIComponent(p.id)}.jpg`;
+        const img = h("img", { class: "photo", src, alt: "", width: 112, height: 112, loading: "eager" });
+        img.addEventListener("error", () => img.replaceWith(fallback()));
+        return img;
+      }
+
+      const ADDED = { waiver: "Claimed off waivers by", free_agent: "Signed as a free agent by", commissioner: "Added by the commissioner to" };
+      const ADDED_TAG = { waiver: "Claimed", free_agent: "Signed", commissioner: "Added" };
+
+      function eventItem(e) {
+        if (e.kind === "drafted") {
+          const slot = `${e.round}.${String(e.pickInRound).padStart(2, "0")}`;
+          const trail = e.pickTrades.length
+            ? h(
+                "ol",
+                { class: "trail", "aria-label": "How the pick got there" },
+                h("li", { class: "leg muted" }, "The pick was ", owner(e.originalOwnerId), "'s to start with."),
+                e.pickTrades.map((l) =>
+                  h(
+                    "li",
+                    { class: "leg" },
+                    h("span", { class: "when" }, when(l.at)),
+                    owner(l.fromId),
+                    " traded it to ",
+                    owner(l.toId),
+                    ".",
+                    detail("With", l.sentWith),
+                    detail("For", l.receivedFor),
+                  ),
+                ),
+              )
+            : null;
+          return h(
+            "li",
+            { class: "event" },
+            h("span", { class: "when" }, String(e.year)),
+            h(
+              "div",
+              null,
+              h(
+                "p",
+                { class: "what" },
+                h("span", { class: "tag drafted" }, "Drafted"),
+                `Pick ${slot} in the ${e.year} ${e.startup ? "startup" : "rookie"} draft, by `,
+                owner(e.byId),
+                ".",
+              ),
+              trail,
+            ),
+          );
+        }
+        if (e.kind === "traded") {
+          return h(
+            "li",
+            { class: "event" },
+            h("span", { class: "when" }, when(e.at)),
+            h(
+              "div",
+              null,
+              h("p", { class: "what" }, h("span", { class: "tag traded" }, "Traded"), "From ", owner(e.fromId), " to ", owner(e.toId), "."),
+              detail("Along with", e.sentWith),
+              detail("For", e.receivedFor),
+            ),
+          );
+        }
+        const added = e.kind === "added";
+        return h(
+          "li",
+          { class: "event" },
+          h("span", { class: "when" }, when(e.at)),
+          h(
+            "div",
+            null,
+            h(
+              "p",
+              { class: "what" },
+              h("span", { class: `tag ${e.kind}` }, added ? ADDED_TAG[e.via] : "Dropped"),
+              added ? `${ADDED[e.via]} ` : "Dropped by ",
+              owner(e.byId),
+              ".",
+            ),
+            detail(added ? "Letting go of" : "To make room for", e.alongside),
+          ),
+        );
+      }
+
+      const tile = (label, big, small) =>
+        h("div", { class: "highlight" }, h("dt", null, label), h("dd", null, h("span", { class: "big" }, big), h("span", { class: "small" }, small)));
+
+      function render() {
+        const p = data.player;
+        document.title = `${p.name} — Any Given Sunday`;
+        $("intro").hidden = true;
+        $("profile").hidden = false;
+        $("photo").replaceWith(photo(p));
+        $("player-name").textContent = p.name;
+        $("meta").replaceChildren(
+          ...[
+            data.currentOwnerId
+              ? h("span", { class: "pill held" }, h("span", null, "On ", owner(data.currentOwnerId)))
+              : h("span", { class: "pill free" }, "Free agent"),
+            h("span", null, [p.position, p.team ?? "No NFL team"].filter(Boolean).join(" · ")),
+          ],
+        );
+
+        const draft = data.events.find((e) => e.kind === "drafted");
+        const held = new Set(
+          data.events.flatMap((e) => (e.kind === "drafted" ? [e.byId] : e.kind === "traded" ? [e.toId] : e.kind === "added" ? [e.byId] : [])).filter(Boolean),
+        );
+        const trades = data.events.filter((e) => e.kind === "traded").length;
+        const pickups = data.events.filter((e) => e.kind === "added").length;
+        $("highlights").replaceChildren(
+          draft
+            ? tile("Drafted", `${draft.round}.${String(draft.pickInRound).padStart(2, "0")}`, `${draft.year} ${draft.startup ? "startup" : "rookie"} draft · ${draft.byId ? team(draft.byId) : "—"}`)
+            : tile("Drafted", "Undrafted", "Came in off the wire"),
+          tile("Owners", held.size, held.size === 1 ? "Never changed hands" : "Have had a turn"),
+          tile("Moves", plural(trades, "trade"), `${plural(pickups, "pickup")} · ${plural(data.events.filter((e) => e.kind === "dropped").length, "drop")}`),
+        );
+        $("highlights").hidden = false;
+
+        $("timeline").replaceChildren(...data.events.map(eventItem));
+        $("path-section").hidden = data.events.length === 0;
+        if (!data.events.length) $("status").textContent = "No moves on record.";
+      }
+
+      const id = params.get("id");
+      if (id) {
+        try {
+          const res = await fetch(`/api/player?id=${encodeURIComponent(id)}&v=3`);
+          if (res.status === 404) throw new Error("no one with that id has been through the league");
+          if (!res.ok) throw new Error(`request failed (${res.status})`);
+          data = await res.json();
+          render();
+        } catch (err) {
+          const status = $("status");
+          status.className = "status error";
+          status.textContent = `Couldn't load this player: ${err.message}`;
+        }
+      } else {
+        $("q").focus();
+      }
+    </script>
+  </body>
+</html>

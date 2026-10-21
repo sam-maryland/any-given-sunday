@@ -1,4 +1,5 @@
 import { handleHistoryRequest } from "./api/history";
+import { handlePlayerRequest, handlePlayersRequest } from "./api/player";
 import { handlePlayoffRaceRequest } from "./api/playoffRace";
 import { handleStandingsRequest } from "./api/standings";
 import { SupabaseClient } from "./data/supabase";
@@ -84,6 +85,20 @@ export default {
       }
       if (url.pathname === "/api/history") {
         return handleHistoryRequest(
+          new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
+          url,
+          ctx,
+        );
+      }
+      if (url.pathname === "/api/player") {
+        return handlePlayerRequest(
+          new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
+          url,
+          ctx,
+        );
+      }
+      if (url.pathname === "/api/players") {
+        return handlePlayersRequest(
           new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
           url,
           ctx,

@@ -118,3 +118,30 @@ describe("SupabaseClient paged reads", () => {
     expect(requests).toHaveLength(2);
   });
 });
+
+describe("SupabaseClient player reads", () => {
+  const db = () => new SupabaseClient("https://example.supabase.co", "service-key");
+
+  it("reads a player's transactions through the database function", async () => {
+    await db().getPlayerTransactions("11626");
+    expect(requests[0]?.url).toBe("https://example.supabase.co/rest/v1/rpc/player_transactions?player_id=11626");
+    expect(requests[0]?.method).toBe("GET");
+  });
+
+  it("looks players up by id, quoted, and skips the request for none", async () => {
+    await db().getPlayersByIds([]);
+    expect(requests).toHaveLength(0);
+    await db().getPlayersByIds(["4046", "KC"]);
+    expect(decodeURIComponent(new URL(requests[0]!.url).search)).toBe('?select=id,name,position,team&id=in.("4046","KC")');
+  });
+
+  it("finds made picks by the slot a traded pick names", async () => {
+    await db().getDraftPicksBySlots([
+      { year: 2024, round: 2, originalRosterId: 5 },
+      { year: 2025, round: 1, originalRosterId: 11 },
+    ]);
+    expect(new URL(requests[0]!.url).searchParams.get("or")).toBe(
+      "(and(year.eq.2024,round.eq.2,original_roster_id.eq.5),and(year.eq.2025,round.eq.1,original_roster_id.eq.11))",
+    );
+  });
+});

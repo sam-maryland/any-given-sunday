@@ -325,6 +325,15 @@ footer a {
 
 
 @media (max-width: 38rem) {
+/* Three nav links and the full wordmark don't fit a phone on one line: keep
+   the mark, drop the words (still read out, since the text stays). */
+.eyebrow {
+  font-size: 0;
+  letter-spacing: 0;
+}
+.nav a {
+  padding-inline: 0.6rem;
+}
 .highlights {
   grid-template-columns: minmax(0, 1fr);
 }
