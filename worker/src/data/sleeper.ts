@@ -24,6 +24,8 @@ export interface NFLState {
 export interface SleeperLeague {
   league_id: string;
   status: string;
+  /** The league's draft: the startup draft in 2023, a rookie draft since. */
+  draft_id?: string | null;
   settings: {
     /**
      * The last week Sleeper has finished scoring, and the only authoritative
@@ -73,6 +75,67 @@ export interface SleeperMatchup {
   matchup_id: number | null;
   roster_id: number;
   points: number;
+}
+
+/**
+ * A pick that changed hands in a trade. Picks are named by the roster they
+ * were originally issued to (`roster_id`) and the season and round, which is
+ * how a draft pick is later traced back to the trades that moved it. All three
+ * owner fields are roster ids.
+ */
+export interface SleeperTradedPick {
+  season: string;
+  round: number;
+  roster_id: number;
+  previous_owner_id: number;
+  owner_id: number;
+  league_id?: string | null;
+}
+
+export interface SleeperWaiverBudget {
+  sender: number;
+  receiver: number;
+  amount: number;
+}
+
+export interface SleeperTransaction {
+  transaction_id: string;
+  /** "trade", "waiver", "free_agent" or "commissioner". */
+  type: string;
+  /** "complete" or "failed"; failed is a waiver claim that lost out. */
+  status: string;
+  /** The week it was processed in. Offseason moves are filed under 1. */
+  leg: number;
+  roster_ids: number[];
+  /** Player id to the roster that received them. */
+  adds: Record<string, number> | null;
+  /** Player id to the roster that gave them up. */
+  drops: Record<string, number> | null;
+  draft_picks: SleeperTradedPick[] | null;
+  waiver_budget: SleeperWaiverBudget[] | null;
+  /** Epoch milliseconds. */
+  created: number;
+  status_updated: number | null;
+}
+
+export interface SleeperDraft {
+  draft_id: string;
+  status: string;
+  /**
+   * Board column to the roster the column belongs to. A pick's column says
+   * whose pick it originally was, whoever ended up making it.
+   */
+  slot_to_roster_id: Record<string, number> | null;
+}
+
+export interface SleeperDraftPick {
+  pick_no: number;
+  round: number;
+  draft_slot: number;
+  /** The roster that made the pick. */
+  roster_id: number;
+  player_id: string;
+  metadata: { first_name?: string; last_name?: string; position?: string } | null;
 }
 
 async function getUrl<T>(url: string): Promise<T> {
@@ -128,6 +191,21 @@ export function getMatchupsForWeek(leagueId: string, week: number): Promise<Slee
 
 export function getWinnersBracket(leagueId: string): Promise<SleeperBracketMatch[]> {
   return get<SleeperBracketMatch[]>(`/league/${encodeURIComponent(leagueId)}/winners_bracket`);
+}
+
+export function getTransactionsForWeek(
+  leagueId: string,
+  week: number,
+): Promise<SleeperTransaction[]> {
+  return get<SleeperTransaction[]>(`/league/${encodeURIComponent(leagueId)}/transactions/${week}`);
+}
+
+export function getDraft(draftId: string): Promise<SleeperDraft> {
+  return get<SleeperDraft>(`/draft/${encodeURIComponent(draftId)}`);
+}
+
+export function getDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
+  return get<SleeperDraftPick[]>(`/draft/${encodeURIComponent(draftId)}/picks`);
 }
 
 export function getUsersInLeague(leagueId: string): Promise<SleeperUser[]> {

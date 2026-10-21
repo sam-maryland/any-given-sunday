@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the database structure for the Any Given Sunday fantasy football league application. The database consists of three main tables that track users, matchups, and league information.
+This document outlines the database structure for the Any Given Sunday fantasy football league application. The database tracks users, matchups and league information, plus each season's rosters, transactions and draft from Sleeper.
 
 ## Tables
 
@@ -52,6 +52,57 @@ Stores league-level information and final standings.
 | status | text | DEFAULT '', NOT NULL* | League status (IN_PROGRESS, COMPLETE, PENDING) |
 
 *Note: In Supabase, status column is nullable with no default value
+
+### rosters
+Which owner held each Sleeper roster in a season. Sleeper's transactions and draft picks name rosters, not users.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| league_id | text | NOT NULL, REFERENCES leagues(id) | Sleeper League ID |
+| roster_id | integer | NOT NULL | Sleeper roster ID within that league |
+| user_id | text | NOT NULL, REFERENCES users(id) | Owner of the roster that season |
+
+**Indexes:** `idx_rosters_league_roster` unique on (league_id, roster_id)
+
+### transactions
+Every Sleeper transaction: trades, waiver claims (including failed ones), free agent pickups and commissioner moves. Offseason moves belong to the league they were made in, filed under week 1. Synced by the weekly recap; `npm run backfill-activity` fills in earlier seasons.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | text | PRIMARY KEY | Sleeper transaction ID |
+| league_id | text | NOT NULL, REFERENCES leagues(id) | League the transaction was made in |
+| year | integer | NOT NULL | Season of that league |
+| week | integer | NOT NULL | Sleeper's leg |
+| type | text | NOT NULL | trade, waiver, free_agent or commissioner |
+| status | text | NOT NULL | complete or failed |
+| roster_ids | integer[] | NOT NULL | Rosters involved |
+| adds | jsonb | NULL | Player ID → roster that received them |
+| drops | jsonb | NULL | Player ID → roster that gave them up |
+| draft_picks | jsonb | NOT NULL, DEFAULT '[]' | Picks moved: season, round, roster_id (the roster the pick was issued to), previous_owner_id, owner_id — all roster IDs |
+| waiver_budget | jsonb | NOT NULL, DEFAULT '[]' | FAAB moved: sender, receiver, amount |
+| created_at | timestamptz | NOT NULL | When the transaction was proposed |
+| completed_at | timestamptz | NULL | When it was processed |
+
+**Indexes:** `idx_transactions_year_week` on (year, week); `idx_transactions_adds` GIN on adds, for finding every move involving a player
+
+### draft_picks
+Every pick in each league's draft: the 2023 startup draft, then the yearly rookie drafts. Stored once Sleeper marks the draft complete.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| draft_id | text | NOT NULL | Sleeper draft ID |
+| league_id | text | NOT NULL, REFERENCES leagues(id) | League the draft belongs to |
+| year | integer | NOT NULL | Season of that league |
+| pick_no | integer | NOT NULL | Overall pick number |
+| round | integer | NOT NULL | Round |
+| draft_slot | integer | NOT NULL | Column of the draft board |
+| original_roster_id | integer | NOT NULL | Roster the pick was issued to (from the draft's slot_to_roster_id); matches a traded pick's roster_id |
+| roster_id | integer | NOT NULL | Roster that made the pick |
+| player_id | text | NOT NULL | Sleeper player ID |
+| player_name | text | NOT NULL | Name as Sleeper had it at the draft |
+| position | text | NOT NULL | Position as Sleeper had it at the draft |
+
+**Indexes:** `idx_draft_picks_draft_pick` unique on (draft_id, pick_no); `idx_draft_picks_player` on player_id
 
 ## Views
 

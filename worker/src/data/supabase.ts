@@ -1,9 +1,12 @@
 import {
   CareerStatsRow,
+  DraftPick,
   League,
   LeagueStatus,
   Matchup,
   NewMatchup,
+  Roster,
+  Transaction,
   User,
   UserMap,
 } from "../domain/types";
@@ -106,6 +109,46 @@ export class SupabaseClient {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify(rows),
     });
+  }
+
+  // Inserts or replaces rows by their natural key in a single request, so a
+  // re-run of the same weeks rewrites rows instead of failing on duplicates.
+  private async upsert<T>(table: string, onConflict: string, rows: T[]): Promise<void> {
+    if (rows.length === 0) {
+      return;
+    }
+    await this.request<void>(`${table}?on_conflict=${onConflict}`, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(rows),
+    });
+  }
+
+  async upsertRosters(rows: Roster[]): Promise<void> {
+    await this.upsert("rosters", "league_id,roster_id", rows);
+  }
+
+  async upsertTransactions(rows: Transaction[]): Promise<void> {
+    await this.upsert("transactions", "id", rows);
+  }
+
+  async upsertDraftPicks(rows: DraftPick[]): Promise<void> {
+    await this.upsert("draft_picks", "draft_id,pick_no", rows);
+  }
+
+  // The latest week with a stored transaction for a league, or null if none.
+  async getLatestTransactionWeek(leagueId: string): Promise<number | null> {
+    const rows = await this.request<Pick<Transaction, "week">[]>(
+      `transactions?league_id=eq.${encodeURIComponent(leagueId)}&select=week&order=week.desc&limit=1`,
+    );
+    return rows[0]?.week ?? null;
+  }
+
+  async hasDraftPicks(draftId: string): Promise<boolean> {
+    const rows = await this.request<Pick<DraftPick, "pick_no">[]>(
+      `draft_picks?draft_id=eq.${encodeURIComponent(draftId)}&select=pick_no&limit=1`,
+    );
+    return rows.length > 0;
   }
 
   async updateMatchupScores(

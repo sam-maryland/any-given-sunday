@@ -36,6 +36,65 @@ create table if not exists leagues (
                                        status text default '' not null          -- Status of the league (e.g., 'IN_PROGRESS', 'COMPLETE', 'PENDING')
 );
 
+-- Which owner held each Sleeper roster in a season. Sleeper's transactions
+-- and draft picks name rosters, not users, and a roster can change hands
+-- between seasons, so the mapping is kept per league rather than read live.
+create table if not exists rosters (
+                                       league_id text not null references leagues(id), -- Sleeper League ID
+                                       roster_id integer not null,                     -- Sleeper roster ID within that league
+                                       user_id text not null references users(id)      -- Owner of the roster that season
+);
+
+create unique index if not exists idx_rosters_league_roster on rosters(league_id, roster_id);
+
+-- Every Sleeper transaction: trades, waiver claims (including failed ones),
+-- free agent pickups and commissioner moves. Offseason moves belong to the
+-- league they were made in, which Sleeper files under week 1.
+create table if not exists transactions (
+                                            id text primary key,                            -- Sleeper transaction ID
+                                            league_id text not null references leagues(id), -- League the transaction was made in
+                                            year integer not null,                          -- Season of that league
+                                            week integer not null,                          -- Sleeper's leg
+                                            type text not null,                             -- 'trade', 'waiver', 'free_agent' or 'commissioner'
+                                            status text not null,                           -- 'complete' or 'failed'
+                                            roster_ids integer[] not null,                  -- Rosters involved
+                                            adds jsonb,                                     -- Player ID -> roster that received them
+                                            drops jsonb,                                    -- Player ID -> roster that gave them up
+                                            draft_picks jsonb default '[]' not null,        -- Picks moved: season, round, roster_id (original), previous_owner_id, owner_id
+                                            waiver_budget jsonb default '[]' not null,      -- FAAB moved: sender, receiver, amount
+                                            created_at timestamptz not null,                -- When the transaction was proposed
+                                            completed_at timestamptz                        -- When it was processed
+);
+
+create index if not exists idx_transactions_year_week on transactions(year, week);
+create index if not exists idx_transactions_adds on transactions using gin (adds);
+
+-- Every pick made in a league's draft: the 2023 startup draft, then the
+-- yearly rookie drafts.
+create table if not exists draft_picks (
+                                           draft_id text not null,                         -- Sleeper draft ID
+                                           league_id text not null references leagues(id), -- League the draft belongs to
+                                           year integer not null,                          -- Season of that league
+                                           pick_no integer not null,                       -- Overall pick number
+                                           round integer not null,                         -- Round of the pick
+                                           draft_slot integer not null,                    -- Column of the draft board
+                                           original_roster_id integer not null,            -- Roster the pick was issued to; what traded picks name
+                                           roster_id integer not null,                     -- Roster that made the pick
+                                           player_id text not null,                        -- Sleeper player ID
+                                           player_name text not null,                      -- Name as Sleeper had it at the draft
+                                           position text not null                          -- Position as Sleeper had it at the draft
+);
+
+create unique index if not exists idx_draft_picks_draft_pick on draft_picks(draft_id, pick_no);
+create index if not exists idx_draft_picks_player on draft_picks(player_id);
+
+-- Only the Worker reads and writes these, with the service role key, which
+-- bypasses RLS. Enabling it with no policies keeps them out of reach of the
+-- public anon key, as with users and matchups.
+alter table rosters enable row level security;
+alter table transactions enable row level security;
+alter table draft_picks enable row level security;
+
 CREATE OR REPLACE VIEW career_stats with (security_invoker = on) AS
 SELECT
     u.id AS user_id,
