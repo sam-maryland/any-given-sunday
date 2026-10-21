@@ -138,6 +138,26 @@ export interface SleeperDraftPick {
   metadata: { first_name?: string; last_name?: string; position?: string } | null;
 }
 
+/** One entry of Sleeper's player list. Defenses have no full_name. */
+export interface SleeperPlayer {
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  position?: string | null;
+  team?: string | null;
+}
+
+/**
+ * Every NFL player Sleeper knows, keyed by player id, retired ones included.
+ *
+ * About 15 MB of JSON: parsing it alone takes twice the free plan's 10 ms of
+ * CPU, so only the scripts call this, never the Worker. Sleeper asks that it
+ * be fetched at most once a day.
+ */
+export function getAllPlayers(): Promise<Record<string, SleeperPlayer>> {
+  return get("/players/nfl");
+}
+
 async function getUrl<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: { Accept: "application/json" },

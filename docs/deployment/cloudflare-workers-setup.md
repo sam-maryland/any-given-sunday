@@ -97,6 +97,22 @@ on every push to `main` that touches `worker/`. It needs one GitHub
 secret: `CLOUDFLARE_API_TOKEN` (create at Cloudflare dashboard → My
 Profile → API Tokens → "Edit Cloudflare Workers" template).
 
+### Player names (GitHub Action)
+
+Transactions and draft picks name players by Sleeper id. Their names come
+from Sleeper's full player list, about 15 MB of JSON: parsing it alone takes
+roughly 20 ms of CPU, twice the free plan's 10 ms limit, so the Worker
+cannot do it. `.github/workflows/sync-players.yml` runs
+`npm run sync-players` instead, Tuesdays at 13:00 UTC (two hours after the
+recap), and can be run by hand from the Actions tab. It writes the
+`players` table for everyone who has been drafted, traded, claimed or
+dropped in the league, and needs two GitHub secrets: `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`, the same values the Worker uses. Locally,
+`npm run sync-players` reads them from `.dev.vars`.
+
+Player photos need none of this: the site loads them straight from
+Sleeper's CDN by player id.
+
 ## The weekly recap (cron trigger)
 
 Runs **Tuesdays at 8am Eastern, every week, year-round**. Discord posting and

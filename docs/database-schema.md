@@ -104,6 +104,17 @@ Every pick in each league's draft: the 2023 startup draft, then the yearly rooki
 
 **Indexes:** `idx_draft_picks_draft_pick` unique on (draft_id, pick_no); `idx_draft_picks_player` on player_id
 
+### players
+Every NFL player who has been through the league: drafted, traded, claimed or dropped. Transactions and draft picks name players by Sleeper id only. Written weekly by the sync-players GitHub Action (`npm run sync-players`), which reads Sleeper's full player list — too big for the Worker on the free plan. Photos are not stored: Sleeper serves them at `https://sleepercdn.com/content/nfl/players/thumb/{id}.jpg` (a few players have none), and defenses use `https://sleepercdn.com/images/team_logos/nfl/{id lowercased}.png`.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | text | PRIMARY KEY | Sleeper player ID; a team abbreviation for a defense |
+| name | text | NOT NULL | Current name |
+| position | text | NULL | Current position |
+| team | text | NULL | Current NFL team; null for a free agent or retired player |
+| updated_at | timestamptz | NOT NULL, DEFAULT now() | When the sync last wrote the row |
+
 ## Views
 
 ### career_stats
