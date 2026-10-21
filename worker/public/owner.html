@@ -219,6 +219,43 @@
         background: var(--line-2);
       }
 
+      /* ---------- Trades ---------- */
+
+      .trade-tiles {
+        margin-top: 0;
+      }
+
+      .partners {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 1.25rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .partners a {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.45rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: background 0.2s var(--ease);
+      }
+
+      .partners a:hover {
+        background: var(--line-2);
+      }
+
+      .partners .n {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--ink-3);
+      }
+
       .notice {
         margin-top: 2rem;
         font-size: 1.05rem;
@@ -313,6 +350,15 @@
             <tbody id="h2h"></tbody>
           </table>
         </div>
+      </section>
+
+      <section id="trades-section" aria-labelledby="trades-title" hidden>
+        <div class="section-head">
+          <h2 id="trades-title">Trades</h2>
+          <span class="hint">Since the 2023 startup</span>
+        </div>
+        <dl class="highlights trade-tiles" id="trade-tiles"></dl>
+        <ul class="partners" id="partners" aria-label="Trade partners"></ul>
       </section>
 
       <section aria-labelledby="others-title">
@@ -448,6 +494,43 @@
         $("h2h-section").hidden = rows.length === 0;
       }
 
+      function renderTrades(o) {
+        const t = o.trades;
+        const partners = t.partners
+          .filter((p) => byId.has(p.userId))
+          .sort((a, b) => b.trades - a.trades || byId.get(a.userId).name.localeCompare(byId.get(b.userId).name));
+        const top = partners[0];
+        // Only a clear favourite gets named; a tie at the top is just a spread.
+        const favourite = top && top.trades > 1 && partners[1]?.trades !== top.trades ? top : null;
+        const adds = t.waiverAdds + t.freeAgentAdds;
+        const net = t.picksReceived - t.picksSent;
+
+        $("trade-tiles").replaceChildren(
+          tile(
+            "Trades made",
+            t.trades || "None yet",
+            !t.trades
+              ? "Holding steady"
+              : favourite
+                ? `Most with ${byId.get(favourite.userId).name} (${favourite.trades})`
+                : `With ${plural(partners.length, "owner")}`,
+          ),
+          tile(
+            "Draft picks",
+            `${t.picksReceived} in · ${t.picksSent} out`,
+            !t.picksReceived && !t.picksSent ? "Kept every pick" : net > 0 ? `Up ${plural(net, "pick")} on the deal` : net < 0 ? `Spent ${plural(-net, "pick")} net` : "Even on picks",
+          ),
+          tile("Waiver wire", plural(adds, "pickup"), `${t.waiverAdds} on waivers · ${t.freeAgentAdds} free agents · ${plural(t.failedClaims, "failed claim")}`),
+        );
+        $("partners").replaceChildren(
+          ...partners.map((p) =>
+            h("li", null, h("a", { href: ownerHref(byId.get(p.userId)) }, byId.get(p.userId).name, h("span", { class: "n" }, `×${p.trades}`))),
+          ),
+        );
+        $("partners").hidden = partners.length === 0;
+        $("trades-section").hidden = false;
+      }
+
       function renderOthers(current) {
         const others = [...data.owners].filter((o) => o !== current).sort((a, b) => a.name.localeCompare(b.name));
         $("others").replaceChildren(...others.map((o) => h("li", null, h("a", { href: ownerHref(o) }, o.name))));
@@ -482,6 +565,7 @@
         renderHighlights(o);
         renderSeasons(o);
         renderH2H(o);
+        renderTrades(o);
         renderOthers(o);
       }
 

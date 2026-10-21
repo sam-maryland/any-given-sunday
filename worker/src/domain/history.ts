@@ -6,7 +6,8 @@ import {
   PAY_OUT_WEEKLY_HIGH_SCORE,
 } from "./careerStats";
 import { Finish, standingsForLeague } from "./standings";
-import { League, LeagueStatus, NewMatchup, UserMap } from "./types";
+import { TradeStats, buildTradeStats, emptyTradeStats } from "./trades";
+import { League, LeagueStatus, NewMatchup, Roster, Transaction, UserMap } from "./types";
 
 /**
  * The league's whole history, per owner and league-wide, for the website's
@@ -82,6 +83,7 @@ export interface OwnerHistory {
   seasonLines: SeasonLine[];
   /** Most-played opponents first. */
   headToHead: HeadToHead[];
+  trades: TradeStats;
 }
 
 export interface Podium {
@@ -171,10 +173,13 @@ export function buildLeagueHistory(
   matchups: NewMatchup[],
   users: UserMap,
   teamNames: Map<string, string>,
+  transactions: Transaction[] = [],
+  rosters: Roster[] = [],
 ): LeagueHistory {
   const started = leagues.filter((l) => l.status !== LeagueStatus.Pending).sort((a, b) => a.year - b.year);
   const regular = matchups.filter((m) => !m.is_playoff);
   const highScores = highScoreWeeks(regular);
+  const trades = buildTradeStats(transactions, rosters);
 
   // Seed and finish per owner per season, from the standings themselves.
   const placed = new Map<string, { seed: number; finish: Finish | null }>();
@@ -274,6 +279,7 @@ export function buildLeagueHistory(
       headToHead: [...h2h.values()]
         .map((row) => ({ ...row, pointsFor: round2(row.pointsFor), pointsAgainst: round2(row.pointsAgainst) }))
         .sort((a, b) => games(b.record) - games(a.record) || (users.get(a.opponentId)?.name ?? "").localeCompare(users.get(b.opponentId)?.name ?? "")),
+      trades: trades.get(userId) ?? emptyTradeStats(),
     });
   }
 
