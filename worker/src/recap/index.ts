@@ -2,6 +2,7 @@ import { SleeperGame, getLeague, getNFLSchedule, getNFLState, withTeamNames } fr
 import { SupabaseClient } from "../data/supabase";
 import { LeagueStatus, UserMap } from "../domain/types";
 import { formatWeeklySummary, summaryFromMatchups } from "../domain/weeklySummary";
+import { ActivitySyncResult, syncLeagueActivity } from "./activity";
 import { postToChannel } from "./channel";
 import { sendWeeklyRecap } from "./email";
 import { lastCompletedWeek, sleeperLastScoredWeek, syncLatestData } from "./sync";
@@ -28,6 +29,8 @@ export interface RecapOutcome {
   week?: number;
   seasonType?: string;
   synced?: { weeksFetched: number[]; inserted: number; updated: number };
+  /** Transactions and draft picks stored this run; absent if that sync failed. */
+  activity?: ActivitySyncResult;
   /** Why nothing was sent this run, when the recap otherwise succeeded. */
   notificationsHeld?: string;
   discord?: "posted" | "skipped" | "failed" | "dry-run";
@@ -126,6 +129,8 @@ export async function runWeeklyRecap(
     console.log(JSON.stringify({ event: "league_completed", year: league.year, ...synced.podium }));
   }
 
+  const activity = await syncActivity(db, league.id, league.year, sleeperLeague.draft_id, nflState.week);
+
   const users = await db.getUsers();
   const summary = summaryFromMatchups(league, synced.matchups, users);
   if (!summary) {
@@ -138,6 +143,7 @@ export async function runWeeklyRecap(
         inserted: synced.inserted,
         updated: synced.updated,
       },
+      activity,
     };
   }
 
@@ -154,6 +160,7 @@ export async function runWeeklyRecap(
       inserted: synced.inserted,
       updated: synced.updated,
     },
+    activity,
     message,
   };
 
@@ -172,6 +179,34 @@ export async function runWeeklyRecap(
   outcome.email = await emailRecap(config, league.id, summary, users);
 
   return outcome;
+}
+
+/**
+ * Stores the league's transactions and draft. Nothing in the recap depends on
+ * them yet, so a failure here is logged and the recap carries on.
+ *
+ * Sleeper files a transaction under the NFL week it is processed in, so the
+ * current week is the last one that can have any.
+ */
+async function syncActivity(
+  db: SupabaseClient,
+  leagueId: string,
+  year: number,
+  draftId: string | null | undefined,
+  currentWeek: number,
+): Promise<ActivitySyncResult | undefined> {
+  try {
+    return await syncLeagueActivity(db, leagueId, year, draftId, Math.max(currentWeek, 1));
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        event: "activity_sync_failed",
+        leagueId,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+    return undefined;
+  }
 }
 
 /**

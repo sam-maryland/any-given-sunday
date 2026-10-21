@@ -69,6 +69,19 @@ describe("SupabaseClient write responses", () => {
     expect(requests).toHaveLength(0);
   });
 
+  it("upserts on the natural key so a re-read week rewrites its rows", async () => {
+    responses = [new Response("", { status: 201 })];
+    await db().upsertRosters([{ league_id: "L", roster_id: 1, user_id: "u1" }]);
+    expect(requests[0]?.url).toBe("https://example.supabase.co/rest/v1/rosters?on_conflict=league_id,roster_id");
+    expect(requests[0]?.method).toBe("POST");
+    expect(requests[0]?.prefer).toBe("resolution=merge-duplicates,return=minimal");
+  });
+
+  it("writes nothing when there are no rows to upsert", async () => {
+    await db().upsertTransactions([]);
+    expect(requests).toHaveLength(0);
+  });
+
   it("reports a failed write with its status and body", async () => {
     responses = [new Response("violates foreign key constraint", { status: 409 })];
     await expect(db().insertMatchups([matchup])).rejects.toThrow(/409.*foreign key/);

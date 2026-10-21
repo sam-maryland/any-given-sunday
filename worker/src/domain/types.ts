@@ -88,3 +88,51 @@ export function matchupWinnerAndLoser(m: NewMatchup): { winner: string; loser: s
   }
   return { winner: "", loser: "" };
 }
+
+/** Which owner held a Sleeper roster in a season. */
+export interface Roster {
+  league_id: string;
+  roster_id: number;
+  user_id: string;
+}
+
+/** A pick moved in a trade, named by the roster it was originally issued to. */
+export interface TradedPick {
+  season: string;
+  round: number;
+  roster_id: number;
+  previous_owner_id: number;
+  owner_id: number;
+}
+
+export interface Transaction {
+  id: string;
+  league_id: string;
+  year: number;
+  week: number;
+  type: string;
+  status: string;
+  roster_ids: number[];
+  adds: Record<string, number> | null;
+  drops: Record<string, number> | null;
+  draft_picks: TradedPick[];
+  waiver_budget: { sender: number; receiver: number; amount: number }[];
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface DraftPick {
+  draft_id: string;
+  league_id: string;
+  year: number;
+  pick_no: number;
+  round: number;
+  draft_slot: number;
+  /** The roster the pick was issued to; what a traded pick's roster_id names. */
+  original_roster_id: number;
+  /** The roster that made the pick. */
+  roster_id: number;
+  player_id: string;
+  player_name: string;
+  position: string;
+}
