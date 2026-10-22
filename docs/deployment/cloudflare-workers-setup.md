@@ -120,8 +120,8 @@ it back unparsed (so it stays inside 10 ms of CPU) with a one-day browser
 cache, which lets the site name the players in any Sleeper league's
 transactions. Until the first sync writes it, the endpoint answers 404.
 
-One-time setup, **before merging the binding to `main`** (a deploy whose
-`wrangler.jsonc` still holds the placeholder id fails):
+One-time setup (the namespace already exists; these steps are for
+recreating it, e.g. on a new account):
 
 1. Create the namespace from `worker/`:
 
@@ -130,7 +130,7 @@ One-time setup, **before merging the binding to `main`** (a deploy whose
    ```
 
 2. Paste the `id` it prints into the `PLAYERS` entry of `kv_namespaces` in
-   `worker/wrangler.jsonc`, replacing `REPLACE_WITH_PLAYERS_KV_NAMESPACE_ID`.
+   `worker/wrangler.jsonc`.
 3. Add two GitHub secrets: `CLOUDFLARE_ACCOUNT_ID` (the `account_id` in
    `wrangler.jsonc`) and `PLAYERS_KV_NAMESPACE_ID` (the same id as step 2).
    The Action reuses the deploy's `CLOUDFLARE_API_TOKEN`; the "Edit
