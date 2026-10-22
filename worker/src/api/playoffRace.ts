@@ -1,41 +1,13 @@
 import { getLeague, getMatchupsForWeek, getRostersInLeague } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
+import { PlayoffRacePayload, playoffRacePayload } from "../domain/payloads";
 import { Pairing } from "../domain/playoffRace";
-import { PLAYOFF_TEAM_COUNT } from "../domain/standings";
 import { LeagueStatus } from "../domain/types";
 import { groupIntoHeadToHead } from "../recap/sync";
 import { lastSyncBoundary } from "../recap/schedule";
 import { cachedJsonResponse, epochCacheKey } from "./cache";
-import { BYE_SEEDS } from "./standings";
 
-/** A regular season game already played, at full scoring precision. */
-export interface PlayedGame {
-  week: number;
-  homeId: string;
-  awayId: string;
-  homeScore: number;
-  awayScore: number;
-}
-
-export type PlayoffRacePayload =
-  | { active: false; reason: string }
-  | {
-      active: true;
-      year: number;
-      /** The latest synced regular season week, or 0 before week 1 lands. */
-      throughWeek: number;
-      lastRegularWeek: number;
-      playoffTeams: number;
-      byeTeams: number;
-      /**
-       * Played games with unrounded scores. The standings payload rounds to
-       * one decimal for display, which is not precise enough to settle a
-       * points-for tiebreak the way the real standings do.
-       */
-      played: PlayedGame[];
-      remaining: Pairing[];
-      syncedAt: string;
-    };
+export type { PlayedGame, PlayoffRacePayload } from "../domain/payloads";
 
 // Same reasoning as the standings endpoint: the epoch covers the weekly sync,
 // the edge bound covers an out-of-band edit.
@@ -75,23 +47,7 @@ async function loadPlayoffRace(db: SupabaseClient, syncedAt: Date): Promise<Play
     }
   }
 
-  return {
-    active: true,
-    year: league.year,
-    throughWeek,
-    lastRegularWeek,
-    playoffTeams: PLAYOFF_TEAM_COUNT,
-    byeTeams: BYE_SEEDS,
-    played: played.map((m) => ({
-      week: m.week,
-      homeId: m.home_user_id,
-      awayId: m.away_user_id,
-      homeScore: m.home_score,
-      awayScore: m.away_score,
-    })),
-    remaining,
-    syncedAt: syncedAt.toISOString(),
-  };
+  return playoffRacePayload({ league, played, remaining, lastRegularWeek, syncedAt });
 }
 
 /**

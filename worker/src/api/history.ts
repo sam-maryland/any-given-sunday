@@ -1,12 +1,11 @@
 import { ownerLabels } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
-import { LeagueHistory, buildLeagueHistory } from "../domain/history";
+import { buildLeagueHistory } from "../domain/history";
+import { HistoryPayload } from "../domain/payloads";
 import { lastSyncBoundary } from "../recap/schedule";
 import { cachedJsonResponse, epochCacheKey } from "./cache";
 
-export interface HistoryPayload extends LeagueHistory {
-  syncedAt: string;
-}
+export type { HistoryPayload } from "../domain/payloads";
 
 // Same reasoning as the standings endpoint: the epoch covers the weekly sync,
 // the edge bound covers an out-of-band edit.

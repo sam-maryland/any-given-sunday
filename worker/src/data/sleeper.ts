@@ -6,11 +6,13 @@ export interface SleeperUser {
   user_id: string;
   username: string;
   display_name: string;
+  avatar?: string | null;
   metadata?: { team_name?: string } | null;
 }
 
 export interface SleeperRoster {
   roster_id: number;
+  /** Null for a roster nobody owns (an orphaned team). */
   owner_id: string;
   co_owners?: string[] | null;
 }
@@ -23,10 +25,24 @@ export interface NFLState {
 
 export interface SleeperLeague {
   league_id: string;
+  /** "pre_draft", "drafting", "in_season" or "complete". */
   status: string;
+  name?: string;
+  /** The season as a year, e.g. "2026". */
+  season?: string;
+  /** Last season's league; a league gets a new id every season. */
+  previous_league_id?: string | null;
+  avatar?: string | null;
   /** The league's draft: the startup draft in 2023, a rookie draft since. */
   draft_id?: string | null;
   settings: {
+    /** 0 redraft, 1 keeper, 2 dynasty. */
+    type?: number;
+    playoff_teams?: number;
+    /** 1 when every team also plays the weekly median. */
+    league_average_match?: number;
+    /** How many divisions; absent or 0 without. */
+    divisions?: number | null;
     /**
      * The last week Sleeper has finished scoring, and the only authoritative
      * answer to "which weeks are done". NFLState.week cannot stand in for it:
@@ -58,6 +74,14 @@ export interface SleeperBracketMatch {
   w: number | null;
   l: number | null;
   p?: number;
+  /**
+   * Where each team came from: the winner ({ w: m }) or loser ({ l: m }) of
+   * game m. A game fed by a loser is a consolation game, not the bracket
+   * proper — the third place game, or in bigger brackets the games deciding
+   * fifth place and below.
+   */
+  t1_from?: { w?: number; l?: number } | null;
+  t2_from?: { w?: number; l?: number } | null;
 }
 
 export interface SleeperGame {
@@ -135,6 +159,8 @@ export interface SleeperDraftPick {
   /** The roster that made the pick. */
   roster_id: number;
   player_id: string;
+  /** A kept player, in a keeper league's draft. */
+  is_keeper?: boolean | null;
   metadata: { first_name?: string; last_name?: string; position?: string } | null;
 }
 

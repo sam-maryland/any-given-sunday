@@ -38,6 +38,8 @@ export type PlayerEvent =
       kind: "drafted";
       year: number;
       startup: boolean;
+      /** Kept from last season rather than drafted, in a keeper league. */
+      keeper: boolean;
       round: number;
       /** Pick within the round: the 4 of 1.04. */
       pickInRound: number;
@@ -187,6 +189,7 @@ export function buildPlayerHistory(input: PlayerHistoryInput): PlayerHistory {
       kind: "drafted",
       year: pick.year,
       startup: pick.year === input.startupYear,
+      keeper: pick.is_keeper === true,
       round: pick.round,
       pickInRound: size ? ((pick.pick_no - 1) % size) + 1 : pick.draft_slot,
       pickNo: pick.pick_no,

@@ -13,5 +13,8 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "vitest.config.ts"],
+  // The browser bundle is checked on its own, with the DOM's types instead of
+  // the Workers runtime's (tsconfig.client.json).
+  "exclude": ["src/client/**"]
 }

@@ -1,6 +1,8 @@
 # Fantasy Football Standings Calculation
 
-This document explains how team standings are calculated in our fantasy football league system. Understanding these calculations helps explain why teams are ranked in their positions and what determines playoff seeding.
+This document explains how team standings are calculated in our fantasy football league system.
+
+The website serves any Sleeper league. Each league's playoff size, byes and median games come from its Sleeper settings, ties on wins go to points for (Sleeper's own rule), and a finished season is placed by the league's bracket, placement games included. The rules below are Any Given Sunday's, set in `worker/src/domain/leagueFormat.ts`: the head-to-head tiebreaker, and quarterfinal losers ordered by tiebreakers rather than the fifth place game. Understanding these calculations helps explain why teams are ranked in their positions and what determines playoff seeding.
 
 ## Overview
 

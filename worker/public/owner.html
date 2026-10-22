@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Owner — Any Given Sunday</title>
-    <meta name="description" content="An owner's career in the Any Given Sunday fantasy football league: trophies, earnings, every season and every rivalry." />
+    <title>Owner</title>
+    <meta name="description" content="Standings, history and every player move for any Sleeper fantasy football league." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -294,7 +294,7 @@
     <div class="wrap">
       <header>
         <div class="topbar">
-          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true"></span></a>
           <nav class="nav" aria-label="Site">
             <a href="/">Standings</a>
             <a href="/history">History</a>
@@ -323,7 +323,7 @@
                 <th scope="col">Seed</th>
                 <th scope="col">Finish</th>
                 <th scope="col" class="c-hide">High scores</th>
-                <th scope="col">$</th>
+                <th scope="col" id="earnings-head">$</th>
               </tr>
             </thead>
             <tbody id="seasons"></tbody>
@@ -356,7 +356,7 @@
       <section id="trades-section" aria-labelledby="trades-title" hidden>
         <div class="section-head">
           <h2 id="trades-title">Trades</h2>
-          <span class="hint">Since the 2023 startup</span>
+          <span class="hint" id="trades-hint"></span>
         </div>
         <dl class="highlights trade-tiles" id="trade-tiles"></dl>
         <ul class="partners" id="partners" aria-label="Trade partners"></ul>
@@ -372,13 +372,13 @@
       <p class="status" id="status" role="status"></p>
 
       <footer>
-        <span>Synced weekly, after the Tuesday recap.</span>
+        <span>Live from Sleeper.</span>
         <a href="/history">League history</a>
       </footer>
     </div>
 
     <script type="module">
-      import { $, FINISH_LABEL, games, h, loadHistory, money, ordinal, ownerHref, plural, pts, record, score, winPct } from "/site.js";
+      import { $, FINISH_LABEL, games, h, loadHistory, money, ordinal, ownerHref, plural, pts, record, score, titleSuffix, winPct, withLeague } from "/site.js";
 
       // Short enough that the season table fits a phone; the full label is
       // the tooltip.
@@ -387,7 +387,9 @@
         runnerUp: "Runner-up",
         thirdPlace: "3rd",
         fourthPlace: "4th",
+        semifinal: "Semifinal",
         quarterfinal: "Quarterfinal",
+        firstRound: "1st round",
         missedPlayoffs: "Missed",
       };
 
@@ -416,10 +418,18 @@
 
         $("highlights").replaceChildren(
           tile("Titles", o.titles ? `${o.titles}×` : "None yet", trophyNote.length ? trophyNote.join(" · ") : `${plural(o.playoffAppearances, "playoff trip")} so far`),
-          tile("Career earnings", money(o.earnings), o.earnings >= 0 ? "In the black" : "Funding everyone else's", o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : ""),
+          data.payouts
+            ? tile("Career earnings", money(o.earnings), o.earnings >= 0 ? "In the black" : "Funding everyone else's", o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : "")
+            : null,
           tile("Regular season", record(o.record), `${winPct(o.record)} · ${pts(o.pointsFor / Math.max(1, games(o.record)))} points a game`),
           tile("Playoffs", record(o.playoffRecord), `${o.playoffAppearances} of ${plural(o.seasons, "season")}`),
-          tile("High-score weeks", o.highScoreWeeks, `${money(o.highScoreWeeks * 15).replace("+", "")} in bonuses`),
+          tile(
+            "High-score weeks",
+            o.highScoreWeeks,
+            data.payouts?.weeklyHighScore
+              ? `${money(o.highScoreWeeks * data.payouts.weeklyHighScore).replace("+", "")} in bonuses`
+              : "Top score of the week",
+          ),
           best ? tile("Best week", score(best.score), `Week ${best.week}, ${best.year} vs ${byId.get(best.opponentId)?.label ?? "—"}`) : null,
         );
         $("highlights").hidden = false;
@@ -444,7 +454,7 @@
               h("td", { class: "num" }, l.inProgress ? h("span", { class: "muted" }, `${ordinal(l.seed)} now`) : ordinal(l.seed)),
               h("td", null, finishTag(l)),
               h("td", { class: "num c-hide" }, l.highScoreWeeks || h("span", { class: "muted" }, "—")),
-              h("td", { class: `num ${l.earnings > 0 ? "pos" : l.earnings < 0 ? "neg" : ""}` }, money(l.earnings)),
+              data.payouts ? h("td", { class: `num ${l.earnings > 0 ? "pos" : l.earnings < 0 ? "neg" : ""}` }, money(l.earnings)) : null,
             ),
           ),
         );
@@ -556,9 +566,9 @@
           return;
         }
         // Settle on the readable address, so a shared link is the nice one.
-        if (o.slug !== slug) history.replaceState(null, "", ownerHref(o));
+        if (o.slug !== slug) history.replaceState(null, "", withLeague(ownerHref(o)));
 
-        document.title = `${o.label} — Any Given Sunday`;
+        document.title = `${o.label}${titleSuffix(data.league)}`;
         $("owner-name").textContent = o.label;
         const first = o.seasonLines[0]?.year;
         $("meta").replaceChildren(
@@ -577,6 +587,9 @@
       try {
         data = await loadHistory();
         byId = new Map(data.owners.map((o) => [o.userId, o]));
+        $("earnings-head").hidden = !data.payouts;
+        $("trades-hint").textContent =
+          data.league.type === "dynasty" ? `Since the ${data.league.firstYear} startup` : `Since ${data.league.firstYear}`;
         render();
       } catch (err) {
         const status = $("status");

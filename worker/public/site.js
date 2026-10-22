@@ -1,5 +1,7 @@
-// Helpers shared by the history and owner pages. Plain ES module, served as
-// is: no build step.
+// Helpers shared by every page. Plain ES module, served as is; the league
+// itself is loaded by app.js, which the build bundles from src/client.
+
+import { historyFor, leagueInfo, loadLeague } from "/app.js";
 
 // Team and owner names are user-supplied, so every string goes in as a text
 // node; nothing is ever parsed as markup.
@@ -57,16 +59,135 @@ export const FINISH_LABEL = {
   runnerUp: "Runner-up",
   thirdPlace: "Third place",
   fourthPlace: "Fourth place",
+  semifinal: "Semifinal exit",
   quarterfinal: "Quarterfinal exit",
+  firstRound: "First round exit",
   missedPlayoffs: "Missed playoffs",
 };
 
 export const ownerHref = (o) => `/owner?o=${encodeURIComponent(o.slug)}`;
 
-// v matches PAYLOAD_VERSION in src/api/history.ts, so a browser never reuses
-// a payload cached for an older page.
+// ---------- The league ----------
+//
+// Every page shows one Sleeper league, named by ?league=<id>: the id of its
+// current season. A page opened without one falls back to the league this
+// browser last opened, so a bookmark of /history still works.
+
+const RECENT_KEY = "recentLeagues";
+const RECENT_MAX = 6;
+
+/** Leagues this browser has opened, most recent first: [{ id, name }]. */
+export function recentLeagues() {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(list) ? list.filter((l) => l && typeof l.id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function remember(id, name) {
+  try {
+    const list = [{ id, name }, ...recentLeagues().filter((l) => l.id !== id)].slice(0, RECENT_MAX);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch {
+    // Storage blocked: the league just isn't remembered.
+  }
+}
+
+export function forgetLeague(id) {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recentLeagues().filter((l) => l.id !== id)));
+  } catch {
+    // Nothing to forget.
+  }
+}
+
+/** The league this page is for: the one in the address, else the last one opened. */
+export function leagueId({ fallback = true } = {}) {
+  const id = new URLSearchParams(location.search).get("league");
+  if (id && /^\d{6,24}$/.test(id)) return id;
+  return fallback ? (recentLeagues()[0]?.id ?? null) : null;
+}
+
+/** A site path with this page's league kept on it. */
+export function withLeague(path, id = leagueId()) {
+  if (!id) return path;
+  const url = new URL(path, location.origin);
+  url.searchParams.set("league", id);
+  return url.pathname + url.search + url.hash;
+}
+
+// Links in the markup and in what the pages render are written as plain
+// site paths; carry the league on every one of them, now and as they appear.
+function keepLeagueOnLinks(id) {
+  const fix = (a) => {
+    const href = a.getAttribute("href");
+    if (!href || !href.startsWith("/") || href.startsWith("//") || /[?&]league=/.test(href)) return;
+    a.setAttribute("href", withLeague(href, id));
+  };
+  document.querySelectorAll("a[href]").forEach(fix);
+  new MutationObserver((changes) => {
+    for (const c of changes) {
+      for (const node of c.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches("a[href]")) fix(node);
+        node.querySelectorAll?.("a[href]").forEach(fix);
+      }
+    }
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+/** Up to two letters for the badge beside the league's name. */
+function initials(name) {
+  const words = name.match(/[A-Za-z0-9]+/g) ?? [];
+  return (words.length > 1 ? words[0][0] + words[1][0] : (words[0] ?? "ff").slice(0, 2)).toLowerCase();
+}
+
+function brand(info) {
+  document.querySelectorAll(".eyebrow").forEach((el) => {
+    const mark = h("span", { class: "mark", "aria-hidden": "true" }, initials(info.name));
+    el.replaceChildren(mark, info.name);
+  });
+}
+
+let pending = null;
+
+/**
+ * The league, every season of it, loaded from Sleeper once per page. With no
+ * league to show, sends the visitor to the front page to pick one. `onProgress`
+ * hears ({ done, total }) seasons as they arrive.
+ */
+export function currentLeague(onProgress = showProgress) {
+  if (!pending) {
+    const id = leagueId();
+    if (!id) {
+      location.replace("/");
+      return new Promise(() => {});
+    }
+    keepLeagueOnLinks(id);
+    pending = loadLeague(id, onProgress).then((data) => {
+      const info = leagueInfo(data);
+      remember(id, info.name);
+      brand(info);
+      return { data, info };
+    });
+  }
+  return pending;
+}
+
+// Until the league arrives, the page's meta line says how far along it is:
+// a first visit to a long-running league reads a few hundred things from
+// Sleeper.
+function showProgress({ done, total }) {
+  const meta = document.getElementById("meta");
+  if (meta && done < total) meta.replaceChildren(h("span", null, `Loading ${done} of ${plural(total, "season")} from Sleeper…`));
+}
+
+/** The suffix for each page's title. */
+export const titleSuffix = (info) => ` — ${info.name}`;
+
 export async function loadHistory() {
-  const res = await fetch("/api/history?v=3");
-  if (!res.ok) throw new Error(`request failed (${res.status})`);
-  return res.json();
+  const { data, info } = await currentLeague();
+  return { ...historyFor(data), league: info };
 }

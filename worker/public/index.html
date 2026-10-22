@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Any Given Sunday — Standings</title>
-    <meta name="description" content="Standings for the Any Given Sunday fantasy football league, with the tiebreakers behind every spot." />
+    <title>Standings</title>
+    <meta name="description" content="Standings, history and every player move for any Sleeper fantasy football league." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -494,6 +494,15 @@
         padding: 0 0.75rem;
       }
 
+      /* A league without byes has no bye column. */
+      .race.no-bye .c-bye {
+        display: none;
+      }
+      .race.no-bye .race-cols,
+      .race.no-bye .race-row {
+        grid-template-columns: minmax(0, 1fr) repeat(2, 8.5rem);
+      }
+
       .race-cols {
         padding-bottom: 0.6rem;
         border-bottom: 1px solid var(--ink);
@@ -594,6 +603,106 @@
       .picks-head h3 {
         margin: 0;
         font: 400 1.6rem/1.1 var(--serif);
+      }
+
+      /* ---------- Picking a league (the front page, with no league) ---------- */
+
+      /* Nothing below belongs to a league until one is picked. */
+      .picking .nav,
+      .picking header h1,
+      .picking #meta,
+      .picking #board,
+      .picking footer a {
+        display: none;
+      }
+
+      .pick-league {
+        max-width: 40rem;
+        margin: 1rem 0 3rem;
+      }
+
+      .pick-league h2 {
+        margin: 0 0 0.75rem;
+        font: 400 clamp(2.2rem, 6vw, 3.2rem) / 1.05 var(--serif);
+        letter-spacing: -0.01em;
+      }
+
+      .pick-league .lede {
+        color: var(--ink-2);
+        margin: 0 0 1.5rem;
+      }
+
+      .pick-form {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .pick-form input {
+        flex: 1;
+        min-width: 0;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--raised);
+        color: var(--ink);
+        font: 0.95rem var(--mono);
+      }
+
+      .pick-form input:focus-visible {
+        outline: 2px solid var(--field);
+        outline-offset: 2px;
+      }
+
+      .pick-form button {
+        padding: 0.75rem 1.4rem;
+        border: 0;
+        border-radius: 999px;
+        background: var(--field);
+        color: var(--paper);
+        font: 600 0.95rem var(--sans);
+        cursor: pointer;
+      }
+
+      .pick-form button:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+
+      .pick-hint {
+        margin: 0.6rem 0 0;
+        color: var(--ink-3);
+        font-size: 0.85rem;
+      }
+
+      #recent-leagues h3 {
+        margin: 2rem 0 0.5rem;
+        font: 600 0.75rem var(--sans);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .recent-leagues {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .recent-leagues a {
+        display: inline-block;
+        padding: 0.45rem 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--raised);
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .recent-leagues a:hover {
+        border-color: var(--field);
       }
 
       .clear {
@@ -824,9 +933,11 @@
         color: var(--ink-3);
       }
 
+      /* One column per round, however many rounds the league plays. */
       .bracket {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
         gap: 0.75rem;
       }
 
@@ -931,6 +1042,10 @@
         .c-top {
           display: none;
         }
+        .race.no-bye .race-cols,
+        .race.no-bye .race-row {
+          grid-template-columns: minmax(0, 1fr) 7.5rem;
+        }
       }
 
       @media (max-width: 38rem) {
@@ -969,13 +1084,17 @@
           grid-template-columns: minmax(0, 1fr);
         }
         .bracket {
-          grid-template-columns: minmax(0, 1fr);
+          grid-auto-flow: row;
         }
         .race-cols,
         .race-row {
           grid-template-columns: minmax(0, 1fr) repeat(2, 5.25rem);
           column-gap: 0.6rem;
           padding-inline: 0.25rem;
+        }
+        .race.no-bye .race-cols,
+        .race.no-bye .race-row {
+          grid-template-columns: minmax(0, 1fr) 5.25rem;
         }
         .odds {
           grid-template-columns: minmax(0, 1fr);
@@ -995,7 +1114,7 @@
     <div class="wrap">
       <header>
         <div class="topbar">
-          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true"></span></a>
           <nav class="nav" aria-label="Site">
             <a href="/" aria-current="page">Standings</a>
             <a href="/history">History</a>
@@ -1012,6 +1131,26 @@
         </h1>
         <p class="meta" id="meta"><span>Loading…</span></p>
       </header>
+
+      <section class="pick-league" id="pick-league" aria-labelledby="pick-title" hidden>
+        <h2 id="pick-title">Open your league</h2>
+        <p class="lede">
+          Paste your Sleeper league's ID or link for standings with every tiebreak explained, playoff odds, league
+          history and every player's path through your league. Dynasty, keeper or redraft. Use this season's league:
+          the site follows it back through every season before it.
+        </p>
+        <form id="pick-form" class="pick-form" autocomplete="off">
+          <label for="league-input" class="sr-only">Sleeper league ID or link</label>
+          <input id="league-input" name="league" inputmode="numeric" placeholder="e.g. 1339291414533525504 or sleeper.com/leagues/…" required />
+          <button type="submit">Open</button>
+        </form>
+        <p class="pick-hint">In the Sleeper app: your league → Settings → General, under "League ID". Or copy the league's link from sleeper.com.</p>
+        <p class="status" id="pick-status" role="status"></p>
+        <div id="recent-leagues" hidden>
+          <h3>Your leagues</h3>
+          <ul class="recent-leagues" id="recent-list"></ul>
+        </div>
+      </section>
 
       <dl class="highlights" id="highlights" hidden></dl>
 
@@ -1050,7 +1189,7 @@
         <div class="race-cols" aria-hidden="true">
           <span>Team</span>
           <span>Playoffs</span>
-          <span>Bye</span>
+          <span class="c-bye">Bye</span>
           <span class="c-top">No. 1 seed</span>
         </div>
         <ol class="race-rows" id="race-rows" aria-labelledby="race-title"></ol>
@@ -1075,13 +1214,7 @@
           <div>
             <h3>The playoffs</h3>
             <p id="playoff-copy"></p>
-            <ul>
-              <li>The top six make it. Seeds 1 and 2 get a bye in the first round.</li>
-              <li>Quarterfinals: 3 vs 6 and 4 vs 5.</li>
-              <li>Semifinals: seed 1 plays the lowest seed left, seed 2 the highest.</li>
-              <li>The semifinal winners play for the title. The losers play for third.</li>
-              <li>Once a season ends, places 1–4 come from those games. The two quarterfinal losers are 5th and 6th, ordered by the same tiebreakers. Places 7–12 stay in regular season order.</li>
-            </ul>
+            <ul id="playoff-rules"></ul>
           </div>
           <div>
             <p class="bracket-label" id="bracket-label"></p>
@@ -1091,12 +1224,15 @@
       </section>
 
       <footer>
-        <span id="footer-sync">Synced weekly, after the Tuesday recap.</span>
+        <span id="footer-sync">Live from Sleeper.</span>
         <a href="#how">How the standings work</a>
       </footer>
     </div>
 
-    <script>
+    <script type="module">
+      import { LeagueNotFoundError, parseLeagueId, standingsFor } from "/app.js";
+      import { currentLeague, forgetLeague, leagueId, recentLeagues, titleSuffix } from "/site.js";
+
       // ---------- Small DOM helper. Team names are user-supplied, so every
       // string goes in as a text node; nothing is ever parsed as markup.
       function h(tag, props, ...children) {
@@ -1125,20 +1261,28 @@
       };
       const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-      // Playoff pairings have followed seeding since this season. Before it,
-      // higher seeds sometimes picked their opponents.
-      const SEEDED_PAIRINGS_SINCE = 2026;
+      // Notes for particular leagues, by the id of their first season (which,
+      // unlike the current season's, never changes).
+      const LEAGUE_NOTES = {
+        // Any Given Sunday: playoff pairings have followed seeding since 2026.
+        // Before it, higher seeds sometimes picked their opponents.
+        "996999191685566464": { seededPairingsSince: 2026 },
+      };
+      let league = null; // the LeagueInfo for the league on show
 
       const FINISH_LABEL = {
         champion: "Champion",
         runnerUp: "Runner-up",
         thirdPlace: "Third place",
         fourthPlace: "Fourth place",
+        semifinal: "Semifinal exit",
         quarterfinal: "Quarterfinal exit",
+        firstRound: "First round exit",
         missedPlayoffs: "Missed playoffs",
       };
 
       const ROUND_LABEL = {
+        first_round: "First round",
         quarterfinal: "Quarterfinal",
         semifinal: "Semifinal",
         final: "Final",
@@ -1264,20 +1408,28 @@
         return null;
       }
 
+      // What the team above achieved, or what the team below fell short of.
+      const ACHIEVED = {
+        champion: "Won the final.",
+        runnerUp: "Reached the final.",
+        thirdPlace: "Won the third-place game.",
+        fourthPlace: "Reached the semifinals.",
+        semifinal: "Reached the semifinals.",
+        quarterfinal: "Made the playoffs.",
+        firstRound: "Made the playoffs.",
+      };
+      const FELL_SHORT = {
+        runnerUp: "Lost the final.",
+        thirdPlace: "Lost in the semifinals.",
+        fourthPlace: "Lost the third-place game.",
+        semifinal: "Lost in the semifinals.",
+        quarterfinal: "Went out in the quarterfinals.",
+        firstRound: "Went out in the first round.",
+        missedPlayoffs: "Missed the playoffs.",
+      };
+
       function playoffReason(upper, lower, ahead) {
-        switch (upper.finish) {
-          case "champion":
-            return ahead ? "Won the final." : "Lost the final.";
-          case "runnerUp":
-            return ahead ? "Reached the final." : "Lost in the semifinals.";
-          case "thirdPlace":
-            return ahead ? "Won the third-place game." : "Lost the third-place game.";
-          case "fourthPlace":
-            return ahead ? "Reached the semifinals." : "Went out in the quarterfinals.";
-          case "quarterfinal":
-            return ahead ? "Made the playoffs." : "Missed the playoffs.";
-        }
-        return "";
+        return (ahead ? ACHIEVED[upper.finish] : FELL_SHORT[lower.finish]) ?? "";
       }
 
       function whyList(team, rows, data) {
@@ -1286,7 +1438,7 @@
 
         if (team.finish) {
           const seedNote =
-            team.seed <= 6 ? `, as the ${ordinal(team.seed)} seed` : `, ${ordinal(team.seed)} in the regular season`;
+            team.seed <= data.playoffTeams ? `, as the ${ordinal(team.seed)} seed` : `, ${ordinal(team.seed)} in the regular season`;
           items.push(h("li", { class: "key" }, h("b", null, FINISH_LABEL[team.finish]), seedNote, "."));
         } else if (data.playoffCutoff) {
           if (team.rank <= data.byeCutoff) items.push(h("li", { class: "key" }, "In line for a ", h("b", null, "first-round bye"), "."));
@@ -1315,7 +1467,9 @@
               "li",
               null,
               `One of ${team.tie.size} teams on ${plural(team.wins, "win")}. `,
-              team.tie.allPlayed
+              data.tiebreaker === "pointsFor"
+                ? "Points for decides between them."
+                : team.tie.allPlayed
                 ? ["They've all played each other; this team is ", h("b", null, groupRecord(team.tie.record)), " in those games."]
                 : [
                     "They haven't all played each other, so head-to-head only counts for a team that beat all the others. This team is ",
@@ -1372,7 +1526,7 @@
         const tags = [];
         if (team.finish === "champion") tags.push(h("span", { class: "tag gold" }, "Champion"));
         else if (team.finish && team.finish !== "missedPlayoffs") tags.push(h("span", { class: "tag" }, FINISH_LABEL[team.finish]));
-        if (team.finish && team.seed <= 6) tags.push(h("span", null, `${ordinal(team.seed)} seed`));
+        if (team.finish && team.seed <= data.playoffTeams) tags.push(h("span", null, `${ordinal(team.seed)} seed`));
         if (!team.finish && data.playoffCutoff && team.rank <= data.byeCutoff) tags.push(h("span", { class: "tag bye" }, "Bye"));
         tags.push(h("span", { class: "mobile-record num" }, record(team)));
 
@@ -1454,7 +1608,7 @@
         }
         $("meta").replaceChildren(...meta);
         $("headline-word").textContent = live ? "Standings" : "Final standings";
-        document.title = `${data.year} ${live ? "Standings" : "Final Standings"} — Any Given Sunday`;
+        document.title = `${data.year} ${live ? "Standings" : "Final Standings"}${titleSuffix(league)}`;
 
         const select = $("season");
         const years = data.seasons.length ? data.seasons : [data.year];
@@ -1517,13 +1671,20 @@
           return h("span", { class: `used${n ? " active" : ""}` }, n ? `Decided ${plural(n, "spot")} this season` : "Not needed this season");
         };
         const steps = [
-          ["Wins", "Most regular season wins ranks first. Playoff games never count here.", "wins"],
-          ["Head-to-head", "Only when it's fair: if every tied team has played the others, the best record in those games goes first. If not, a team that beat all the others goes first. Otherwise skip it.", "headToHead"],
+          [
+            "Wins",
+            "Most regular season wins ranks first. Playoff games never count here." +
+              (data.medianGame ? " Every week also counts as a game against the league's median score." : ""),
+            "wins",
+          ],
+          data.tiebreaker === "headToHead"
+            ? ["Head-to-head", "Only when it's fair: if every tied team has played the others, the best record in those games goes first. If not, a team that beat all the others goes first. Otherwise skip it.", "headToHead"]
+            : null,
           ["Points for", "Still level? The team that scored more over the regular season goes first.", "pointsFor"],
           ["Points against", "Then the team that allowed fewer points.", "pointsAgainst"],
           ["Coin flip", "If everything is still level, it's random. This almost never happens.", "coinFlip"],
         ];
-        $("steps").replaceChildren(...steps.map(([t, p, k]) => h("li", { class: "step" }, h("h3", null, t), h("p", null, p), used(k))));
+        $("steps").replaceChildren(...steps.filter(Boolean).map(([t, p, k]) => h("li", { class: "step" }, h("h3", null, t), h("p", null, p), used(k))));
       }
 
       // Playoff games appear once per team in the payload; pair them back up.
@@ -1537,6 +1698,39 @@
           }
         }
         return [...seen.values()];
+      }
+
+      // A bracket fills up to the next power of two; the top seeds sit out
+      // round one to make up the difference.
+      function bracketShape(teams) {
+        let size = 1;
+        while (size < teams) size *= 2;
+        const rounds = Math.round(Math.log2(size));
+        const byes = size - teams;
+        // Round one: the best seed left plays the worst.
+        const firstRound = [];
+        for (let hi = byes + 1, lo = teams; hi < lo; hi++, lo--) firstRound.push([hi, lo]);
+        return { rounds, byes, firstRound };
+      }
+
+      // Rounds named counting back from the final.
+      const roundTitle = (fromFinal) => ["Finals", "Semifinals", "Quarterfinals"][fromFinal] ?? "First round";
+      const ROUND_KEY = ["final", "semifinal", "quarterfinal"];
+
+      function renderPlayoffRules(data) {
+        const n = data.playoffTeams;
+        const { rounds, byes, firstRound } = bracketShape(n);
+        const pairs = firstRound.map(([a, b]) => `${a} vs ${b}`);
+        const pairList = pairs.length > 1 ? `${pairs.slice(0, -1).join(", ")} and ${pairs[pairs.length - 1]}` : pairs[0];
+        const rules = [
+          `The top ${n} make it.` + (byes === 1 ? " Seed 1 gets a bye in the first round." : byes > 1 ? ` Seeds 1–${byes} get a bye in the first round.` : ""),
+          pairList ? `${roundTitle(rounds - 1)}: ${pairList}.` : null,
+          "The last two teams standing play for the title.",
+          data.placementGamesThrough
+            ? `Once a season ends, places 1–${data.placementGamesThrough} come from the final and the placement games. Other playoff teams are ordered by how far they got, then by the same tiebreakers. Everyone else stays in regular season order.`
+            : "Once a season ends, playoff teams are placed by the bracket, placement games included. Everyone else stays in regular season order.",
+        ];
+        $("playoff-rules").replaceChildren(...rules.filter(Boolean).map((r) => h("li", null, r)));
       }
 
       function renderBracket(data) {
@@ -1557,6 +1751,7 @@
         const match = (label, a, b) => h("div", { class: "match" }, label ? h("div", { class: "tag-line" }, label) : null, a, b);
         const round = (title, games) => h("div", { class: "round" }, h("h4", null, title), h("div", { class: "games" }, games));
 
+        const { rounds, byes, firstRound } = bracketShape(data.playoffTeams);
         const games = data.usedPlayoffResults ? playoffGames(rows) : [];
         let columns;
 
@@ -1567,35 +1762,49 @@
             const [w, l] = g.aPts >= g.bPts ? [[a, g.aPts], [b, g.bPts]] : [[b, g.bPts], [a, g.aPts]];
             return [side(w[0], w[1], "won", false), side(l[0], l[1], "lost", false)];
           };
-          const of = (round) => games.filter((g) => g.round === round);
-          const finals = [
-            ...of("final").map((g) => match("Final", ...played(g))),
-            ...of("third_place").map((g) => match("3rd place", ...played(g))),
-          ];
-          columns = [
-            round("Quarterfinals", of("quarterfinal").map((g) => match(null, ...played(g)))),
-            round("Semifinals", of("semifinal").map((g) => match(null, ...played(g)))),
-            round("Finals", finals),
-          ];
+          const of = (key) => games.filter((g) => g.round === key);
+          columns = [];
+          for (let fromFinal = rounds - 1; fromFinal >= 1; fromFinal--) {
+            const key = ROUND_KEY[fromFinal] ?? "first_round";
+            if (of(key).length) columns.push(round(roundTitle(fromFinal), of(key).map((g) => match(null, ...played(g)))));
+          }
+          columns.push(
+            round("Finals", [
+              ...of("final").map((g) => match("Final", ...played(g))),
+              ...of("third_place").map((g) => match("3rd place", ...played(g))),
+            ]),
+          );
           $("bracket-label").textContent = `${data.year} bracket`;
         } else {
           const s = (n) => side(bySeed.get(n), "", null);
           const tbd = (label) => side(null, label, null);
-          columns = [
-            round("Quarterfinals", [match(null, s(3), s(6)), match(null, s(4), s(5))]),
-            round("Semifinals", [match(null, s(1), tbd("Lowest seed left")), match(null, s(2), tbd("Highest seed left"))]),
-            round("Finals", [match("Final", tbd("Semifinal winner"), tbd("Semifinal winner")), match("3rd place", tbd("Semifinal loser"), tbd("Semifinal loser"))]),
-          ];
+          const winner = tbd("Winner");
+          columns = [round(roundTitle(rounds - 1), firstRound.map(([a, b]) => match(null, s(a), s(b))))];
+          for (let fromFinal = rounds - 2; fromFinal >= 1; fromFinal--) {
+            const count = 2 ** fromFinal;
+            const seeded = fromFinal === rounds - 2 ? byes : 0;
+            columns.push(
+              round(
+                roundTitle(fromFinal),
+                Array.from({ length: count }, (_, i) => match(null, i < seeded ? s(i + 1) : winner.cloneNode(true), winner.cloneNode(true))),
+              ),
+            );
+          }
+          if (rounds > 1) {
+            columns.push(round("Finals", [match("Final", winner.cloneNode(true), winner.cloneNode(true))]));
+          }
           $("bracket-label").textContent = data.status === "COMPLETE" ? "Bracket by seed" : "If the season ended today";
         }
         $("bracket").replaceChildren(...columns);
 
+        const notes = LEAGUE_NOTES[league?.firstSeasonId] ?? {};
         $("playoff-copy").textContent = data.usedPlayoffResults
           ? "This season is over, so the top of the table comes from the bracket, not regular season record. That's how a lower seed can finish above a higher one." +
-            (data.year < SEEDED_PAIRINGS_SINCE
+            (notes.seededPairingsSince && data.year < notes.seededPairingsSince
               ? " Back then, higher seeds sometimes picked their opponents, so this bracket may not follow the pairings below."
               : "")
-          : "While the season is live, the table is regular season order. The six teams above the playoff line are in.";
+          : `While the season is live, the table is regular season order. The ${data.playoffTeams} teams above the playoff line are in.`;
+        renderPlayoffRules(data);
       }
 
       function render(data) {
@@ -1622,14 +1831,16 @@
 
       async function load(year, { push = false } = {}) {
         try {
-          // v matches PAYLOAD_VERSION in src/api/standings.ts. The API ignores
-          // it; it only keeps a browser from reusing a payload cached for the
-          // previous version of this page.
-          const params = new URLSearchParams({ v: "3" });
-          if (year) params.set("year", String(year));
-          const res = await fetch(`/api/standings?${params}`);
-          if (!res.ok) throw new Error(`request failed (${res.status})`);
-          const data = await res.json();
+          const { data: loaded, info } = await currentLeague();
+          league = info;
+          const data = standingsFor(loaded, year);
+          if (!data) {
+            $("rows").replaceChildren();
+            $("meta").replaceChildren(h("span", null, "No games yet"));
+            $("status").textContent = `${info.name} hasn't played a game yet. Standings appear after week 1.`;
+            document.title = `Standings${titleSuffix(info)}`;
+            return;
+          }
           const apply = () => render(data);
           if (document.startViewTransition && push) document.startViewTransition(apply);
           else apply();
@@ -1642,15 +1853,52 @@
           $("rows").replaceChildren();
           const status = $("status");
           status.className = "status error";
-          status.textContent = `Couldn't load the standings: ${err.message}`;
+          if (err instanceof LeagueNotFoundError) {
+            forgetLeague(leagueId());
+            status.textContent = "Sleeper has no league with that ID. Check it and try again.";
+          } else {
+            status.textContent = `Couldn't load the standings: ${err.message}`;
+          }
         }
       }
 
-      $("season").addEventListener("change", (e) => load(Number(e.target.value), { push: true }));
-      window.addEventListener("popstate", () => load(new URLSearchParams(location.search).get("year")));
+      // ---------- Picking a league ----------
 
-      const initialYear = Number(new URLSearchParams(location.search).get("year")) || null;
-      load(initialYear);
+      function showPicker() {
+        document.title = "League HQ — Standings and history for any Sleeper league";
+        document.querySelector(".eyebrow").replaceChildren(h("span", { class: "mark", "aria-hidden": "true" }, "hq"), "League HQ");
+        document.body.classList.add("picking");
+        $("pick-league").hidden = false;
+
+        const recent = recentLeagues();
+        $("recent-leagues").hidden = recent.length === 0;
+        $("recent-list").replaceChildren(
+          ...recent.map((l) => h("li", null, h("a", { href: `/?league=${encodeURIComponent(l.id)}` }, l.name || l.id))),
+        );
+
+        $("pick-form").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const id = parseLeagueId($("league-input").value);
+          const status = $("pick-status");
+          if (!id) {
+            status.className = "status error";
+            status.textContent = "That doesn't look like a Sleeper league ID. It's a long number, like 1339291414533525504.";
+            return;
+          }
+          location.href = `/?league=${encodeURIComponent(id)}`;
+        });
+        $("league-input").focus();
+      }
+
+      // The front page, with no league in the address, is where a league is
+      // picked; every other page falls back to the last league opened.
+      if (!leagueId({ fallback: false })) {
+        showPicker();
+      } else {
+        $("season").addEventListener("change", (e) => load(Number(e.target.value), { push: true }));
+        window.addEventListener("popstate", () => load(Number(new URLSearchParams(location.search).get("year")) || null));
+        load(Number(new URLSearchParams(location.search).get("year")) || null);
+      }
     </script>
     <script type="module">
       // ---------- Playoff race ----------
@@ -1658,7 +1906,9 @@
       // same tiebreaker code the Worker uses (bundled into race.js at deploy).
       // The Worker only sends the schedule; it would run out of CPU long
       // before it finished this many seasons.
+      import { playoffRaceFor } from "/app.js";
       import { clinchStatus, pairingKey, simulatePlayoffRace } from "/race.js";
+      import { currentLeague, leagueId } from "/site.js";
 
       const RUNS = 10000;
 
@@ -1727,7 +1977,7 @@
           if (!winner) left.push(p);
           else decided.push({ ...asMatchup(p), home_score: winner === p.homeId ? 1 : 0, away_score: winner === p.awayId ? 1 : 0 });
         }
-        return new Map(clinchStatus([...played, ...decided], left, race.playoffTeams, race.byeTeams).map((c) => [c.userId, c]));
+        return new Map(clinchStatus([...played, ...decided], left, race.playoffTeams, race.byeTeams, race.medianGame).map((c) => [c.userId, c]));
       }
 
       function asMatchup(g) {
@@ -1765,6 +2015,8 @@
           picks,
           playoffTeams: race.playoffTeams,
           byeTeams: race.byeTeams,
+          useHeadToHead: race.useHeadToHead,
+          medianGame: race.medianGame,
           runs: RUNS,
           random: seeded(race.throughWeek),
         });
@@ -1794,7 +2046,7 @@
               { class: `race-row${c?.playoffs === "eliminated" ? " out" : ""}` },
               h("span", { class: "name" }, h("strong", null, name(o.userId)), h("span", { class: "tags" }, h("span", { class: "num" }, record(o.userId)))),
               oddsCell(o.playoffs, base?.playoffs, c?.playoffs),
-              oddsCell(o.bye, base?.bye, c?.bye),
+              oddsCell(o.bye, base?.bye, c?.bye, "c-bye"),
               oddsCell(o.topSeed, base?.topSeed, null, "c-top"),
             );
           }),
@@ -1863,14 +2115,14 @@
 
       async function init() {
         try {
-          const res = await fetch("/api/playoff-race?v=1");
-          if (!res.ok) return;
-          race = await res.json();
+          if (!leagueId({ fallback: false })) return;
+          race = playoffRaceFor((await currentLeague()).data);
           if (!race.active) return;
+          $("race").classList.toggle("no-bye", race.byeTeams === 0);
 
           played = race.played.map(asMatchup);
           baseline = run();
-          clinch = new Map(clinchStatus(played, race.remaining, race.playoffTeams, race.byeTeams).map((c) => [c.userId, c]));
+          clinch = new Map(clinchStatus(played, race.remaining, race.playoffTeams, race.byeTeams, race.medianGame).map((c) => [c.userId, c]));
 
           const weeksLeft = new Set(race.remaining.map((p) => p.week)).size;
           $("race-hint").textContent = `${weeksLeft} ${weeksLeft === 1 ? "week" : "weeks"} left · ${RUNS.toLocaleString()} simulations`;
