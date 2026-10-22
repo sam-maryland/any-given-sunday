@@ -42,6 +42,20 @@
     "binding": "ASSETS",
     "run_worker_first": ["/", "/api/*"]
   },
+  // Every NFL player, trimmed to { [id]: [name, position, team] }, under the
+  // key "nfl-players". The weekly sync-players Action writes it (Sleeper's
+  // full list is too big for the Worker to parse) and /api/nfl-players
+  // serves it as is. One-time setup, before the first deploy that includes
+  // this binding (a deploy with the placeholder id fails):
+  //   npx wrangler kv namespace create PLAYERS
+  // then paste the id it prints below, and add it as the GitHub secret
+  // PLAYERS_KV_NAMESPACE_ID (see docs/deployment/cloudflare-workers-setup.md).
+  "kv_namespaces": [
+    {
+      "binding": "PLAYERS",
+      "id": "REPLACE_WITH_PLAYERS_KV_NAMESPACE_ID"
+    }
+  ],
   "triggers": {
     // Weekly recap: Tuesdays at 11:00 UTC. That is 6-7am Eastern depending on
     // daylight saving, comfortably before the 8am Eastern delivery time the

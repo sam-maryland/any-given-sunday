@@ -1,4 +1,5 @@
 import { handleHistoryRequest } from "./api/history";
+import { handleNflPlayersRequest } from "./api/nflPlayers";
 import { handlePlayerHighlightsRequest, handlePlayerRequest, handlePlayersRequest } from "./api/player";
 import { handlePlayoffRaceRequest } from "./api/playoffRace";
 import { handleStandingsRequest } from "./api/standings";
@@ -110,6 +111,9 @@ export default {
           url,
           ctx,
         );
+      }
+      if (url.pathname === "/api/nfl-players") {
+        return handleNflPlayersRequest(env.PLAYERS);
       }
       if (url.pathname === "/api/playoff-race") {
         return handlePlayoffRaceRequest(
