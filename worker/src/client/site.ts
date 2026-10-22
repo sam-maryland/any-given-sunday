@@ -180,7 +180,7 @@ function namesWith(names: Map<string, Player>, picks: DraftPick[]): Map<string, 
   const merged = new Map(names);
   for (const p of picks) {
     if (!merged.has(p.player_id)) {
-      merged.set(p.player_id, { id: p.player_id, name: p.player_name, position: p.position || null, team: null });
+      merged.set(p.player_id, { id: p.player_id, name: p.player_name, position: p.position || null, team: null, teamUnknown: true });
     }
   }
   return merged;
@@ -258,7 +258,7 @@ export function playerFor(data: LeagueData, playerId: string, names: Map<string,
     pickResults,
   });
   return {
-    player: players.get(playerId) ?? { id: playerId, name: `Player ${playerId}`, position: null, team: null },
+    player: players.get(playerId) ?? { id: playerId, name: `Player ${playerId}`, position: null, team: null, teamUnknown: true },
     ...built,
     owners: ownerNames(data, ownerIds),
     syncedAt: syncedAt(data).toISOString(),

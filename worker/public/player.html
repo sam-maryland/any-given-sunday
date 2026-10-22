@@ -729,7 +729,9 @@
             data.currentOwnerId
               ? h("span", { class: "pill held" }, h("span", null, "On ", owner(data.currentOwnerId)))
               : h("span", { class: "pill free" }, "Free agent"),
-            h("span", null, [p.position, p.team ?? "No NFL team"].filter(Boolean).join(" · ")),
+            // Without the full player list, a player named from a draft board
+            // has no known team; that is not the same as being a free agent.
+            h("span", null, [p.position, p.teamUnknown ? null : (p.team ?? "No NFL team")].filter(Boolean).join(" · ")),
           ],
         );
 

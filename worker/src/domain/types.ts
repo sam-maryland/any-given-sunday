@@ -149,7 +149,13 @@ export interface Player {
   id: string;
   name: string;
   position: string | null;
+  /** Null for a free agent or retired player. */
   team: string | null;
+  /**
+   * Set when the player was named from a draft board because the full player
+   * list was unavailable: his current team is then not known, rather than none.
+   */
+  teamUnknown?: boolean;
 }
 
 export interface DraftPick {
