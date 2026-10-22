@@ -15,6 +15,7 @@ describe("formatFromSleeper", () => {
   it("reads the league type, playoff field and median game from Sleeper", () => {
     expect(formatFromSleeper({ type: 0, playoff_teams: 4, league_average_match: 1 }, "any")).toEqual({
       type: "redraft",
+      standings: "sleeper",
       playoffTeams: 4,
       byes: 0,
       tiebreaker: "pointsFor",

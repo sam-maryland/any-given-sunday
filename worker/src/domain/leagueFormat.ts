@@ -17,13 +17,21 @@ export interface Payouts {
  */
 export interface LeagueFormat {
   type: LeagueType;
+  /**
+   * Whose regular season order the standings show. "sleeper" is Sleeper's own
+   * standings, read from Sleeper, so the site always agrees with the app.
+   * "custom" is the site's own tiebreakers, for a league whose rules Sleeper
+   * does not support.
+   */
+  standings: "sleeper" | "custom";
   /** Teams that make the playoffs; standings draw a cut line here in season. */
   playoffTeams: number;
   /** Top seeds that skip the first playoff round. */
   byes: number;
   /**
-   * How teams level on wins are ordered. "pointsFor" is Sleeper's own rule;
-   * "headToHead" is Any Given Sunday's (see docs/standings-calculation.md).
+   * How teams level on wins are ordered. "pointsFor" is Sleeper's own rule,
+   * and the fallback when Sleeper's standings are unavailable; "headToHead"
+   * is Any Given Sunday's (see docs/standings-calculation.md).
    */
   tiebreaker: "headToHead" | "pointsFor";
   /** Each team also plays the weekly median (Sleeper's league_average_match). */
@@ -51,6 +59,7 @@ export const AGS_PAYOUTS: Payouts = {
  */
 export const AGS_FORMAT: LeagueFormat = {
   type: "dynasty",
+  standings: "custom",
   playoffTeams: 6,
   byes: 2,
   tiebreaker: "headToHead",
@@ -67,7 +76,7 @@ export const AGS_FORMAT: LeagueFormat = {
  */
 const OVERRIDES: Record<string, Partial<LeagueFormat>> = {
   // Any Given Sunday
-  "996999191685566464": { tiebreaker: "headToHead", placementGamesThrough: 4, payouts: AGS_PAYOUTS },
+  "996999191685566464": { standings: "custom", tiebreaker: "headToHead", placementGamesThrough: 4, payouts: AGS_PAYOUTS },
 };
 
 /** The part of Sleeper's league settings the format is read from. */
@@ -93,6 +102,7 @@ export function formatFromSleeper(settings: SleeperFormatSettings, firstSeasonId
   const type: LeagueType = settings.type === 2 ? "dynasty" : settings.type === 1 ? "keeper" : "redraft";
   return {
     type,
+    standings: "sleeper",
     playoffTeams,
     byes: byesFor(playoffTeams),
     tiebreaker: "pointsFor",

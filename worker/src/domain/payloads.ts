@@ -64,6 +64,11 @@ export interface StandingsPayload {
   byeCutoff: number;
   /** How teams level on wins were ordered. */
   tiebreaker: LeagueFormat["tiebreaker"];
+  /**
+   * True when the regular season order is Sleeper's own standings; false when
+   * the site ranked the teams itself (a custom league, or Sleeper had none).
+   */
+  sleeperOrder: boolean;
   /** Whether records include a game against each week's median score. */
   medianGame: boolean;
   /** The latest week with a synced game, or null before week 1 lands. */
@@ -136,6 +141,7 @@ export function standingsPayload(input: PayloadInput): StandingsPayload {
     placementGamesThrough: format.placementGamesThrough,
     byeCutoff: format.byes,
     tiebreaker: format.tiebreaker,
+    sleeperOrder: format.standings === "sleeper" && !!league.sleeperRanks,
     medianGame: format.medianGame,
     throughWeek: weeks.length > 0 ? Math.max(...weeks) : null,
     syncedAt: input.syncedAt.toISOString(),

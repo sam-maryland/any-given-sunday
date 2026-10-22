@@ -33,7 +33,7 @@ const API = "https://api.sleeper.app";
 
 // Bump whenever SeasonData or the way it is built changes, so no visitor is
 // served a season cached by older code.
-const SEASON_VERSION = 1;
+const SEASON_VERSION = 2;
 
 // How long a season still being played is reused before Sleeper is asked
 // again. Long enough that clicking between pages costs nothing.
@@ -120,6 +120,45 @@ async function get<T>(path: string): Promise<T> {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   });
+}
+
+/**
+ * Sleeper's own standings for one week: user id to rank. They come from the
+ * GraphQL API the Sleeper app uses, which is not part of Sleeper's published
+ * API, so anything unexpected — an error, no rows (Sleeper has none before
+ * 2020), a roster missing — is null and the site ranks teams itself.
+ */
+export async function loadSleeperRanks(
+  leagueId: string,
+  week: number,
+  rosterToOwner: Map<number, string>,
+): Promise<Record<string, number> | null> {
+  try {
+    const rows = await slot(async () => {
+      const res = await fetch("https://sleeper.com/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          operationName: "roster_standings",
+          query: "query roster_standings($league_id: Snowflake!, $round: Int!) { roster_standings(league_id: $league_id, round: $round) { roster_id rank } }",
+          variables: { league_id: leagueId, round: week },
+        }),
+      });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { data?: { roster_standings?: { roster_id: number; rank: number | null }[] | null } };
+      return body.data?.roster_standings ?? null;
+    });
+    if (!rows || rows.length !== rosterToOwner.size) return null;
+    const ranks: Record<string, number> = {};
+    for (const r of rows) {
+      const owner = rosterToOwner.get(r.roster_id);
+      if (!owner || typeof r.rank !== "number") return null;
+      ranks[owner] = r.rank;
+    }
+    return ranks;
+  } catch {
+    return null;
+  }
 }
 
 // --- the league chain -----------------------------------------------------
@@ -297,6 +336,14 @@ async function loadGames(
   });
 
   const result = { matchups, remaining, lastRegularWeek, league: {} as Partial<League> };
+
+  // A league that follows Sleeper's standings: Sleeper's order as of the last
+  // regular season week played.
+  const lastPlayed = matchups.reduce((max, m) => Math.max(max, m.week), 0);
+  if (format.standings === "sleeper" && lastPlayed > 0) {
+    result.league.sleeperRanks = await loadSleeperRanks(league.league_id, lastPlayed, rosterToOwner);
+  }
+
   if (lastRegularWeek === null || lastComplete <= lastRegularWeek) return result;
 
   // The playoffs: the bracket says which games are decided and which weeks
@@ -330,7 +377,7 @@ async function loadGames(
     const outcome = playoffOutcome(bracket ?? [], rosterToOwner);
     if (outcome) {
       const at = (place: number) => outcome.find((p) => p.place === place)?.userId ?? "";
-      result.league = { playoffOutcome: outcome, first_place: at(1), second_place: at(2), third_place: at(3) };
+      result.league = { ...result.league, playoffOutcome: outcome, first_place: at(1), second_place: at(2), third_place: at(3) };
     }
   }
   return result;

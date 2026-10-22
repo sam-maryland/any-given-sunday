@@ -41,6 +41,12 @@ export interface League {
    * playoff matchups instead.
    */
   playoffOutcome?: PlayoffPlace[] | null;
+  /**
+   * Sleeper's own regular season standings, user id to rank (1 is first), as
+   * of the latest regular season week played. Followed for a league whose
+   * format says so; null when Sleeper had none.
+   */
+  sleeperRanks?: Record<string, number> | null;
 }
 
 export interface Matchup {

@@ -2,7 +2,9 @@
 
 This document explains how team standings are calculated in our fantasy football league system.
 
-The website serves any Sleeper league. Each league's playoff size, byes and median games come from its Sleeper settings, ties on wins go to points for (Sleeper's own rule), and a finished season is placed by the league's bracket, placement games included. The rules below are Any Given Sunday's, set in `worker/src/domain/leagueFormat.ts`: the head-to-head tiebreaker, and quarterfinal losers ordered by tiebreakers rather than the fifth place game. Understanding these calculations helps explain why teams are ranked in their positions and what determines playoff seeding.
+The website serves any Sleeper league, and most leagues simply get **Sleeper's own standings**: the site reads each team's rank from Sleeper (the `roster_standings` query of the GraphQL API the Sleeper app uses, which is not part of Sleeper's published API) for the latest regular season week played, so the table always matches the app. Where Sleeper's order agrees with wins and then points for, which in testing was every season, the page explains each place with those; where it doesn't (divisions, say), the page says the call was Sleeper's. When Sleeper has no standings (seasons before 2020) or can't be reached, the site ranks teams the way Sleeper does: wins, then points for. Each league's playoff size, byes and median games come from its Sleeper settings, and a finished season is placed by the league's bracket, placement games included.
+
+**Any Given Sunday has its own rules**, which Sleeper does not support, so it never uses Sleeper's order. Everything below describes them. They are set in `worker/src/domain/leagueFormat.ts` (`standings: "custom"`), where another league with rules of its own could be added the same way. Understanding these calculations helps explain why teams are ranked in their positions and what determines playoff seeding.
 
 ## Overview
 
