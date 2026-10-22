@@ -50,10 +50,19 @@ function respond(path: string): unknown {
   throw new Error(`unexpected ${path}`);
 }
 
+// Sleeper's own standings, from its GraphQL API: only for 2026, by week.
+let sleeperStandings: Record<number, { roster_id: number; rank: number }[]> = {};
+
 let requests: string[];
 beforeEach(() => {
   requests = [];
-  vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+  sleeperStandings = {};
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "https://sleeper.com/graphql") {
+      const { variables } = JSON.parse(String(init?.body)) as { variables: { league_id: string; round: number } };
+      const rows = variables.league_id === "L26" ? (sleeperStandings[variables.round] ?? []) : [];
+      return new Response(JSON.stringify({ data: { roster_standings: rows } }));
+    }
     const path = String(input).replace("https://api.sleeper.app", "");
     requests.push(path);
     try {
@@ -132,6 +141,27 @@ describe("loadLeague", () => {
     expect(history.payouts).toBeNull();
     // u4 left after 2025, and keeps the team name they had then.
     expect(history.owners.find((o) => o.userId === "u4")?.label).toBe("Team 4");
+  });
+});
+
+describe("Sleeper's own standings", () => {
+  it("follows them for the latest week played, and ranks teams itself where Sleeper has none", async () => {
+    // Sleeper puts roster 3 first after week 3, whatever the records say.
+    sleeperStandings[3] = [
+      { roster_id: 3, rank: 1 },
+      { roster_id: 1, rank: 2 },
+      { roster_id: 2, rank: 3 },
+      { roster_id: 4, rank: 4 },
+    ];
+    const data = await loadLeague("L26");
+    expect(data.seasons[0]!.league.sleeperRanks).toEqual({ u3: 1, u1: 2, u2: 3, "orphan-2026-4": 4 });
+    const live = standingsFor(data)!;
+    expect(live.sleeperOrder).toBe(true);
+    expect(live.standings.map((s) => s.name)).toEqual(["Team 3", "Team 1", "Team 2", "Team 4 (no owner)"]);
+
+    // Sleeper returned nothing for 2025: the site's own order, wins then points.
+    expect(data.seasons[1]!.league.sleeperRanks).toBeNull();
+    expect(standingsFor(data, 2025)!.sleeperOrder).toBe(false);
   });
 });
 

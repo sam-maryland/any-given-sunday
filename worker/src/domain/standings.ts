@@ -116,7 +116,12 @@ function medianOf(values: number[]): number {
 // is a team that beat every other tied team, which counts even when the tied
 // teams have not all played each other. "playoffs" means the order came from
 // playoff results (or from making the playoffs at all).
+//
+// "sleeper" is Sleeper's own standings putting one team above another for a
+// reason the site cannot see (divisions, say), where wins and points for
+// would have had it the other way.
 export type Separator =
+  | "sleeper"
   | "wins"
   | "headToHead"
   | "headToHeadSweep"
@@ -330,7 +335,9 @@ export function standingsForLeague(league: League, matchups: NewMatchup[]): Leag
 
   const format = formatOf(league);
   const standingsMap = matchupsToStandingsMap(matchups, format.medianGame);
-  const ranked = rankStandings([...standingsMap.values()], format.tiebreaker === "headToHead");
+  const computed = rankStandings([...standingsMap.values()], format.tiebreaker === "headToHead");
+  const ranked =
+    format.standings === "sleeper" && league.sleeperRanks ? followSleeper(computed, league.sleeperRanks) : computed;
   const regularSeason = (): LeagueStandings => ({
     standings: ranked.map((r) => r.standing),
     usedPlayoffResults: false,
@@ -510,6 +517,30 @@ function playoffPlacements(
     ...quarterfinalOrder,
     ...ranked.slice(playoffTeams),
   ];
+}
+
+// Sleeper's order, when it ranks every team. Where it agrees with the site's
+// own ranking (wins, then points for) the site's reasons stand; anywhere else
+// the reason is Sleeper's, unless wins alone explain it.
+function followSleeper(computed: Ranked[], ranks: Record<string, number>): Ranked[] {
+  if (!computed.every((r) => typeof ranks[r.standing.userId] === "number")) return computed;
+  const order = [...computed].sort((a, b) => ranks[a.standing.userId]! - ranks[b.standing.userId]!);
+  if (order.every((r, i) => r === computed[i])) return computed;
+
+  const position = new Map(computed.map((r, i) => [r.standing.userId, i]));
+  return order.map((r, i) => {
+    const next = order[i + 1];
+    if (!next) return { standing: r.standing, aheadOfNext: null };
+    const upper = r.standing;
+    const lower = next.standing;
+    const agrees = position.get(upper.userId)! + 1 === position.get(lower.userId)!;
+    if (agrees) return r;
+    if (upper.wins > lower.wins) return { standing: upper, aheadOfNext: { by: "wins", headToHead: null } };
+    if (upper.wins === lower.wins && upper.pointsFor > lower.pointsFor) {
+      return { standing: upper, aheadOfNext: { by: "pointsFor", headToHead: null } };
+    }
+    return { standing: upper, aheadOfNext: { by: "sleeper", headToHead: null } };
+  });
 }
 
 // Short reasons for the Discord post, which notes every spot a tiebreaker

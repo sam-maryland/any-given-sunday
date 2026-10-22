@@ -479,3 +479,45 @@ describe("matchupsToStandingsMap with the median game", () => {
     expect(standings.get("b")!.pointsAgainst).toBe(120);
   });
 });
+
+describe("standings that follow Sleeper's", () => {
+  const sleeperFormat = { ...AGS_FORMAT, standings: "sleeper" as const, tiebreaker: "pointsFor" as const, payouts: null };
+  // a 3-0, b and c 2-1 (b with more points), d 0-3.
+  const games = [
+    matchup({ week: 1, home_user_id: "a", away_user_id: "b", home_score: 120, away_score: 110 }),
+    matchup({ week: 1, home_user_id: "c", away_user_id: "d", home_score: 90, away_score: 80 }),
+    matchup({ week: 2, home_user_id: "a", away_user_id: "c", home_score: 120, away_score: 90 }),
+    matchup({ week: 2, home_user_id: "b", away_user_id: "d", home_score: 130, away_score: 80 }),
+    matchup({ week: 3, home_user_id: "a", away_user_id: "d", home_score: 120, away_score: 80 }),
+    matchup({ week: 3, home_user_id: "b", away_user_id: "c", home_score: 125, away_score: 100 }),
+  ];
+  const order = (l: League) => standingsForLeague(l, games).standings.map((s) => s.userId);
+
+  it("keeps the site's own reasons when Sleeper agrees", () => {
+    const result = standingsForLeague(
+      { ...league(LeagueStatus.InProgress), format: sleeperFormat, sleeperRanks: { a: 1, b: 2, c: 3, d: 4 } },
+      games,
+    );
+    expect(result.standings.map((s) => s.userId)).toEqual(["a", "b", "c", "d"]);
+    expect(result.explanations[1]!.aheadOfNext?.by).toBe("wins");
+  });
+
+  it("follows Sleeper where it disagrees, and says the call was Sleeper's", () => {
+    // Sleeper puts c above b (a division winner, say), despite b's points.
+    const l = { ...league(LeagueStatus.InProgress), format: sleeperFormat, sleeperRanks: { a: 1, c: 2, b: 3, d: 4 } };
+    expect(order(l)).toEqual(["a", "c", "b", "d"]);
+    const result = standingsForLeague(l, games);
+    expect(result.explanations.map((e) => e.aheadOfNext?.by ?? null)).toEqual(["wins", "sleeper", "wins", null]);
+    expect(result.explanations.map((e) => e.seed)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("ranks the teams itself when Sleeper had no standings, or misses a team", () => {
+    expect(order({ ...league(LeagueStatus.InProgress), format: sleeperFormat, sleeperRanks: null })).toEqual(["a", "b", "c", "d"]);
+    expect(order({ ...league(LeagueStatus.InProgress), format: sleeperFormat, sleeperRanks: { a: 1, c: 2 } })).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("ignores Sleeper's standings for a league with its own rules", () => {
+    const custom = { ...league(LeagueStatus.InProgress), format: { ...sleeperFormat, standings: "custom" as const }, sleeperRanks: { a: 1, c: 2, b: 3, d: 4 } };
+    expect(order(custom)).toEqual(["a", "b", "c", "d"]);
+  });
+});

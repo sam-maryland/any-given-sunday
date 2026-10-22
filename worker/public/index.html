@@ -1204,10 +1204,7 @@
 
       <section class="how" id="how" aria-labelledby="how-title" hidden>
         <h2 id="how-title">How the standings work</h2>
-        <p class="lede">
-          Teams are ranked by regular season wins. When teams finish level on wins, the criteria below
-          break the tie, in order. A step only matters if every step before it ended level.
-        </p>
+        <p class="lede" id="how-lede"></p>
         <ol class="steps" id="steps"></ol>
 
         <div class="split">
@@ -1269,6 +1266,7 @@
         "996999191685566464": { seededPairingsSince: 2026 },
       };
       let league = null; // the LeagueInfo for the league on show
+      let tiebreakRule = "headToHead"; // the shown season's, set on render
 
       const FINISH_LABEL = {
         champion: "Champion",
@@ -1296,6 +1294,8 @@
       // What came before points for or against: head-to-head was either level
       // or, when the tied teams hadn't all played each other, skipped.
       function h2hStage(a, more = "") {
+        // A league without the head-to-head step goes straight to points.
+        if (tiebreakRule !== "headToHead") return `Level on wins${more}`;
         return a.headToHead?.used
           ? `Level on wins${more ? ", head-to-head" : " and head-to-head"}${more}`
           : `Level on wins${more}; head-to-head doesn't apply`;
@@ -1319,6 +1319,8 @@
             return ahead("points against", `${pts(upper.pointsAgainst)} vs ${pts(lower.pointsAgainst)} allowed`);
           case "coinFlip":
             return ahead("a coin flip");
+          case "sleeper":
+            return ahead("Sleeper's standings");
           default:
             return null;
         }
@@ -1346,12 +1348,15 @@
               ? ` · ${pts(upper.pointsFor)} vs ${pts(lower.pointsFor)}`
               : ` · ${pts(upper.pointsAgainst)} vs ${pts(lower.pointsAgainst)}`;
             const before = isPF ? "" : " and points for";
+            if (tiebreakRule !== "headToHead") return [`Level on wins${before}, separated by `, h("b", null, stat), values];
             return a.headToHead?.used
               ? [isPF ? "Level on wins and head-to-head, separated by " : "Level on wins, head-to-head and points for, separated by ", h("b", null, stat), values]
               : [`Level on wins${before}. Not all tied teams have met, so `, h("b", null, stat), " decides", values];
           }
           case "coinFlip":
             return ["Level on everything. ", h("b", null, "A coin flip"), " decided it."];
+          case "sleeper":
+            return ["Sleeper's standings put them here, ahead of a team wins and points for would rank higher. Sleeper may be using a rule this site doesn't model, such as divisions."];
           default:
             return null;
         }
@@ -1402,6 +1407,8 @@
             ];
           case "coinFlip":
             return [lead, them, " on a coin flip. Every tiebreaker came out level."];
+          case "sleeper":
+            return [lead, them, " in Sleeper's standings, which this table follows. Wins and points for alone would order them the other way."];
           case "playoffs":
             return [lead, them, ` on playoff results. ${playoffReason(upper, lower, ahead)}`];
         }
@@ -1684,6 +1691,16 @@
           ["Points against", "Then the team that allowed fewer points.", "pointsAgainst"],
           ["Coin flip", "If everything is still level, it's random. This almost never happens.", "coinFlip"],
         ];
+        // Sleeper's own call, where its order can't be explained by the steps.
+        if (counts.sleeper) steps.push(["Sleeper", "Sleeper's standings rank these teams for a reason the steps above don't cover, such as divisions. This table follows Sleeper.", "sleeper"]);
+
+        $("how-lede").textContent =
+          data.tiebreaker === "headToHead"
+            ? "Teams are ranked by regular season wins. When teams finish level on wins, the criteria below break the tie, in order. A step only matters if every step before it ended level."
+            : data.sleeperOrder
+              ? "This table follows Sleeper's own standings, so it matches the app. Sleeper ranks teams by regular season wins, then by the criteria below, in order."
+              : "Sleeper's own standings weren't available for this season, so teams are ranked the way Sleeper ranks them: regular season wins, then the criteria below, in order.";
+
         $("steps").replaceChildren(...steps.filter(Boolean).map(([t, p, k]) => h("li", { class: "step" }, h("h3", null, t), h("p", null, p), used(k))));
       }
 
@@ -1808,6 +1825,7 @@
       }
 
       function render(data) {
+        tiebreakRule = data.tiebreaker;
         // The playoff race (its own module script below) draws from the same
         // standings, so tell it whenever they change.
         window.agsStandings = data;

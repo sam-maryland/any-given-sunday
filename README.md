@@ -26,9 +26,11 @@ season back to the league's first, and builds every page with the same
 domain code the Worker uses. Finished seasons never change, so the browser
 keeps them in IndexedDB; a return visit only asks Sleeper for the season in
 progress. Each league's format (playoff teams, byes, median games, league
-type) comes from its Sleeper settings; anything Sleeper doesn't know, such as
-Any Given Sunday's head-to-head tiebreaker and payouts, is an override in
-`worker/src/domain/leagueFormat.ts`.
+type) comes from its Sleeper settings, and its standings follow Sleeper's own
+order. A league with rules Sleeper doesn't support, such as Any Given
+Sunday's head-to-head tiebreaker and payouts, gets an override in
+`worker/src/domain/leagueFormat.ts` and is ranked by the site's own
+tiebreakers instead. See [docs/standings-calculation.md](docs/standings-calculation.md).
 
 The Discord bot and the weekly recap still serve Any Given Sunday only, from
 Supabase.
