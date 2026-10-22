@@ -139,6 +139,154 @@ a.eyebrow:focus-visible,
   color: var(--ink-2);
 }
 
+/* ---------- League switcher ---------- */
+
+.league-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.switch-toggle {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+/* One league saved: nothing to switch to. */
+.switch-toggle[hidden] {
+  display: none;
+}
+
+.switch-toggle:hover,
+.switch-toggle[aria-expanded="true"] {
+  background: var(--line-2);
+  color: var(--ink);
+}
+
+.switch-toggle .chev {
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: -0.2rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s var(--ease);
+}
+
+.switch-toggle[aria-expanded="true"] .chev {
+  margin-top: 0.2rem;
+  transform: rotate(225deg);
+}
+
+.league-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 20;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  box-shadow: 0 12px 32px oklch(0% 0 0 / 0.18);
+}
+
+.league-panel[hidden] {
+  display: none;
+}
+
+.panel-title {
+  margin: 0.25rem 0.5rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.league-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.league-panel li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9px;
+}
+
+.league-panel li:hover,
+.league-panel li.current {
+  background: var(--line-2);
+}
+
+.league-panel li a {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  overflow: hidden;
+  color: var(--ink);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.league-panel li.current a {
+  font-weight: 600;
+}
+
+.league-panel .here {
+  padding-right: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+
+.league-panel .forget {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-3);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.league-panel .forget:hover {
+  background: var(--line);
+  color: var(--loss);
+}
+
+.add-league {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.6rem 0.35rem;
+  border-top: 1px solid var(--line);
+  color: var(--field);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.switch-toggle:focus-visible,
+.league-panel a:focus-visible,
+.league-panel .forget:focus-visible {
+  outline: 2px solid var(--field);
+  outline-offset: 2px;
+}
+
 .mark {
   display: grid;
   place-items: center;
