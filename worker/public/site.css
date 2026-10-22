@@ -162,11 +162,6 @@ a.eyebrow:focus-visible,
   cursor: pointer;
 }
 
-/* One league saved: nothing to switch to. */
-.switch-toggle[hidden] {
-  display: none;
-}
-
 .switch-toggle:hover,
 .switch-toggle[aria-expanded="true"] {
   background: var(--line-2);
