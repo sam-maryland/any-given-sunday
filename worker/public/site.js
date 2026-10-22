@@ -122,6 +122,8 @@ export function withLeague(path, id = leagueId()) {
 // site paths; carry the league on every one of them, now and as they appear.
 function keepLeagueOnLinks(id) {
   const fix = (a) => {
+    // A link that names its own league, or deliberately none.
+    if (a.hasAttribute("data-own-league")) return;
     const href = a.getAttribute("href");
     if (!href || !href.startsWith("/") || href.startsWith("//") || /[?&]league=/.test(href)) return;
     a.setAttribute("href", withLeague(href, id));
@@ -149,6 +151,97 @@ function brand(info) {
     const mark = h("span", { class: "mark", "aria-hidden": "true" }, initials(info.name));
     el.replaceChildren(mark, info.name);
   });
+  leagueSwitcher(info);
+}
+
+// ---------- Switching leagues ----------
+//
+// Beside the league's name, once this browser has opened more than one: the
+// other leagues, one tap away, and a way back to the front page to add one.
+
+/**
+ * The same kind of page in another league. Owners and players differ between
+ * leagues, so those pages go to the other league's history and players.
+ */
+function switchHref(id) {
+  const page = location.pathname.replace(/\/+$/, "");
+  const target = page === "/owner" ? "/history" : page === "/history" || page === "/player" ? page : "/";
+  return `${target}?league=${encodeURIComponent(id)}`;
+}
+
+function leagueSwitcher(info) {
+  const eyebrow = document.querySelector(".topbar .eyebrow");
+  if (!eyebrow || document.querySelector(".league-switch")) return;
+
+  const wrap = h("div", { class: "league-switch" });
+  eyebrow.replaceWith(wrap);
+  const toggle = h(
+    "button",
+    { type: "button", class: "switch-toggle", "aria-expanded": "false", "aria-controls": "league-panel", "aria-label": "Switch league" },
+    h("span", { class: "chev", "aria-hidden": "true" }),
+  );
+  const panel = h("div", { class: "league-panel", id: "league-panel", hidden: true });
+  wrap.append(eyebrow, toggle, panel);
+
+  const open = (yes) => {
+    panel.hidden = !yes;
+    toggle.setAttribute("aria-expanded", String(yes));
+  };
+
+  const draw = () => {
+    const leagues = recentLeagues();
+    // Nothing to switch to: just the name, as before.
+    toggle.hidden = !leagues.some((l) => l.id !== info.id);
+    if (toggle.hidden) open(false);
+    panel.replaceChildren(
+      h("p", { class: "panel-title" }, "Your leagues"),
+      h(
+        "ul",
+        null,
+        leagues.map((l) => {
+          const current = l.id === info.id;
+          return h(
+            "li",
+            { class: current ? "current" : null },
+            h("a", { href: switchHref(l.id), "data-own-league": "", "aria-current": current ? "true" : null }, l.name || l.id),
+            current
+              ? h("span", { class: "here" }, "Viewing")
+              : h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "forget",
+                    "aria-label": `Remove ${l.name || l.id} from your leagues`,
+                    title: "Remove from your leagues",
+                    onclick: () => {
+                      forgetLeague(l.id);
+                      draw();
+                      if (!toggle.hidden) panel.querySelector("a")?.focus();
+                      else toggle.focus();
+                    },
+                  },
+                  "×",
+                ),
+          );
+        }),
+      ),
+      h("a", { class: "add-league", href: "/", "data-own-league": "" }, "Open another league…"),
+    );
+  };
+
+  toggle.addEventListener("click", () => open(panel.hidden));
+  // The path is fixed when the click starts, so a click inside still counts
+  // as inside after it redraws the panel (removing a league does).
+  document.addEventListener("click", (e) => {
+    if (!e.composedPath().includes(wrap)) open(false);
+  });
+  wrap.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) {
+      open(false);
+      toggle.focus();
+    }
+  });
+  draw();
 }
 
 let pending = null;
