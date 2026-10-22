@@ -71,6 +71,8 @@ export interface StandingsPayload {
   sleeperOrder: boolean;
   /** Whether records include a game against each week's median score. */
   medianGame: boolean;
+  /** Divisions the league plays in; 0 without. */
+  divisions: number;
   /** The latest week with a synced game, or null before week 1 lands. */
   throughWeek: number | null;
   /** When the weekly sync this data reflects ran, as an ISO timestamp. */
@@ -143,6 +145,7 @@ export function standingsPayload(input: PayloadInput): StandingsPayload {
     tiebreaker: format.tiebreaker,
     sleeperOrder: format.standings === "sleeper" && !!league.sleeperRanks,
     medianGame: format.medianGame,
+    divisions: format.divisions,
     throughWeek: weeks.length > 0 ? Math.max(...weeks) : null,
     syncedAt: input.syncedAt.toISOString(),
     seasons: input.seasons,

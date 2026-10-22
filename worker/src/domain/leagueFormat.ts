@@ -37,6 +37,11 @@ export interface LeagueFormat {
   /** Each team also plays the weekly median (Sleeper's league_average_match). */
   medianGame: boolean;
   /**
+   * How many divisions the league plays in; 0 without. Sleeper sends every
+   * division winner to the playoffs, whatever its record.
+   */
+  divisions: number;
+  /**
    * The last place a placement game settles. Below it, playoff teams that
    * went out in the same round are ordered by the tiebreakers instead. Null
    * when every placement game counts, as on Sleeper.
@@ -64,6 +69,7 @@ export const AGS_FORMAT: LeagueFormat = {
   byes: 2,
   tiebreaker: "headToHead",
   medianGame: false,
+  divisions: 0,
   // The final and the third place game. The quarterfinal losers play a fifth
   // place game on Sleeper, but the league orders them by tiebreakers.
   placementGamesThrough: 4,
@@ -84,6 +90,7 @@ export interface SleeperFormatSettings {
   type?: number;
   playoff_teams?: number;
   league_average_match?: number;
+  divisions?: number | null;
 }
 
 /**
@@ -107,6 +114,7 @@ export function formatFromSleeper(settings: SleeperFormatSettings, firstSeasonId
     byes: byesFor(playoffTeams),
     tiebreaker: "pointsFor",
     medianGame: settings.league_average_match === 1,
+    divisions: settings.divisions ?? 0,
     placementGamesThrough: null,
     payouts: null,
     ...OVERRIDES[firstSeasonId],

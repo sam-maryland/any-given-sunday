@@ -521,3 +521,30 @@ describe("standings that follow Sleeper's", () => {
     expect(order(custom)).toEqual(["a", "b", "c", "d"]);
   });
 });
+
+describe("points against, by league rule", () => {
+  // x and y both 1-1 with 200 points for; x allowed 190, y allowed 210.
+  const games = [
+    matchup({ week: 1, home_user_id: "x", away_user_id: "p", home_score: 100, away_score: 90 }),
+    matchup({ week: 2, home_user_id: "x", away_user_id: "q", home_score: 100, away_score: 100.5 }),
+    matchup({ week: 1, home_user_id: "y", away_user_id: "q", home_score: 100, away_score: 99.5 }),
+    matchup({ week: 2, home_user_id: "y", away_user_id: "p", home_score: 100, away_score: 110.5 }),
+  ];
+  const order = (tiebreaker: "headToHead" | "pointsFor") => {
+    const result = standingsForLeague(
+      { ...league(LeagueStatus.InProgress), format: { ...AGS_FORMAT, standings: "custom", tiebreaker } },
+      games,
+    );
+    const ids = result.standings.map((s) => s.userId).filter((id) => id === "x" || id === "y");
+    const upper = result.explanations[result.standings.findIndex((s) => s.userId === ids[0])]!;
+    return { ids, by: upper.aheadOfNext?.by };
+  };
+
+  it("goes to the team that allowed more under Sleeper's rule", () => {
+    expect(order("pointsFor")).toEqual({ ids: ["y", "x"], by: "pointsAgainst" });
+  });
+
+  it("goes to the team that allowed fewer under Any Given Sunday's", () => {
+    expect(order("headToHead")).toEqual({ ids: ["x", "y"], by: "pointsAgainst" });
+  });
+});
