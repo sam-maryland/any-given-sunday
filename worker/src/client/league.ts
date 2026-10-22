@@ -33,7 +33,7 @@ const API = "https://api.sleeper.app";
 
 // Bump whenever SeasonData or the way it is built changes, so no visitor is
 // served a season cached by older code.
-const SEASON_VERSION = 2;
+const SEASON_VERSION = 3;
 
 // How long a season still being played is reused before Sleeper is asked
 // again. Long enough that clicking between pages costs nothing.
