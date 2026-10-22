@@ -134,7 +134,7 @@ export function formatWeeklySummary(summary: WeeklySummary, users: UserMap): str
   });
   response += "\n";
 
-  response += `📊 Full standings: <${standingsUrl(summary.year)}>\n\n`;
+  response += `📊 Full standings: <${standingsUrl(summary.year, summary.leagueId)}>\n\n`;
   response += `Next update after Week ${summary.week + 1} games complete! 🏈`;
 
   return response;

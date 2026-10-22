@@ -211,7 +211,7 @@ export function generateWeeklyRecapHTML(summary: WeeklySummary, users: UserMap):
   html += `
                     <tr>
                         <td class="px" style="background-color: #f7f6f3; padding: 22px 24px; border-top: 1px solid ${RULE};" align="center">
-                            <a href="${esc(standingsUrl(summary.year))}" style="display: inline-block; background-color: ${INK}; color: ${PAPER}; text-decoration: none; padding: 12px 26px; font-family: ${SANS}; font-size: 12px; font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase;">Full Standings</a>
+                            <a href="${esc(standingsUrl(summary.year, summary.leagueId))}" style="display: inline-block; background-color: ${INK}; color: ${PAPER}; text-decoration: none; padding: 12px 26px; font-family: ${SANS}; font-size: 12px; font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase;">Full Standings</a>
                             <p style="margin: 14px 0 0 0; font-family: ${SANS}; font-size: 12px; line-height: 18px;"><a href="https://sleeper.com/leagues/${encodeURIComponent(summary.leagueId)}/league" style="color: ${MUTED}; text-decoration: underline;">Open the league on Sleeper</a></p>
                             <p style="margin: 12px 0 0 0; font-family: ${SANS}; font-size: 12px; line-height: 18px; color: ${MUTED};">Next briefing after Week ${summary.week + 1} concludes.</p>
                         </td>

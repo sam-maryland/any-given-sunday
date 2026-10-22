@@ -1,13 +1,14 @@
+import { AGS_PAYOUTS } from "./leagueFormat";
 import { STANDINGS_URL } from "./standings";
 import { CareerStatsRow } from "./types";
 
-// The league's money, unchanged since it started in 2023. The website's
-// owner pages (domain/history.ts) use the same figures.
-export const PAY_IN_BUY_IN = 100;
-export const PAY_OUT_WEEKLY_HIGH_SCORE = 15;
-export const PAY_OUT_FIRST_PLACE = 600;
-export const PAY_OUT_SECOND_PLACE = 300;
-export const PAY_OUT_THIRD_PLACE = 120;
+// Any Given Sunday's money, for the Discord /career-stats command. The
+// website reads each league's own payouts from its format instead.
+export const PAY_IN_BUY_IN = AGS_PAYOUTS.buyIn;
+export const PAY_OUT_WEEKLY_HIGH_SCORE = AGS_PAYOUTS.weeklyHighScore;
+export const PAY_OUT_FIRST_PLACE = AGS_PAYOUTS.places[0]!;
+export const PAY_OUT_SECOND_PLACE = AGS_PAYOUTS.places[1]!;
+export const PAY_OUT_THIRD_PLACE = AGS_PAYOUTS.places[2]!;
 
 export function calculateCareerEarnings(c: CareerStatsRow): number {
   let earnings = 0;
@@ -19,7 +20,8 @@ export function calculateCareerEarnings(c: CareerStatsRow): number {
   return earnings;
 }
 
-export function careerStatsToDiscordMessage(c: CareerStatsRow, username: string): string {
+/** @param leagueId the league's latest season, for the link to the website */
+export function careerStatsToDiscordMessage(c: CareerStatsRow, username: string, leagueId?: string): string {
   let b = "";
 
   b += `**${username}'s Career Stats** 📊\n\n`;
@@ -70,7 +72,8 @@ export function careerStatsToDiscordMessage(c: CareerStatsRow, username: string)
 
   // The owner page has every season and every head-to-head record, which
   // don't fit here.
-  b += `📜 Every season and rivalry: <${STANDINGS_URL}/owner?id=${encodeURIComponent(c.user_id)}>\n`;
+  const league = leagueId ? `&league=${encodeURIComponent(leagueId)}` : "";
+  b += `📜 Every season and rivalry: <${STANDINGS_URL}/owner?id=${encodeURIComponent(c.user_id)}${league}>\n`;
 
   return b;
 }

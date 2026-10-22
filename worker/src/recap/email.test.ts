@@ -89,7 +89,7 @@ describe("generateWeeklyRecapHTML", () => {
   it("leads with a link to that season's standings page", () => {
     const html = generateWeeklyRecapHTML(SUMMARY, new Map());
 
-    const standings = html.indexOf('href="https://ags-hq.org/?year=2026"');
+    const standings = html.indexOf('href="https://ags-hq.org/?league=L1&amp;year=2026"');
     const sleeper = html.indexOf('href="https://sleeper.com/leagues/L1/league"');
     expect(standings).toBeGreaterThan(-1);
     expect(sleeper).toBeGreaterThan(standings);

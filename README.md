@@ -10,15 +10,28 @@ A Discord bot for fantasy football league management with automated weekly recap
   - `/career-stats` - Historical performance statistics
   - `/onboard` - Link new league members to their Sleeper team
 - **Automated Weekly Recaps**: A Cloudflare Worker cron trigger posts weekly summaries every Tuesday
-- **Standings Dashboard**: A web page showing the current standings, served from the same Worker
+- **League website for any Sleeper league**: paste a league ID at the front page for standings with every tiebreak explained, playoff odds, league history, owner pages and every player's path through the league. Dynasty, keeper and redraft leagues all work.
 - **League Data Sync**: Real-time integration with Sleeper API for up-to-date information
 - **Historical Statistics**: Track career performance across multiple seasons
 - **Easy Deployment**: Designed for technical commissioners to set up for their own leagues
 
 Everything runs as a single [Cloudflare Worker](worker/): the slash commands
 are served from Discord's HTTP interactions endpoint, the weekly recap runs on
-a cron trigger, and the dashboard is served as static assets — all from the
-same Worker. Data lives in Supabase.
+a cron trigger, and the website is served as static assets — all from the
+same Worker.
+
+The website keeps no data of its own. The visitor's browser reads the league
+straight from Sleeper's public API (`worker/src/client`), following each
+season back to the league's first, and builds every page with the same
+domain code the Worker uses. Finished seasons never change, so the browser
+keeps them in IndexedDB; a return visit only asks Sleeper for the season in
+progress. Each league's format (playoff teams, byes, median games, league
+type) comes from its Sleeper settings; anything Sleeper doesn't know, such as
+Any Given Sunday's head-to-head tiebreaker and payouts, is an override in
+`worker/src/domain/leagueFormat.ts`.
+
+The Discord bot and the weekly recap still serve Any Given Sunday only, from
+Supabase.
 
 ## Prerequisites
 

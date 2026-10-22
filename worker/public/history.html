@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>League History — Any Given Sunday</title>
-    <meta name="description" content="Every champion, the all-time table, and the league's records for the Any Given Sunday fantasy football league." />
+    <title>League History</title>
+    <meta name="description" content="Standings, history and every player move for any Sleeper fantasy football league." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -307,7 +307,7 @@
     <div class="wrap">
       <header>
         <div class="topbar">
-          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true"></span></a>
           <nav class="nav" aria-label="Site">
             <a href="/">Standings</a>
             <a href="/history" aria-current="page">History</a>
@@ -354,13 +354,13 @@
       <p class="status" id="status" role="status"></p>
 
       <footer>
-        <span id="footer-sync">Synced weekly, after the Tuesday recap.</span>
+        <span id="footer-sync">Live from Sleeper.</span>
         <a href="/">This season's standings</a>
       </footer>
     </div>
 
     <script type="module">
-      import { $, games, h, loadHistory, money, ownerHref, plural, pts, record, score, winPct } from "/site.js";
+      import { $, games, h, loadHistory, money, ownerHref, plural, pts, record, score, titleSuffix, winPct } from "/site.js";
 
       let data;
       let byId;
@@ -390,8 +390,8 @@
                 null,
                 h("dt", null, "Runner-up"),
                 h("dd", null, ownerLink(p.second)),
-                h("dt", null, "Third"),
-                h("dd", null, ownerLink(p.third)),
+                p.third ? h("dt", null, "Third") : null,
+                p.third ? h("dd", null, ownerLink(p.third)) : null,
               ),
             );
           }),
@@ -412,6 +412,8 @@
         { key: "trades", label: "Trades", sort: (o) => o.trades.trades * 1e3 + o.trades.picksSent + o.trades.picksReceived },
         { key: "earnings", label: "Earnings", sort: (o) => o.earnings },
       ];
+      // Earnings only for a league whose payouts the site knows.
+      const columns = () => COLUMNS.filter((c) => c.key !== "earnings" || data.payouts);
       let sortKey = "titles";
       let sortDesc = true;
 
@@ -426,7 +428,7 @@
       }
 
       function renderTable() {
-        const col = COLUMNS.find((c) => c.key === sortKey);
+        const col = columns().find((c) => c.key === sortKey);
         const sorted = [...data.owners].sort((a, b) => {
           const x = col.sort(a);
           const y = col.sort(b);
@@ -436,7 +438,7 @@
         });
 
         $("table-head").replaceChildren(
-          ...COLUMNS.map((c) =>
+          ...columns().map((c) =>
             h(
               "th",
               { scope: "col", "aria-sort": c.key === sortKey ? (sortDesc ? "descending" : "ascending") : null },
@@ -477,7 +479,7 @@
                 o.trades.trades,
                 h("span", { class: "muted" }, ` · ${plural(o.trades.picksSent + o.trades.picksReceived, "pick")}`),
               ),
-              h("td", { class: `num ${o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : ""}` }, money(o.earnings)),
+              data.payouts ? h("td", { class: `num ${o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : ""}` }, money(o.earnings)) : null,
             ),
           ),
         );
@@ -485,8 +487,18 @@
         $("table-note").textContent =
           "Record and points are regular season. Playoffs shows appearances out of seasons played, then the record in playoff games. " +
           "Trades counts completed trades, then the draft picks sent and received in them. " +
-          "Earnings: −$100 buy-in a season, +$15 per weekly high score, +$600 / $300 / $120 for first, second and third." +
-          (data.currentYear ? ` ${data.currentYear} counts so far.` : "");
+          (data.payouts ? payoutNote(data.payouts) + (data.currentYear ? ` ${data.currentYear} counts so far.` : "") : "");
+      }
+
+      function payoutNote(p) {
+        const places = ["first", "second", "third", "fourth", "fifth"].slice(0, p.places.length);
+        const amounts = p.places.map((n) => `$${n}`).join(" / ");
+        const which = places.length > 1 ? `${places.slice(0, -1).join(", ")} and ${places[places.length - 1]}` : places[0];
+        return (
+          `Earnings: −$${p.buyIn} buy-in a season` +
+          (p.weeklyHighScore ? `, +$${p.weeklyHighScore} per weekly high score` : "") +
+          (places.length ? `, +${amounts} for ${which}.` : ".")
+        );
       }
 
       // ---------- Records ----------
@@ -526,6 +538,9 @@
 
       try {
         data = await loadHistory();
+        document.title = `League History${titleSuffix(data.league)}`;
+        // A leftover sort from before the league had no earnings column.
+        if (!data.payouts && sortKey === "earnings") sortKey = "titles";
         byId = new Map(data.owners.map((o) => [o.userId, o]));
         renderMeta();
         renderChampions();

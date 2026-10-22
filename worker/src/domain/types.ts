@@ -1,3 +1,5 @@
+import type { LeagueFormat } from "./leagueFormat";
+
 export const LeagueStatus = {
   InProgress: "IN_PROGRESS",
   Complete: "COMPLETE",
@@ -9,7 +11,20 @@ export const PlayoffRound = {
   Semifinals: "semifinal",
   Quarterfinals: "quarterfinal",
   ThirdPlace: "third_place",
+  /** Any round before the quarterfinals, in a bracket of more than 8 teams. */
+  FirstRound: "first_round",
 } as const;
+
+/**
+ * How a playoff team's season ended, read from Sleeper's bracket: `place` from
+ * a placement game (the final is 1st and 2nd, the third place game 3rd and
+ * 4th, and so on), else null with `lostIn` the round they went out in.
+ */
+export interface PlayoffPlace {
+  userId: string;
+  place: number | null;
+  lostIn: string | null;
+}
 
 export interface League {
   id: string;
@@ -18,6 +33,14 @@ export interface League {
   second_place: string;
   third_place: string;
   status: string;
+  /** How this season was run. Absent for leagues read from Supabase (AGS). */
+  format?: LeagueFormat;
+  /**
+   * Every playoff team, best finish first, once the season is complete.
+   * Absent for leagues read from Supabase, whose order comes from the stored
+   * playoff matchups instead.
+   */
+  playoffOutcome?: PlayoffPlace[] | null;
 }
 
 export interface Matchup {
@@ -143,4 +166,6 @@ export interface DraftPick {
   player_id: string;
   player_name: string;
   position: string;
+  /** A player kept rather than drafted, in a keeper league. */
+  is_keeper?: boolean;
 }

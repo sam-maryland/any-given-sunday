@@ -1,10 +1,4 @@
-import {
-  PAY_IN_BUY_IN,
-  PAY_OUT_FIRST_PLACE,
-  PAY_OUT_SECOND_PLACE,
-  PAY_OUT_THIRD_PLACE,
-  PAY_OUT_WEEKLY_HIGH_SCORE,
-} from "./careerStats";
+import { Payouts, formatOf } from "./leagueFormat";
 import { Finish, standingsForLeague } from "./standings";
 import { TradeStats, buildTradeStats, emptyTradeStats } from "./trades";
 import { League, LeagueStatus, NewMatchup, Roster, Transaction, UserMap } from "./types";
@@ -114,6 +108,8 @@ export interface LeagueHistory {
   records: LeagueRecords;
   /** The season in progress, if any. */
   currentYear: number | null;
+  /** What the league pays now; null when the site does not know, and earnings are all 0. */
+  payouts: Payouts | null;
 }
 
 export function slugify(name: string): string {
@@ -164,12 +160,17 @@ function highScoreWeeks(regular: NewMatchup[]): Map<string, Map<number, number>>
   return byOwner;
 }
 
-function payout(league: League, userId: string): number {
-  if (league.status !== LeagueStatus.Complete) return 0;
-  if (league.first_place === userId) return PAY_OUT_FIRST_PLACE;
-  if (league.second_place === userId) return PAY_OUT_SECOND_PLACE;
-  if (league.third_place === userId) return PAY_OUT_THIRD_PLACE;
-  return 0;
+// What one owner made in one season: the buy-in is paid at the start and
+// weekly bonuses as they happen, so a season in progress already counts both.
+function seasonEarnings(league: League, userId: string, highScoreWeeks: number): number {
+  const payouts = formatOf(league).payouts;
+  if (!payouts) return 0;
+  let earnings = -payouts.buyIn + highScoreWeeks * payouts.weeklyHighScore;
+  if (league.status === LeagueStatus.Complete) {
+    const place = [league.first_place, league.second_place, league.third_place].indexOf(userId);
+    if (place >= 0) earnings += payouts.places[place] ?? 0;
+  }
+  return earnings;
 }
 
 export function buildLeagueHistory(
@@ -256,9 +257,7 @@ export function buildLeagueHistory(
         seed: place.seed,
         finish: place.finish,
         highScoreWeeks: hs,
-        // The buy-in is paid at the start of a season and weekly bonuses as
-        // they happen, so a season in progress already counts both.
-        earnings: -PAY_IN_BUY_IN + hs * PAY_OUT_WEEKLY_HIGH_SCORE + payout(league, userId),
+        earnings: seasonEarnings(league, userId, hs),
       });
     }
 
@@ -288,7 +287,9 @@ export function buildLeagueHistory(
     });
   }
 
-  owners.sort((a, b) => b.titles - a.titles || b.earnings - a.earnings || a.name.localeCompare(b.name));
+  owners.sort(
+    (a, b) => b.titles - a.titles || b.earnings - a.earnings || b.record.wins - a.record.wins || a.name.localeCompare(b.name),
+  );
 
   return {
     owners,
@@ -298,6 +299,7 @@ export function buildLeagueHistory(
       .reverse(),
     records: leagueRecords(regular),
     currentYear: started.find((l) => l.status === LeagueStatus.InProgress)?.year ?? null,
+    payouts: started.length ? formatOf(started[started.length - 1]!).payouts : null,
   };
 }
 

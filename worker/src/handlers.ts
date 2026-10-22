@@ -137,12 +137,12 @@ export function handleCareerStatsCommand(hc: HandlerContext): Response {
       targetUser?.username ||
       targetUserId;
 
-    const stats = await db.getCareerStatsByDiscordId(targetUserId);
+    const [stats, league] = await Promise.all([db.getCareerStatsByDiscordId(targetUserId), db.getLatestLeague()]);
     if (!stats) {
       return { content: `Hmm... I couldn't find any stats for ${displayName}.` };
     }
 
-    return { content: careerStatsToDiscordMessage(stats, displayName) };
+    return { content: careerStatsToDiscordMessage(stats, displayName, league?.id) };
   });
 }
 

@@ -1,33 +1,12 @@
 import { ownerLabels } from "../data/sleeper";
 import { SupabaseClient } from "../data/supabase";
-import { PlayerHighlights, buildPlayerHighlights } from "../domain/playerHighlights";
-import { PlayerHistory, buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
-import { Player } from "../domain/types";
+import { PlayerHighlightsPayload, PlayerPayload, PlayersPayload } from "../domain/payloads";
+import { buildPlayerHighlights } from "../domain/playerHighlights";
+import { buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
 import { lastSyncBoundary } from "../recap/schedule";
 import { cachedJsonResponse, epochCacheKey } from "./cache";
 
-export interface PlayerPayload extends Omit<PlayerHistory, "ownerIds"> {
-  player: Player;
-  /**
-   * Every owner the events mention, by user id: the name to show (their
-   * current Sleeper team name, else Sleeper username, else their own name)
-   * and their own name, for a hover.
-   */
-  owners: Record<string, { label: string; name: string }>;
-  syncedAt: string;
-}
-
-export interface PlayerHighlightsPayload extends Omit<PlayerHighlights, "ownerIds"> {
-  /** Every owner the lists mention, named as in PlayerPayload. */
-  owners: Record<string, { label: string; name: string }>;
-  syncedAt: string;
-}
-
-export interface PlayersPayload {
-  /** Everyone who has been through the league, by name. */
-  players: Player[];
-  syncedAt: string;
-}
+export type { PlayerHighlightsPayload, PlayerPayload, PlayersPayload } from "../domain/payloads";
 
 // Same reasoning as the standings endpoint: the epoch covers the weekly sync,
 // the edge bound covers an out-of-band edit — and the player names, which the

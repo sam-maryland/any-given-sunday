@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Players — Any Given Sunday</title>
-    <meta name="description" content="Every player's path through the Any Given Sunday fantasy football league: who drafted them, every trade, pickup and drop." />
+    <title>Players</title>
+    <meta name="description" content="Standings, history and every player move for any Sleeper fantasy football league." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316140f'/><text x='16' y='22' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4f1ea' text-anchor='middle'>ag</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -389,7 +389,7 @@
     <div class="wrap">
       <header>
         <div class="topbar">
-          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true">ag</span>Any Given Sunday</a>
+          <a class="eyebrow" href="/"><span class="mark" aria-hidden="true"></span></a>
           <nav class="nav" aria-label="Site">
             <a href="/">Standings</a>
             <a href="/history">History</a>
@@ -446,12 +446,12 @@
         </section>
 
         <div class="boards">
-          <section class="board" aria-labelledby="trails-title">
+          <section class="board" id="trails-section" aria-labelledby="trails-title">
             <h2 id="trails-title">Pick trails</h2>
             <p class="board-note">Picks that changed hands the most before anyone used them.</p>
             <ol id="trails"></ol>
           </section>
-          <section class="board" aria-labelledby="lifers-title">
+          <section class="board" id="lifers-section" aria-labelledby="lifers-title">
             <h2 id="lifers-title">Lifers</h2>
             <p class="board-note" id="lifers-note">Startup picks still with the team that drafted them.</p>
             <ol id="lifers"></ol>
@@ -467,13 +467,25 @@
       <p class="status" id="status" role="status"></p>
 
       <footer>
-        <span>Synced weekly, after the Tuesday recap.</span>
+        <span>Live from Sleeper.</span>
         <a href="/history">League history</a>
       </footer>
     </div>
 
     <script type="module">
-      import { $, h, ordinal, plural } from "/site.js";
+      import { highlightsFor, loadPlayerNames, playerFor, playersFor } from "/app.js";
+      import { $, currentLeague, h, ordinal, plural, titleSuffix } from "/site.js";
+
+      // The league, and names for every NFL player, both loaded once.
+      const ready = currentLeague();
+      const names = loadPlayerNames();
+      let league = null;
+      ready.then(({ info }) => (league = info)).catch(() => {});
+
+      // What a draft was: a dynasty league's first is its startup draft and
+      // every later one a rookie draft; anyone else just has drafts.
+      const draftName = (year, startup) =>
+        league?.type === "dynasty" ? `${year} ${startup ? "startup" : "rookie"} draft` : `${year} draft`;
 
       const params = new URLSearchParams(location.search);
       const MONTH = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "America/New_York" });
@@ -490,9 +502,8 @@
 
       async function loadIndex() {
         if (!index) {
-          const res = await fetch("/api/players?v=1");
-          if (!res.ok) throw new Error(`request failed (${res.status})`);
-          index = (await res.json()).players.map((p) => ({ ...p, key: fold(p.name) }));
+          const [{ data }, known] = await Promise.all([ready, names]);
+          index = playersFor(data, known).map((p) => ({ ...p, key: fold(p.name) }));
         }
         return index;
       }
@@ -660,7 +671,7 @@
                 "p",
                 { class: "what" },
                 h("span", { class: "tag drafted" }, "Drafted"),
-                `Pick ${slot} in the ${e.year} ${e.startup ? "startup" : "rookie"} draft, by `,
+                e.keeper ? `Kept in the ${draftName(e.year, e.startup)}, by ` : `Pick ${slot} in the ${draftName(e.year, e.startup)}, by `,
                 owner(e.byId),
                 ".",
               ),
@@ -708,7 +719,7 @@
 
       function render() {
         const p = data.player;
-        document.title = `${p.name} — Any Given Sunday`;
+        document.title = `${p.name}${titleSuffix(league)}`;
         $("intro").hidden = true;
         $("profile").hidden = false;
         $("photo").replaceWith(photo(p));
@@ -730,7 +741,7 @@
         const pickups = data.events.filter((e) => e.kind === "added").length;
         $("highlights").replaceChildren(
           draft
-            ? tile("Drafted", `${draft.round}.${String(draft.pickInRound).padStart(2, "0")}`, `${draft.year} ${draft.startup ? "startup" : "rookie"} draft · ${draft.byId ? team(draft.byId) : "—"}`)
+            ? tile("Drafted", `${draft.round}.${String(draft.pickInRound).padStart(2, "0")}`, `${draftName(draft.year, draft.startup)} · ${draft.byId ? team(draft.byId) : "—"}`)
             : tile("Drafted", "Undrafted", "Came in off the wire"),
           tile("Owners", held.size, held.size === 1 ? "Never changed hands" : "Have had a turn"),
           tile("Moves", plural(trades, "trade"), `${plural(pickups, "pickup")} · ${plural(data.events.filter((e) => e.kind === "dropped").length, "drop")}`),
@@ -820,6 +831,8 @@
         else $("recent").replaceChildren(h("li", { class: "event" }, h("span"), h("p", { class: "what muted" }, "No moves yet.")));
         $("trails").replaceChildren(...(d.pickTrails.length ? d.pickTrails.map(trailItem) : [empty("No pick has been traded twice yet.")]));
 
+        // Lifers are a dynasty idea: everyone else drafts a new team every year.
+        $("lifers-section").hidden = league?.type !== "dynasty";
         const l = d.lifers;
         if (l.of) {
           $("lifers-note").replaceChildren(
@@ -848,9 +861,9 @@
         $("landing").hidden = false;
         $("recent").replaceChildren(...Array.from({ length: 4 }, () => h("li", { class: "skeleton", "aria-hidden": "true" })));
         try {
-          const res = await fetch("/api/player-highlights?v=3");
-          if (!res.ok) throw new Error(`request failed (${res.status})`);
-          renderLanding(await res.json());
+          const [{ data: loaded }, known] = await Promise.all([ready, names]);
+          document.title = `Players${titleSuffix(league)}`;
+          renderLanding(highlightsFor(loaded, known));
         } catch (err) {
           // The search still works without the lists.
           $("landing").hidden = true;
@@ -863,10 +876,9 @@
       const id = params.get("id");
       if (id) {
         try {
-          const res = await fetch(`/api/player?id=${encodeURIComponent(id)}&v=3`);
-          if (res.status === 404) throw new Error("no one with that id has been through the league");
-          if (!res.ok) throw new Error(`request failed (${res.status})`);
-          data = await res.json();
+          const [{ data: loaded }, known] = await Promise.all([ready, names]);
+          data = playerFor(loaded, id, known);
+          if (!data) throw new Error("no one with that id has been through the league");
           render();
         } catch (err) {
           const status = $("status");

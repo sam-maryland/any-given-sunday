@@ -5,7 +5,8 @@ import {
   standingsForLeague,
   standingsToDiscordMessage,
 } from "./standings";
-import { League, LeagueStatus, Matchup, PlayoffRound } from "./types";
+import { AGS_FORMAT } from "./leagueFormat";
+import { League, LeagueStatus, Matchup, PlayoffPlace, PlayoffRound } from "./types";
 
 let nextId = 0;
 
@@ -385,6 +386,96 @@ describe("standingsToDiscordMessage", () => {
 
     const message = standingsToDiscordMessage(result, l, new Map());
 
-    expect(message).toContain(`<https://ags-hq.org/?year=${l.year}>`);
+    expect(message).toContain(`<https://ags-hq.org/?league=${l.id}&year=${l.year}>`);
+  });
+});
+
+describe("standings for a league read from Sleeper", () => {
+  const format = { ...AGS_FORMAT, tiebreaker: "pointsFor" as const, placementGamesThrough: null, payouts: null };
+
+  // Six teams, one round robin's worth of wins: a 5-0 down to f 0-5.
+  const ids = ["a", "b", "c", "d", "e", "f"];
+  const roundRobin = ids.flatMap((home, i) =>
+    ids.slice(i + 1).map((away, j) => matchup({ week: j + 1, home_user_id: home, away_user_id: away, home_score: 100 + i, away_score: 90 })),
+  );
+
+  it("places a completed season by the bracket, any size of field", () => {
+    const outcome: PlayoffPlace[] = [
+      { userId: "d", place: 1, lostIn: null },
+      { userId: "a", place: 2, lostIn: null },
+      { userId: "c", place: 3, lostIn: PlayoffRound.Semifinals },
+      { userId: "b", place: 4, lostIn: PlayoffRound.Semifinals },
+    ];
+    const result = standingsForLeague(
+      { ...league(LeagueStatus.Complete), format: { ...format, playoffTeams: 4, byes: 0 }, playoffOutcome: outcome },
+      roundRobin,
+    );
+    expect(result.usedPlayoffResults).toBe(true);
+    expect(result.standings.map((s) => s.userId)).toEqual(["d", "a", "c", "b", "e", "f"]);
+    expect(result.explanations.map((e) => e.finish)).toEqual([
+      "champion",
+      "runnerUp",
+      "thirdPlace",
+      "fourthPlace",
+      "missedPlayoffs",
+      "missedPlayoffs",
+    ]);
+    expect(result.explanations.map((e) => e.seed)).toEqual([4, 1, 3, 2, 5, 6]);
+  });
+
+  it("orders teams out in the same round by tiebreakers when their placement game does not count", () => {
+    const outcome: PlayoffPlace[] = [
+      { userId: "a", place: 1, lostIn: null },
+      { userId: "b", place: 2, lostIn: null },
+      { userId: "c", place: 3, lostIn: PlayoffRound.Semifinals },
+      { userId: "d", place: 4, lostIn: PlayoffRound.Semifinals },
+      // f won the fifth place game, but e has the better record.
+      { userId: "f", place: 5, lostIn: PlayoffRound.Quarterfinals },
+      { userId: "e", place: 6, lostIn: PlayoffRound.Quarterfinals },
+    ];
+    const complete = (placementGamesThrough: number | null) =>
+      standingsForLeague(
+        { ...league(LeagueStatus.Complete), format: { ...format, placementGamesThrough }, playoffOutcome: outcome },
+        roundRobin,
+      );
+    expect(complete(null).standings.map((s) => s.userId).slice(4)).toEqual(["f", "e"]);
+    const agsRule = complete(4);
+    expect(agsRule.standings.map((s) => s.userId).slice(4)).toEqual(["e", "f"]);
+    expect(agsRule.explanations.slice(4).map((e) => e.finish)).toEqual(["quarterfinal", "quarterfinal"]);
+  });
+
+  it("breaks ties on points for, ignoring head-to-head, under Sleeper's rule", () => {
+    // x and y are both 2-1 and x beat y, but y scored more over the season.
+    const games = [
+      matchup({ week: 1, home_user_id: "x", away_user_id: "y", home_score: 101, away_score: 100 }),
+      matchup({ week: 2, home_user_id: "x", away_user_id: "z", home_score: 50, away_score: 60 }),
+      matchup({ week: 2, home_user_id: "y", away_user_id: "w", home_score: 150, away_score: 50 }),
+      matchup({ week: 3, home_user_id: "y", away_user_id: "z", home_score: 100, away_score: 60 }),
+      matchup({ week: 3, home_user_id: "x", away_user_id: "w", home_score: 100, away_score: 50 }),
+    ];
+    const inProgress = (tiebreaker: "headToHead" | "pointsFor") =>
+      standingsForLeague({ ...league(LeagueStatus.InProgress), format: { ...format, tiebreaker } }, games).standings.map(
+        (s) => s.userId,
+      );
+    expect(inProgress("headToHead").slice(0, 2)).toEqual(["x", "y"]);
+    expect(inProgress("pointsFor").slice(0, 2)).toEqual(["y", "x"]);
+  });
+});
+
+describe("matchupsToStandingsMap with the median game", () => {
+  it("adds a win or loss against each week's median score", () => {
+    const week = [
+      matchup({ week: 1, home_user_id: "a", away_user_id: "b", home_score: 120, away_score: 110 }),
+      matchup({ week: 1, home_user_id: "c", away_user_id: "d", home_score: 90, away_score: 80 }),
+    ];
+    const standings = matchupsToStandingsMap(week, true);
+    // Median 100: a and b beat it, c and d do not.
+    expect(standings.get("a")).toMatchObject({ wins: 2, losses: 0 });
+    expect(standings.get("b")).toMatchObject({ wins: 1, losses: 1 });
+    expect(standings.get("c")).toMatchObject({ wins: 1, losses: 1 });
+    expect(standings.get("d")).toMatchObject({ wins: 0, losses: 2 });
+    // Head-to-head and points against count only the real games.
+    expect(standings.get("b")!.h2hGames.get("a")).toBe(1);
+    expect(standings.get("b")!.pointsAgainst).toBe(120);
   });
 });

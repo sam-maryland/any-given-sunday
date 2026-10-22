@@ -1,15 +1,18 @@
+import { AGS_FORMAT, formatOf } from "./leagueFormat";
 import {
   League,
   LeagueStatus,
   NewMatchup,
+  PlayoffPlace,
   PlayoffRound,
   UserMap,
   matchupWinnerAndLoser,
 } from "./types";
 
-// Teams that make the playoffs. Standings displays draw a cut line here while
-// a season is in progress.
-export const PLAYOFF_TEAM_COUNT = 6;
+// Any Given Sunday's playoff field, for the Discord bot and the weekly recap,
+// which only ever serve that league. Everything else reads the league's own
+// format (see leagueFormat.ts).
+export const PLAYOFF_TEAM_COUNT = AGS_FORMAT.playoffTeams;
 
 export interface Standing {
   userId: string;
@@ -23,8 +26,11 @@ export interface Standing {
   h2hGames: Map<string, number>;
 }
 
-// Builds unsorted per-user standings from regular season matchups.
-export function matchupsToStandingsMap(matchups: NewMatchup[]): Map<string, Standing> {
+// Builds unsorted per-user standings from regular season matchups. With
+// `medianGame`, each team also gets a win or loss each week against the
+// week's median score, as Sleeper's league_average_match does; those games
+// count toward the record only, not points against or head-to-head.
+export function matchupsToStandingsMap(matchups: NewMatchup[], medianGame = false): Map<string, Standing> {
   const standings = new Map<string, Standing>();
 
   const ensure = (userId: string): Standing => {
@@ -74,7 +80,36 @@ export function matchupsToStandingsMap(matchups: NewMatchup[]): Map<string, Stan
     }
   }
 
+  if (medianGame) {
+    for (const scores of weeklyScores(matchups).values()) {
+      const median = medianOf(scores.map((s) => s.score));
+      for (const { userId, score } of scores) {
+        const team = ensure(userId);
+        if (score > median) team.wins++;
+        else if (score < median) team.losses++;
+        else team.ties++;
+      }
+    }
+  }
+
   return standings;
+}
+
+function weeklyScores(matchups: NewMatchup[]): Map<number, { userId: string; score: number }[]> {
+  const byWeek = new Map<number, { userId: string; score: number }[]>();
+  for (const m of matchups) {
+    if (m.is_playoff) continue;
+    const week = byWeek.get(m.week) ?? [];
+    week.push({ userId: m.home_user_id, score: m.home_score }, { userId: m.away_user_id, score: m.away_score });
+    byWeek.set(m.week, week);
+  }
+  return byWeek;
+}
+
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
 // The criterion that put one team directly above the next. "headToHeadSweep"
@@ -113,7 +148,9 @@ export type Finish =
   | "runnerUp"
   | "thirdPlace"
   | "fourthPlace"
+  | "semifinal"
   | "quarterfinal"
+  | "firstRound"
   | "missedPlayoffs";
 
 export interface RankExplanation {
@@ -179,7 +216,9 @@ function sweeper(group: Standing[]): Standing | undefined {
 //      Otherwise it is skipped, since counting wins would reward a team for
 //      having played more of the tied teams.
 //   2. Points for. 3. Points against. 4. Coin flip.
-function rankTie(group: Standing[], coin: Map<string, number>): Ranked[] {
+//
+// With `useHeadToHead` false (Sleeper's own rule), step 1 is skipped entirely.
+function rankTie(group: Standing[], coin: Map<string, number>, useHeadToHead: boolean): Ranked[] {
   if (group.length === 1) {
     return [{ standing: group[0]!, aheadOfNext: null }];
   }
@@ -190,12 +229,13 @@ function rankTie(group: Standing[], coin: Map<string, number>): Ranked[] {
     records: [records.get(a.userId)!, records.get(b.userId)!],
   });
 
-  const everyonePlayed = allPlayed(group);
-  const sweep = everyonePlayed ? undefined : sweeper(group);
+  const everyonePlayed = useHeadToHead && allPlayed(group);
+  const sweep = !useHeadToHead || everyonePlayed ? undefined : sweeper(group);
   if (sweep) {
     const rest = rankTie(
       group.filter((t) => t !== sweep),
       coin,
+      useHeadToHead,
     );
     return [
       { standing: sweep, aheadOfNext: { by: "headToHeadSweep", headToHead: h2h(sweep, rest[0]!.standing, true) } },
@@ -229,7 +269,7 @@ function rankTie(group: Standing[], coin: Map<string, number>): Ranked[] {
 
 // Sorts by wins, then breaks ties with rankTie, recording why each team is
 // above the next.
-function rankStandings(teams: Standing[]): Ranked[] {
+function rankStandings(teams: Standing[], useHeadToHead = true): Ranked[] {
   // One random draw per team per sort, so the coin flip is a consistent
   // ordering rather than a comparator that answers differently each call.
   const coin = new Map(teams.map((t) => [t.userId, randomUnit()]));
@@ -245,13 +285,13 @@ function rankStandings(teams: Standing[]): Ranked[] {
   for (const wins of [...groups.keys()].sort((a, b) => b - a)) {
     const last = ranked[ranked.length - 1];
     if (last) last.aheadOfNext = { by: "wins", headToHead: null };
-    ranked.push(...rankTie(groups.get(wins)!, coin));
+    ranked.push(...rankTie(groups.get(wins)!, coin, useHeadToHead));
   }
   return ranked;
 }
 
-export function sortStandingsMap(standingsMap: Map<string, Standing>): Standing[] {
-  return rankStandings([...standingsMap.values()]).map((r) => r.standing);
+export function sortStandingsMap(standingsMap: Map<string, Standing>, useHeadToHead = true): Standing[] {
+  return rankStandings([...standingsMap.values()], useHeadToHead).map((r) => r.standing);
 }
 
 function randomUnit(): number {
@@ -278,17 +318,19 @@ const FINISHES: Finish[] = [
   "quarterfinal",
 ];
 
-// Computes sorted standings for a league. For a COMPLETE league the top six
-// placements come from playoff results instead of regular season record; if
-// the playoff matchups are missing or malformed, falls back to regular
-// season order rather than failing the whole command.
+// Computes sorted standings for a league. For a COMPLETE league the playoff
+// teams are placed by playoff results instead of regular season record: from
+// Sleeper's bracket when the league carries it, else from the stored playoff
+// matchups. If those are missing or malformed, falls back to regular season
+// order rather than failing the whole command.
 export function standingsForLeague(league: League, matchups: NewMatchup[]): LeagueStandings {
   if (league.status === LeagueStatus.Pending) {
     throw new Error("league year has not started yet");
   }
 
-  const standingsMap = matchupsToStandingsMap(matchups);
-  const ranked = rankStandings([...standingsMap.values()]);
+  const format = formatOf(league);
+  const standingsMap = matchupsToStandingsMap(matchups, format.medianGame);
+  const ranked = rankStandings([...standingsMap.values()], format.tiebreaker === "headToHead");
   const regularSeason = (): LeagueStandings => ({
     standings: ranked.map((r) => r.standing),
     usedPlayoffResults: false,
@@ -299,8 +341,22 @@ export function standingsForLeague(league: League, matchups: NewMatchup[]): Leag
     return regularSeason();
   }
 
+  if (league.playoffOutcome?.length) {
+    const { order, finishes } = outcomePlacements(
+      ranked,
+      league.playoffOutcome,
+      format.placementGamesThrough,
+      format.tiebreaker === "headToHead",
+    );
+    return {
+      standings: order.map((r) => r.standing),
+      usedPlayoffResults: true,
+      explanations: explain(order, ranked, finishes),
+    };
+  }
+
   try {
-    const order = playoffPlacements(standingsMap, ranked, matchups);
+    const order = playoffPlacements(standingsMap, ranked, matchups, format.playoffTeams);
     return {
       standings: order.map((r) => r.standing),
       usedPlayoffResults: true,
@@ -336,10 +392,73 @@ function explain(order: Ranked[], regular: Ranked[], finishes: Finish[] | null):
   });
 }
 
+// The final order from Sleeper's bracket, for any size of playoff field:
+// placement games first (the final, the third place game, and any further
+// ones the league plays), then the other playoff teams by how far they got,
+// and the rest in regular season order. Teams level on all of that keep
+// their regular season order.
+const ROUND_DEPTH: Record<string, number> = {
+  [PlayoffRound.Semifinals]: 3,
+  [PlayoffRound.Quarterfinals]: 2,
+  [PlayoffRound.FirstRound]: 1,
+};
+
+const PLACE_FINISH: Record<number, Finish> = {
+  1: "champion",
+  2: "runnerUp",
+  3: "thirdPlace",
+  4: "fourthPlace",
+};
+
+const ROUND_FINISH: Record<string, Finish> = {
+  [PlayoffRound.Semifinals]: "semifinal",
+  [PlayoffRound.Quarterfinals]: "quarterfinal",
+  [PlayoffRound.FirstRound]: "firstRound",
+};
+
+function outcomePlacements(
+  ranked: Ranked[],
+  outcome: PlayoffPlace[],
+  placementGamesThrough: number | null,
+  useHeadToHead: boolean,
+): { order: Ranked[]; finishes: Finish[] } {
+  const byUser = new Map(ranked.map((r) => [r.standing.userId, r]));
+  const counts = (place: number | null) => place !== null && (placementGamesThrough === null || place <= placementGamesThrough);
+  const playoff = outcome
+    .filter((p) => byUser.has(p.userId))
+    .map((p) => (counts(p.place) ? p : { ...p, place: null }));
+  const inPlayoffs = new Set(playoff.map((p) => p.userId));
+  const viaPlayoffs = (standing: Standing): Ranked => ({ standing, aheadOfNext: { by: "playoffs", headToHead: null } });
+
+  // Placed teams in place order; then the rest by the round they went out
+  // in, latest first, each round's teams ranked among themselves.
+  const placed = playoff.filter((p) => p.place !== null).sort((a, b) => a.place! - b.place!);
+  const rounds = new Map<number, Standing[]>();
+  for (const p of playoff) {
+    if (p.place !== null) continue;
+    const depth = ROUND_DEPTH[p.lostIn ?? ""] ?? 0;
+    rounds.set(depth, [...(rounds.get(depth) ?? []), byUser.get(p.userId)!.standing]);
+  }
+  const order: Ranked[] = placed.map((p) => viaPlayoffs(byUser.get(p.userId)!.standing));
+  const finishes: Finish[] = placed.map((p) => PLACE_FINISH[p.place!] ?? ROUND_FINISH[p.lostIn ?? ""] ?? "quarterfinal");
+  for (const depth of [...rounds.keys()].sort((a, b) => b - a)) {
+    const group = rankStandings(rounds.get(depth)!, useHeadToHead);
+    group[group.length - 1]!.aheadOfNext = { by: "playoffs", headToHead: null };
+    const lostIn = playoff.find((p) => p.userId === group[0]!.standing.userId)!.lostIn;
+    order.push(...group);
+    finishes.push(...group.map(() => ROUND_FINISH[lostIn ?? ""] ?? "quarterfinal"));
+  }
+
+  order.push(...ranked.filter((r) => !inPlayoffs.has(r.standing.userId)));
+  if (order.length === playoff.length) order[order.length - 1]!.aheadOfNext = null;
+  return { order, finishes };
+}
+
 function playoffPlacements(
   standingsMap: Map<string, Standing>,
   ranked: Ranked[],
   matchups: NewMatchup[],
+  playoffTeams: number,
 ): Ranked[] {
   const matchupsByRound = new Map<string, NewMatchup[]>();
   for (const m of matchups) {
@@ -389,7 +508,7 @@ function playoffPlacements(
     byPlayoffs(thirdPlaceResult.winner),
     byPlayoffs(thirdPlaceResult.loser),
     ...quarterfinalOrder,
-    ...ranked.slice(PLAYOFF_TEAM_COUNT),
+    ...ranked.slice(playoffTeams),
   ];
 }
 
@@ -418,9 +537,11 @@ export const STANDINGS_URL = "https://ags-hq.org";
 
 // A link to one season's standings. Pinned to the year rather than the bare
 // site, so an old email or Discord post still opens the season it was about
-// after the next one starts.
-export function standingsUrl(year: number): string {
-  return `${STANDINGS_URL}/?year=${year}`;
+// after the next one starts. The site serves any Sleeper league, so the link
+// names this one: its id that season, from which the site finds every
+// season before it.
+export function standingsUrl(year: number, leagueId: string): string {
+  return `${STANDINGS_URL}/?league=${encodeURIComponent(leagueId)}&year=${year}`;
 }
 
 export function standingsToDiscordMessage(
@@ -442,7 +563,7 @@ export function standingsToDiscordMessage(
   result.standings.forEach((st, i) => {
     const rank = medals[i] ?? `${i + 1}.`;
 
-    if (league.status === LeagueStatus.InProgress && i === PLAYOFF_TEAM_COUNT) {
+    if (league.status === LeagueStatus.InProgress && i === formatOf(league).playoffTeams) {
       b += "\n────────────── **Playoffs** ──────────────\n\n";
     }
 
@@ -462,7 +583,7 @@ export function standingsToDiscordMessage(
       "\n-# Ties on wins: head-to-head (only if every tied team has played the others, or one beat them all), then points for, then points against.\n";
   }
   // Angle brackets stop Discord from unfurling a preview card under the post.
-  b += `\n📊 Every game, tiebreak and result: <${standingsUrl(league.year)}>\n`;
+  b += `\n📊 Every game, tiebreak and result: <${standingsUrl(league.year, league.id)}>\n`;
 
   return b;
 }

@@ -106,10 +106,16 @@ export interface SimulationInput {
   model?: ScoreModel;
   /** Uniform [0, 1) source, injectable so tests can be deterministic. */
   random?: () => number;
+  /** The league's tiebreaker; head-to-head (Any Given Sunday's) when absent. */
+  useHeadToHead?: boolean;
+  /** Whether each team also plays the weekly median. */
+  medianGame?: boolean;
 }
 
 export function simulatePlayoffRace(input: SimulationInput): TeamOdds[] {
   const { played, remaining, playoffTeams, byeTeams, runs } = input;
+  const useHeadToHead = input.useHeadToHead ?? true;
+  const medianGame = input.medianGame ?? false;
   const picks = input.picks ?? new Map();
   const model = input.model ?? fitScoreModel(played);
   const random = input.random ?? Math.random;
@@ -156,7 +162,7 @@ export function simulatePlayoffRace(input: SimulationInput): TeamOdds[] {
       return { ...toMatchup(p), home_score: home, away_score: away };
     });
 
-    const order = sortStandingsMap(matchupsToStandingsMap([...regular, ...simulated]));
+    const order = sortStandingsMap(matchupsToStandingsMap([...regular, ...simulated], medianGame), useHeadToHead);
     const seedOf = new Map<string, number>();
     order.forEach((s, seed) => {
       seedCounts[index.get(s.userId)!]![seed]!++;
@@ -223,20 +229,21 @@ export function clinchStatus(
   remaining: Pairing[],
   playoffTeams: number,
   byeTeams: number,
+  medianGame = false,
 ): ClinchStatus[] {
-  const standings = matchupsToStandingsMap([...played.filter((m) => !m.is_playoff), ...remaining.map(toMatchup)]);
-  // matchupsToStandingsMap counted the unplayed 0-0 games as ties; take them
-  // back out and count them as games left instead.
+  const standings = matchupsToStandingsMap(played.filter((m) => !m.is_playoff), medianGame);
+  // Every week left is one more game, or two with the median game.
+  const perWeek = medianGame ? 2 : 1;
   const left = new Map<string, number>();
   for (const p of remaining) {
-    left.set(p.homeId, (left.get(p.homeId) ?? 0) + 1);
-    left.set(p.awayId, (left.get(p.awayId) ?? 0) + 1);
+    left.set(p.homeId, (left.get(p.homeId) ?? 0) + perWeek);
+    left.set(p.awayId, (left.get(p.awayId) ?? 0) + perWeek);
   }
-  const teams = [...standings.values()].map((s) => ({
-    userId: s.userId,
-    wins: s.wins,
-    max: s.wins + (left.get(s.userId) ?? 0),
-  }));
+  const ids = new Set([...standings.keys(), ...left.keys()]);
+  const teams = [...ids].map((userId) => {
+    const wins = standings.get(userId)?.wins ?? 0;
+    return { userId, wins, max: wins + (left.get(userId) ?? 0) };
+  });
 
   const status = (team: (typeof teams)[number], spots: number): Clinch => {
     const others = teams.filter((t) => t.userId !== team.userId);

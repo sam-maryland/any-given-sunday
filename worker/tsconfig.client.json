@@ -1,0 +1,20 @@
+// The code that runs in the visitor's browser (src/client), and the domain
+// code it bundles, checked against the DOM's types rather than the Workers
+// runtime's. `npm run check` runs both configs.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/client/**/*.ts"],
+  "exclude": ["src/client/**/*.test.ts"]
+}
