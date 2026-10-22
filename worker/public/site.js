@@ -156,8 +156,9 @@ function brand(info) {
 
 // ---------- Switching leagues ----------
 //
-// Beside the league's name, once this browser has opened more than one: the
-// other leagues, one tap away, and a way back to the front page to add one.
+// Beside the league's name: every league this browser has opened, one tap
+// away, and a way back to the front page to open another. Shown even with a
+// single league, since that is how a second one gets added.
 
 /**
  * The same kind of page in another league. Owners and players differ between
@@ -177,7 +178,7 @@ function leagueSwitcher(info) {
   eyebrow.replaceWith(wrap);
   const toggle = h(
     "button",
-    { type: "button", class: "switch-toggle", "aria-expanded": "false", "aria-controls": "league-panel", "aria-label": "Switch league" },
+    { type: "button", class: "switch-toggle", "aria-expanded": "false", "aria-controls": "league-panel", "aria-label": "Switch or add a league" },
     h("span", { class: "chev", "aria-hidden": "true" }),
   );
   const panel = h("div", { class: "league-panel", id: "league-panel", hidden: true });
@@ -190,9 +191,6 @@ function leagueSwitcher(info) {
 
   const draw = () => {
     const leagues = recentLeagues();
-    // Nothing to switch to: just the name, as before.
-    toggle.hidden = !leagues.some((l) => l.id !== info.id);
-    if (toggle.hidden) open(false);
     panel.replaceChildren(
       h("p", { class: "panel-title" }, "Your leagues"),
       h(
@@ -216,8 +214,7 @@ function leagueSwitcher(info) {
                     onclick: () => {
                       forgetLeague(l.id);
                       draw();
-                      if (!toggle.hidden) panel.querySelector("a")?.focus();
-                      else toggle.focus();
+                      panel.querySelector("a")?.focus();
                     },
                   },
                   "×",
