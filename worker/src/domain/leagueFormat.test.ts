@@ -20,6 +20,7 @@ describe("formatFromSleeper", () => {
       byes: 0,
       tiebreaker: "pointsFor",
       medianGame: true,
+      divisions: 0,
       placementGamesThrough: null,
       payouts: null,
     });

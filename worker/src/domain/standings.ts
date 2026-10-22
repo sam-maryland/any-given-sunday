@@ -222,7 +222,9 @@ function sweeper(group: Standing[]): Standing | undefined {
 //      having played more of the tied teams.
 //   2. Points for. 3. Points against. 4. Coin flip.
 //
-// With `useHeadToHead` false (Sleeper's own rule), step 1 is skipped entirely.
+// With `useHeadToHead` false, the order is Sleeper's own rule instead: no
+// head-to-head step, and points against goes to the team that allowed *more*
+// (https://support.sleeper.com/en/articles/4238872-can-i-set-tiebreakers).
 function rankTie(group: Standing[], coin: Map<string, number>, useHeadToHead: boolean): Ranked[] {
   if (group.length === 1) {
     return [{ standing: group[0]!, aheadOfNext: null }];
@@ -259,7 +261,7 @@ function rankTie(group: Standing[], coin: Map<string, number>, useHeadToHead: bo
     (a, b) =>
       pct(b) - pct(a) ||
       b.pointsFor - a.pointsFor ||
-      a.pointsAgainst - b.pointsAgainst ||
+      (useHeadToHead ? a.pointsAgainst - b.pointsAgainst : b.pointsAgainst - a.pointsAgainst) ||
       coin.get(a.userId)! - coin.get(b.userId)!,
   );
 
@@ -520,8 +522,8 @@ function playoffPlacements(
 }
 
 // Sleeper's order, when it ranks every team. Where it agrees with the site's
-// own ranking (wins, then points for) the site's reasons stand; anywhere else
-// the reason is Sleeper's, unless wins alone explain it.
+// own ranking (Sleeper's published rule) the site's reasons stand; anywhere
+// else the reason is Sleeper's, unless that rule explains the pair anyway.
 function followSleeper(computed: Ranked[], ranks: Record<string, number>): Ranked[] {
   if (!computed.every((r) => typeof ranks[r.standing.userId] === "number")) return computed;
   const order = [...computed].sort((a, b) => ranks[a.standing.userId]! - ranks[b.standing.userId]!);
@@ -538,6 +540,9 @@ function followSleeper(computed: Ranked[], ranks: Record<string, number>): Ranke
     if (upper.wins > lower.wins) return { standing: upper, aheadOfNext: { by: "wins", headToHead: null } };
     if (upper.wins === lower.wins && upper.pointsFor > lower.pointsFor) {
       return { standing: upper, aheadOfNext: { by: "pointsFor", headToHead: null } };
+    }
+    if (upper.wins === lower.wins && upper.pointsFor === lower.pointsFor && upper.pointsAgainst > lower.pointsAgainst) {
+      return { standing: upper, aheadOfNext: { by: "pointsAgainst", headToHead: null } };
     }
     return { standing: upper, aheadOfNext: { by: "sleeper", headToHead: null } };
   });

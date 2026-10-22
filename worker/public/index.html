@@ -1403,7 +1403,11 @@
             return [
               lead,
               them,
-              ` on points against. ${h2hStage(a, " and points for")}. ${ahead ? "Allowed fewer" : "Allowed more"} points (${pts(self.pointsAgainst)} vs ${pts(other.pointsAgainst)}).`,
+              ` on points against. ${h2hStage(a, " and points for")}. ${
+                // Sleeper puts the team that allowed more points first; this
+                // league's own rule, the team that allowed fewer.
+                (tiebreakRule === "headToHead") === ahead ? "Allowed fewer" : "Allowed more"
+              } points (${pts(self.pointsAgainst)} vs ${pts(other.pointsAgainst)}).`,
             ];
           case "coinFlip":
             return [lead, them, " on a coin flip. Every tiebreaker came out level."];
@@ -1688,18 +1692,24 @@
             ? ["Head-to-head", "Only when it's fair: if every tied team has played the others, the best record in those games goes first. If not, a team that beat all the others goes first. Otherwise skip it.", "headToHead"]
             : null,
           ["Points for", "Still level? The team that scored more over the regular season goes first.", "pointsFor"],
-          ["Points against", "Then the team that allowed fewer points.", "pointsAgainst"],
-          ["Coin flip", "If everything is still level, it's random. This almost never happens.", "coinFlip"],
+          data.tiebreaker === "headToHead"
+            ? ["Points against", "Then the team that allowed fewer points.", "pointsAgainst"]
+            : ["Points against", "Then the team that allowed more points: the unluckier team goes first.", "pointsAgainst"],
+          data.tiebreaker === "headToHead"
+            ? ["Coin flip", "If everything is still level, it's random. This almost never happens.", "coinFlip"]
+            : ["Coin flip", "If everything is still level, Sleeper flips a coin, unless the commissioner sets the seeding by hand.", "coinFlip"],
         ];
         // Sleeper's own call, where its order can't be explained by the steps.
-        if (counts.sleeper) steps.push(["Sleeper", "Sleeper's standings rank these teams for a reason the steps above don't cover, such as divisions. This table follows Sleeper.", "sleeper"]);
+        if (counts.sleeper) steps.push(["Sleeper", "Sleeper's standings rank these teams for a reason the steps above don't cover, such as divisions or seeding the commissioner set by hand. This table follows Sleeper.", "sleeper"]);
 
         $("how-lede").textContent =
           data.tiebreaker === "headToHead"
             ? "Teams are ranked by regular season wins. When teams finish level on wins, the criteria below break the tie, in order. A step only matters if every step before it ended level."
-            : data.sleeperOrder
-              ? "This table follows Sleeper's own standings, so it matches the app. Sleeper ranks teams by regular season wins, then by the criteria below, in order."
-              : "Sleeper's own standings weren't available for this season, so teams are ranked the way Sleeper ranks them: regular season wins, then the criteria below, in order.";
+            : (data.sleeperOrder
+                ? "The regular season order is Sleeper's own standings, read from Sleeper, so it matches the app."
+                : "Sleeper's own standings weren't available for this season, so the regular season order follows Sleeper's published rules.") +
+              " Sleeper ranks teams by regular season wins, then by the criteria below, in order." +
+              (data.status === "COMPLETE" ? " Once a season ends, the top of the table comes from the playoffs instead." : "");
 
         $("steps").replaceChildren(...steps.filter(Boolean).map(([t, p, k]) => h("li", { class: "step" }, h("h3", null, t), h("p", null, p), used(k))));
       }
@@ -1739,10 +1749,15 @@
         const { rounds, byes, firstRound } = bracketShape(n);
         const pairs = firstRound.map(([a, b]) => `${a} vs ${b}`);
         const pairList = pairs.length > 1 ? `${pairs.slice(0, -1).join(", ")} and ${pairs[pairs.length - 1]}` : pairs[0];
+        const byeText = byes === 1 ? " Seed 1 gets a bye in the first round." : byes > 1 ? ` Seeds 1–${byes} get a bye in the first round.` : "";
         const rules = [
-          `The top ${n} make it.` + (byes === 1 ? " Seed 1 gets a bye in the first round." : byes > 1 ? ` Seeds 1–${byes} get a bye in the first round.` : ""),
+          data.divisions > 1
+            ? `${n} teams make it. Every division winner is in, whatever its record; the other spots go to the best of the rest, by the same criteria.` + byeText
+            : `The top ${n} make it.` + byeText,
           pairList ? `${roundTitle(rounds - 1)}: ${pairList}.` : null,
           "The last two teams standing play for the title.",
+          // Sleeper's rule; this league's own isn't recorded here.
+          data.tiebreaker === "headToHead" ? null : "A tied playoff game goes to the higher seed.",
           data.placementGamesThrough
             ? `Once a season ends, places 1–${data.placementGamesThrough} come from the final and the placement games. Other playoff teams are ordered by how far they got, then by the same tiebreakers. Everyone else stays in regular season order.`
             : "Once a season ends, playoff teams are placed by the bracket, placement games included. Everyone else stays in regular season order.",
@@ -1820,7 +1835,9 @@
             (notes.seededPairingsSince && data.year < notes.seededPairingsSince
               ? " Back then, higher seeds sometimes picked their opponents, so this bracket may not follow the pairings below."
               : "")
-          : `While the season is live, the table is regular season order. The ${data.playoffTeams} teams above the playoff line are in.`;
+          : data.divisions > 1
+            ? `While the season is live, the table is regular season order. ${data.playoffTeams} teams make it, and every division winner is one of them, wherever it sits in the table.`
+            : `While the season is live, the table is regular season order. The ${data.playoffTeams} teams above the playoff line are in.`;
         renderPlayoffRules(data);
       }
 
