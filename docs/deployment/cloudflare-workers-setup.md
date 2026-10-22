@@ -110,6 +110,39 @@ dropped in the league, and needs two GitHub secrets: `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY`, the same values the Worker uses. Locally,
 `npm run sync-players` reads them from `.dev.vars`.
 
+#### Every NFL player, for any league
+
+The same run also trims Sleeper's whole list to every NFL player as
+`{ [id]: [name, position, team] }` — about 430 KB, 140 KB gzipped — and
+writes it to the Worker's `PLAYERS` KV namespace under the key
+`nfl-players` with the Cloudflare REST API. `GET /api/nfl-players` streams
+it back unparsed (so it stays inside 10 ms of CPU) with a one-day browser
+cache, which lets the site name the players in any Sleeper league's
+transactions. Until the first sync writes it, the endpoint answers 404.
+
+One-time setup (the namespace already exists; these steps are for
+recreating it, e.g. on a new account):
+
+1. Create the namespace from `worker/`:
+
+   ```bash
+   npx wrangler kv namespace create PLAYERS
+   ```
+
+2. Paste the `id` it prints into the `PLAYERS` entry of `kv_namespaces` in
+   `worker/wrangler.jsonc`.
+3. Add two GitHub secrets: `CLOUDFLARE_ACCOUNT_ID` (the `account_id` in
+   `wrangler.jsonc`) and `PLAYERS_KV_NAMESPACE_ID` (the same id as step 2).
+   The Action reuses the deploy's `CLOUDFLARE_API_TOKEN`; the "Edit
+   Cloudflare Workers" template already grants Workers KV Storage edit.
+4. Run **Sync Players** from the Actions tab once to fill it rather than
+   waiting for Tuesday. Its log ends with a `nflPlayers` line giving the
+   player count and byte size.
+
+Without the three Cloudflare values the script logs that it skipped the KV
+write and carries on, so a local `npm run sync-players` needs only the
+Supabase ones.
+
 Player photos need none of this: the site loads them straight from
 Sleeper's CDN by player id.
 

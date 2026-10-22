@@ -1,6 +1,7 @@
 name: Sync Players
 
-# Names every player who has been through the league (see
+# Names every player who has been through the league, and writes a trimmed
+# list of every NFL player to the Worker's PLAYERS KV namespace (see
 # worker/scripts/sync-players.ts). Sleeper's full player list is too big for
 # the Worker to parse within the free plan's 10 ms of CPU, so it runs here.
 on:
@@ -35,3 +36,8 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # The same token the deploy uses; the KV step is skipped if any of
+          # these three is unset.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PLAYERS_KV_NAMESPACE_ID: ${{ secrets.PLAYERS_KV_NAMESPACE_ID }}
