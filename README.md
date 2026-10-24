@@ -233,6 +233,7 @@ cd worker
 npm test         # unit tests
 npm run check    # type check
 npm run dev      # local server
+npm run seed-players  # copy the live player list into local KV, so players have names
 ```
 
 ### Available Mage Commands
