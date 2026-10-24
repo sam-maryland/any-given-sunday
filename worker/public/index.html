@@ -674,35 +674,188 @@
         font-size: 0.85rem;
       }
 
-      #recent-leagues h3 {
-        margin: 2rem 0 0.5rem;
+      .back-link {
+        display: inline-block;
+        margin: -0.5rem 0 0.5rem;
+        color: var(--field);
+        font-size: 0.9rem;
+        text-decoration: none;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      .back-link[hidden] {
+        display: none;
+      }
+
+      .setup-steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .setup-step + .setup-step {
+        margin-top: 2.25rem;
+      }
+
+      .step-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 1.25rem 0 0.75rem;
         font: 600 0.75rem var(--sans);
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--ink-3);
       }
 
-      .recent-leagues {
+      .step-n {
+        display: inline-grid;
+        place-items: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: var(--field-soft);
+        color: var(--field);
+        letter-spacing: 0;
+      }
+
+      #leagues-form fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+      }
+
+      .user-leagues,
+      .loading-list {
         list-style: none;
         margin: 0;
         padding: 0;
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         gap: 0.5rem;
       }
 
-      .recent-leagues a {
-        display: inline-block;
-        padding: 0.45rem 0.9rem;
+      .user-leagues label {
+        display: grid;
+        grid-template-columns: auto 2.5rem minmax(0, 1fr);
+        align-items: center;
+        gap: 0.2rem 0.85rem;
+        padding: 0.7rem 0.9rem;
         border: 1px solid var(--line);
-        border-radius: 999px;
+        border-radius: 12px;
         background: var(--raised);
         color: var(--ink);
-        text-decoration: none;
+        cursor: pointer;
+        transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
       }
 
-      .recent-leagues a:hover {
+      .user-leagues label:hover {
         border-color: var(--field);
+      }
+
+      .user-leagues label:has(input:checked) {
+        border-color: var(--field);
+        background: var(--field-soft);
+      }
+
+      .user-leagues label:has(input:focus-visible) {
+        outline: 2px solid var(--field);
+        outline-offset: 2px;
+      }
+
+      .user-leagues input {
+        grid-row: span 2;
+        width: 1.15rem;
+        height: 1.15rem;
+        margin: 0;
+        accent-color: var(--field);
+      }
+
+      .user-leagues .avatar {
+        grid-row: span 2;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        object-fit: cover;
+        background: var(--field-soft);
+        color: var(--field);
+        display: grid;
+        place-items: center;
+        font: 600 0.8rem var(--sans);
+        text-transform: uppercase;
+      }
+
+      .user-leagues .name {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      .user-leagues .about {
+        color: var(--ink-3);
+        font-size: 0.85rem;
+      }
+
+      .user-leagues .live {
+        color: var(--field);
+        font-weight: 500;
+      }
+
+      .user-leagues .done .avatar {
+        filter: grayscale(1);
+        opacity: 0.7;
+      }
+
+      .go {
+        margin-top: 1rem;
+        padding: 0.75rem 1.4rem;
+        border: 0;
+        border-radius: 999px;
+        background: var(--field);
+        color: var(--paper);
+        font: 600 0.95rem var(--sans);
+        cursor: pointer;
+      }
+
+      .go:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .go:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+
+      .loading-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.7rem 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--raised);
+      }
+
+      .loading-list .name {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      .loading-list .progress {
+        flex: none;
+        color: var(--ink-3);
+        font: 0.85rem var(--mono);
+      }
+
+      .loading-list .ok {
+        color: var(--field);
+      }
+
+      .loading-list .failed {
+        color: var(--loss);
       }
 
       .clear {
@@ -1133,23 +1286,39 @@
       </header>
 
       <section class="pick-league" id="pick-league" aria-labelledby="pick-title" hidden>
-        <h2 id="pick-title">Open your league</h2>
+        <h2 id="pick-title">Bring in your leagues</h2>
         <p class="lede">
-          Paste your Sleeper league's ID or link for standings with every tiebreak explained, playoff odds, league
-          history and every player's path through your league. Dynasty, keeper or redraft. Use this season's league:
-          the site follows it back through every season before it.
+          Standings with every tiebreak explained, playoff odds, league history and every player's path through your
+          league. Dynasty, keeper or redraft, every season back to the first. Pick your leagues once and they're here
+          whenever you come back.
         </p>
-        <form id="pick-form" class="pick-form" autocomplete="off">
-          <label for="league-input" class="sr-only">Sleeper league ID or link</label>
-          <input id="league-input" name="league" inputmode="numeric" placeholder="e.g. 1339291414533525504 or sleeper.com/leagues/…" required />
-          <button type="submit">Open</button>
-        </form>
-        <p class="pick-hint">In the Sleeper app: your league → Settings → General, under "League ID". Or copy the league's link from sleeper.com.</p>
-        <p class="status" id="pick-status" role="status"></p>
-        <div id="recent-leagues" hidden>
-          <h3>Your leagues</h3>
-          <ul class="recent-leagues" id="recent-list"></ul>
-        </div>
+        <a class="back-link" id="back-link" href="/" data-own-league hidden>← Back to your leagues</a>
+        <ol class="setup-steps">
+          <li class="setup-step">
+            <h3 class="step-title"><span class="step-n">1</span> Your Sleeper username</h3>
+            <form id="pick-form" class="pick-form" autocomplete="off">
+              <label for="league-input" class="sr-only">Sleeper username, or a league ID or link</label>
+              <input id="league-input" name="league" autocapitalize="none" spellcheck="false" placeholder="Sleeper username" required />
+              <button type="submit">Find leagues</button>
+            </form>
+            <p class="pick-hint">Your username, not your display name: it's under your name in the Sleeper app's profile. A league ID or link works too.</p>
+            <p class="status" id="pick-status" role="status"></p>
+          </li>
+          <li class="setup-step" id="step-leagues" hidden>
+            <h3 class="step-title" id="leagues-title"><span class="step-n">2</span> <span id="user-leagues-title"></span></h3>
+            <form id="leagues-form">
+              <fieldset aria-labelledby="leagues-title">
+                <ul class="user-leagues" id="user-league-list"></ul>
+              </fieldset>
+              <button type="submit" class="go" id="open-leagues">Open</button>
+            </form>
+          </li>
+          <li class="setup-step" id="step-loading" hidden>
+            <h3 class="step-title"><span class="step-n">3</span> Loading your leagues</h3>
+            <p class="pick-hint">Every season, from Sleeper. Finished seasons are kept in this browser, so next time is quick.</p>
+            <ul class="loading-list" id="loading-list" aria-live="polite"></ul>
+          </li>
+        </ol>
       </section>
 
       <dl class="highlights" id="highlights" hidden></dl>
@@ -1227,8 +1396,8 @@
     </div>
 
     <script type="module">
-      import { LeagueNotFoundError, parseLeagueId, standingsFor } from "/app.js";
-      import { currentLeague, forgetLeague, leagueId, recentLeagues, titleSuffix } from "/site.js";
+      import { LeagueNotFoundError, UserNotFoundError, findUserLeagues, loadLeague, parseLeagueId, parseUsername, standingsFor } from "/app.js";
+      import { currentLeague, forgetLeague, leagueId, recentLeagues, saveLeagues, titleSuffix } from "/site.js";
 
       // ---------- Small DOM helper. Team names are user-supplied, so every
       // string goes in as a text node; nothing is ever parsed as markup.
@@ -1897,42 +2066,224 @@
         }
       }
 
-      // ---------- Picking a league ----------
+      // ---------- Setting up: username, then leagues, then loading them ----------
+      //
+      // The front page with no league in the address. The visitor names their
+      // Sleeper user, picks which of their leagues to follow, and each picked
+      // league is loaded before the site opens on the first, so every one of
+      // them is ready in the league switcher. The picks are kept in this
+      // browser; a returning visitor goes straight to their leagues.
 
-      function showPicker() {
+      const USERNAME_KEY = "sleeperUsername";
+
+      function savedUsername() {
+        try {
+          return localStorage.getItem(USERNAME_KEY);
+        } catch {
+          return null;
+        }
+      }
+
+      function saveUsername(name) {
+        try {
+          if (name) localStorage.setItem(USERNAME_KEY, name);
+          else localStorage.removeItem(USERNAME_KEY);
+        } catch {
+          // Storage blocked: they type it again next time.
+        }
+      }
+
+      const LEAGUE_STATUS = { in_season: "In season", drafting: "Drafting", pre_draft: "Draft coming up" };
+
+      /** "2021–2026", or one year. */
+      function span(seasons) {
+        const first = Math.min(...seasons);
+        const last = Math.max(...seasons);
+        return first === last ? String(last) : `${first}–${last}`;
+      }
+
+      function initials(name) {
+        const words = name.match(/[A-Za-z0-9]+/g) ?? [];
+        return words.length > 1 ? words[0][0] + words[1][0] : (words[0] ?? "ff").slice(0, 2);
+      }
+
+      /** This username's leagues, as last found. */
+      let offered = [];
+
+      function leagueChoice(l, checked) {
+        const live = LEAGUE_STATUS[l.status];
+        return h(
+          "li",
+          { class: live ? null : "done" },
+          h(
+            "label",
+            null,
+            h("input", { type: "checkbox", name: "league", value: l.id, checked }),
+            l.avatar
+              ? h("img", { class: "avatar", src: l.avatar, alt: "", loading: "lazy" })
+              : h("span", { class: "avatar", "aria-hidden": "true" }, initials(l.name)),
+            h("span", { class: "name" }, l.name),
+            h(
+              "span",
+              { class: "about" },
+              live ? h("span", { class: "live" }, `${l.seasons[0]} ${live.toLowerCase()}`) : `Last played ${l.seasons[0]}`,
+              ` · ${plural(l.seasons.length, "season")}, ${span(l.seasons)}`,
+            ),
+          ),
+        );
+      }
+
+      function picked() {
+        const ids = [...document.querySelectorAll("#user-league-list input:checked")].map((i) => i.value);
+        return offered.filter((l) => ids.includes(l.id));
+      }
+
+      function updateCount() {
+        const n = picked().length;
+        const button = $("open-leagues");
+        button.disabled = n === 0;
+        button.textContent = n === 0 ? "Pick at least one league" : `Open ${plural(n, "league")}`;
+      }
+
+      let lookup = 0;
+
+      async function showUserLeagues(username) {
+        const mine = ++lookup;
+        const status = $("pick-status");
+        status.className = "status";
+        status.textContent = `Finding ${username}'s leagues…`;
+        $("step-leagues").hidden = true;
+        try {
+          const { user, leagues } = await findUserLeagues(username);
+          if (mine !== lookup) return;
+          saveUsername(username);
+          if (leagues.length === 0) {
+            status.textContent = `${user.name} isn't in any NFL leagues on Sleeper.`;
+            return;
+          }
+          status.textContent = "";
+          offered = leagues;
+          // Back again: the leagues as they were left. First time: every
+          // league still being played, else the most recent one.
+          const saved = new Set(recentLeagues().map((l) => l.id));
+          const returning = leagues.some((l) => saved.has(l.id));
+          const rows = leagues.map((l) => leagueChoice(l, returning ? saved.has(l.id) : l.status in LEAGUE_STATUS));
+          if (!rows.some((r) => r.querySelector("input").checked)) rows[0].querySelector("input").checked = true;
+          $("user-leagues-title").textContent = `Pick ${user.name}'s leagues`;
+          $("user-league-list").replaceChildren(...rows);
+          updateCount();
+          $("step-leagues").hidden = false;
+        } catch (err) {
+          if (mine !== lookup) return;
+          status.className = "status error";
+          if (err instanceof UserNotFoundError) {
+            if (savedUsername() === username) saveUsername(null);
+            status.textContent = `Sleeper has no user called ${username}. Check the spelling: it's your username, not your display name.`;
+          } else {
+            status.textContent = `Couldn't reach Sleeper: ${err.message}`;
+          }
+        }
+      }
+
+      // One league at a time: each already loads its seasons side by side.
+      async function openPicked() {
+        const leagues = picked();
+        if (leagues.length === 0) return;
+        const forms = [$("pick-form"), $("leagues-form")];
+        forms.forEach((f) => f.querySelectorAll("input, button").forEach((el) => (el.disabled = true)));
+        const rows = leagues.map((l) => {
+          const progress = h("span", { class: "progress" }, "Waiting");
+          return { league: l, progress, row: h("li", null, h("span", { class: "name" }, l.name), progress) };
+        });
+        $("loading-list").replaceChildren(...rows.map((r) => r.row));
+        $("step-loading").hidden = false;
+        $("step-loading").scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        const ready = [];
+        for (const { league, progress } of rows) {
+          progress.textContent = "Loading…";
+          try {
+            await loadLeague(league.id, ({ done, total }) => {
+              progress.textContent = `${done} of ${plural(total, "season")}`;
+            });
+            progress.className = "progress ok";
+            progress.textContent = "Ready";
+            ready.push(league);
+          } catch {
+            progress.className = "progress failed";
+            progress.textContent = "Couldn't load";
+          }
+        }
+
+        if (ready.length === 0) {
+          const status = $("pick-status");
+          status.className = "status error";
+          status.textContent = "Couldn't load any of those leagues from Sleeper. Try again in a minute.";
+          forms.forEach((f) => f.querySelectorAll("input, button").forEach((el) => (el.disabled = false)));
+          updateCount();
+          return;
+        }
+        saveLeagues(ready, offered);
+        location.href = `/?league=${encodeURIComponent(ready[0].id)}`;
+      }
+
+      function showSetup() {
         document.title = "League HQ — Standings and history for any Sleeper league";
         document.querySelector(".eyebrow").replaceChildren(h("span", { class: "mark", "aria-hidden": "true" }, "hq"), "League HQ");
         document.body.classList.add("picking");
         $("pick-league").hidden = false;
 
-        const recent = recentLeagues();
-        $("recent-leagues").hidden = recent.length === 0;
-        $("recent-list").replaceChildren(
-          ...recent.map((l) => h("li", null, h("a", { href: `/?league=${encodeURIComponent(l.id)}` }, l.name || l.id))),
-        );
+        const saved = recentLeagues();
+        if (saved.length) {
+          $("back-link").href = `/?league=${encodeURIComponent(saved[0].id)}`;
+          $("back-link").hidden = false;
+        }
 
         $("pick-form").addEventListener("submit", (e) => {
           e.preventDefault();
-          const id = parseLeagueId($("league-input").value);
-          const status = $("pick-status");
-          if (!id) {
-            status.className = "status error";
-            status.textContent = "That doesn't look like a Sleeper league ID. It's a long number, like 1339291414533525504.";
+          const input = $("league-input").value;
+          const id = parseLeagueId(input);
+          if (id) {
+            location.href = `/?league=${encodeURIComponent(id)}`;
             return;
           }
-          location.href = `/?league=${encodeURIComponent(id)}`;
+          const username = parseUsername(input);
+          if (!username) {
+            const status = $("pick-status");
+            status.className = "status error";
+            status.textContent = "Enter your Sleeper username, or a league ID or link.";
+            return;
+          }
+          showUserLeagues(username);
         });
-        $("league-input").focus();
+        $("leagues-form").addEventListener("change", updateCount);
+        $("leagues-form").addEventListener("submit", (e) => {
+          e.preventDefault();
+          openPicked();
+        });
+
+        const known = savedUsername();
+        if (known) {
+          $("league-input").value = known;
+          showUserLeagues(known);
+        } else {
+          $("league-input").focus();
+        }
       }
 
-      // The front page, with no league in the address, is where a league is
-      // picked; every other page falls back to the last league opened.
-      if (!leagueId({ fallback: false })) {
-        showPicker();
-      } else {
+      // The front page with no league in the address sends a visitor with
+      // leagues to the one they opened last, and anyone else — or anyone who
+      // asked, with ?setup — to set up. Every other page falls back to the
+      // last league opened.
+      const saved = recentLeagues();
+      if (leagueId({ fallback: false })) {
         $("season").addEventListener("change", (e) => load(Number(e.target.value), { push: true }));
         window.addEventListener("popstate", () => load(Number(new URLSearchParams(location.search).get("year")) || null));
         load(Number(new URLSearchParams(location.search).get("year")) || null);
+      } else if (saved.length && !new URLSearchParams(location.search).has("setup")) {
+        location.replace(`/?league=${encodeURIComponent(saved[0].id)}`);
+      } else {
+        showSetup();
       }
     </script>
     <script type="module">
