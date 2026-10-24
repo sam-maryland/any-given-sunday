@@ -330,7 +330,6 @@
       <section aria-labelledby="table-title">
         <div class="section-head">
           <h2 id="table-title">All-time table</h2>
-          <span class="hint">Tap a heading to sort, a name for the full career</span>
         </div>
         <div class="table-wrap">
           <table class="table" aria-labelledby="table-title">
@@ -340,7 +339,7 @@
             <tbody id="table-body"></tbody>
           </table>
         </div>
-        <p class="foot-note" id="table-note"></p>
+        <p class="foot-note" id="table-note" hidden></p>
       </section>
 
       <section aria-labelledby="records-title">
@@ -404,12 +403,12 @@
       const COLUMNS = [
         { key: "name", label: "Team", sort: (o) => o.label, asc: true },
         { key: "titles", label: "Trophies", sort: (o) => o.titles * 1e6 + o.runnerUps * 1e3 + o.thirdPlaces },
-        { key: "record", label: "Record", sort: (o) => pct(o.record) },
+        { key: "record", label: "Record", title: "Regular season", sort: (o) => pct(o.record) },
         { key: "pct", label: "Win %", sort: (o) => pct(o.record) },
-        { key: "ppg", label: "Pts / game", sort: (o) => o.pointsFor / Math.max(1, games(o.record)) },
-        { key: "playoffs", label: "Playoffs", sort: (o) => o.playoffAppearances * 1e3 + pct(o.playoffRecord) },
-        { key: "high", label: "High scores", sort: (o) => o.highScoreWeeks },
-        { key: "trades", label: "Trades", sort: (o) => o.trades.trades * 1e3 + o.trades.picksSent + o.trades.picksReceived },
+        { key: "ppg", label: "Pts / game", title: "Regular season", sort: (o) => o.pointsFor / Math.max(1, games(o.record)) },
+        { key: "playoffs", label: "Playoffs", title: "Seasons made, then record in playoff games", sort: (o) => o.playoffAppearances * 1e3 + pct(o.playoffRecord) },
+        { key: "high", label: "High scores", title: "Weeks with the league's top score", sort: (o) => o.highScoreWeeks },
+        { key: "trades", label: "Trades", title: "Trades made, then draft picks moved in them", sort: (o) => o.trades.trades * 1e3 + o.trades.picksSent + o.trades.picksReceived },
         { key: "earnings", label: "Earnings", sort: (o) => o.earnings },
       ];
       // Earnings only for a league whose payouts the site knows.
@@ -441,7 +440,7 @@
           ...columns().map((c) =>
             h(
               "th",
-              { scope: "col", "aria-sort": c.key === sortKey ? (sortDesc ? "descending" : "ascending") : null },
+              { scope: "col", title: c.title ?? null, "aria-sort": c.key === sortKey ? (sortDesc ? "descending" : "ascending") : null },
               h(
                 "button",
                 {
@@ -471,7 +470,7 @@
               h("td", { class: "num" }, record(o.record)),
               h("td", { class: "num" }, winPct(o.record)),
               h("td", { class: "num muted" }, pts(o.pointsFor / Math.max(1, games(o.record)))),
-              h("td", { class: "num" }, `${o.playoffAppearances}/${o.seasons}`, h("span", { class: "muted" }, ` · ${record(o.playoffRecord)}`)),
+              h("td", { class: "num" }, `${o.playoffAppearances} of ${o.seasons}`, h("span", { class: "muted" }, ` · ${record(o.playoffRecord)}`)),
               h("td", { class: "num" }, o.highScoreWeeks),
               h(
                 "td",
@@ -484,10 +483,8 @@
           ),
         );
 
-        $("table-note").textContent =
-          "Record and points are regular season. Playoffs shows appearances out of seasons played, then the record in playoff games. " +
-          "Trades counts completed trades, then the draft picks sent and received in them. " +
-          (data.payouts ? payoutNote(data.payouts) + (data.currentYear ? ` ${data.currentYear} counts so far.` : "") : "");
+        $("table-note").hidden = !data.payouts;
+        $("table-note").textContent = data.payouts ? payoutNote(data.payouts) + (data.currentYear ? ` ${data.currentYear} counts so far.` : "") : "";
       }
 
       function payoutNote(p) {

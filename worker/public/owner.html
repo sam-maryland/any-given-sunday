@@ -334,7 +334,6 @@
       <section id="h2h-section" aria-labelledby="h2h-title" hidden>
         <div class="section-head">
           <h2 id="h2h-title">Head-to-head</h2>
-          <span class="hint">Every meeting, playoffs included</span>
         </div>
         <ul class="rivals" id="rivals"></ul>
         <div class="table-wrap">
@@ -416,7 +415,7 @@
         ].filter(Boolean);
         const best = o.bestWeek;
 
-        $("highlights").replaceChildren(
+        $("highlights").replaceChildren(...[
           tile("Titles", o.titles ? `${o.titles}×` : "None yet", trophyNote.length ? trophyNote.join(" · ") : `${plural(o.playoffAppearances, "playoff trip")} so far`),
           data.payouts
             ? tile("Career earnings", money(o.earnings), o.earnings >= 0 ? "In the black" : "Funding everyone else's", o.earnings > 0 ? "pos" : o.earnings < 0 ? "neg" : "")
@@ -428,10 +427,10 @@
             o.highScoreWeeks,
             data.payouts?.weeklyHighScore
               ? `${money(o.highScoreWeeks * data.payouts.weeklyHighScore).replace("+", "")} in bonuses`
-              : "Top score of the week",
+              : null,
           ),
           best ? tile("Best week", score(best.score), `Week ${best.week}, ${best.year} vs ${byId.get(best.opponentId)?.label ?? "—"}`) : null,
-        );
+        ].filter(Boolean));
         $("highlights").hidden = false;
       }
 
@@ -479,11 +478,11 @@
             { class: "rival" },
             h("h3", null, title),
             ownerLink(byId.get(r.opponentId), { class: "who" }),
-            h("p", null, `${record(r.record)} all-time · ${blurb}`),
+            h("p", null, `${record(r.record)} · ${blurb}`),
           );
         const cards = [];
-        if (owns && share(owns.record) > 0.5) cards.push(rival("Has their number", owns, `wins by ${pts(Math.abs(margin(owns)))} on average`));
-        if (nemesis && nemesis !== owns && share(nemesis.record) < 0.5) cards.push(rival("Nemesis", nemesis, `loses by ${pts(Math.abs(margin(nemesis)))} on average`));
+        if (owns && share(owns.record) > 0.5) cards.push(rival("Has their number", owns, `+${pts(Math.abs(margin(owns)))} a game`));
+        if (nemesis && nemesis !== owns && share(nemesis.record) < 0.5) cards.push(rival("Nemesis", nemesis, `−${pts(Math.abs(margin(nemesis)))} a game`));
         $("rivals").replaceChildren(...cards);
         $("rivals").hidden = cards.length === 0;
 
