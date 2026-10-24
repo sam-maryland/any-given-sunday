@@ -177,15 +177,15 @@ export function buildPlayerHistory(input: PlayerHistoryInput): PlayerHistory {
     .filter((t) => t.status === "complete")
     .sort((a, b) => at(a).localeCompare(at(b)) || a.id.localeCompare(b.id));
 
-  const events: PlayerEvent[] = [];
-  for (const pick of input.draftPicks) {
+  const drafts: PlayerEvent[] = [];
+  for (const pick of [...input.draftPicks].sort((a, b) => a.year - b.year)) {
     const slot = `pick:${pick.year}:${pick.round}:${pick.original_roster_id}`;
     const pickTrades = complete
       .filter((t) => t.type === "trade")
       .map((t) => leg(t, slot))
       .filter((l): l is TradeLeg => l !== null);
     const size = teams.get(pick.league_id) ?? 0;
-    events.push({
+    drafts.push({
       kind: "drafted",
       year: pick.year,
       startup: pick.year === input.startupYear,
@@ -199,13 +199,14 @@ export function buildPlayerHistory(input: PlayerHistoryInput): PlayerHistory {
     });
   }
 
+  const moved: PlayerEvent[] = [];
   for (const t of complete) {
     const addedTo = t.adds?.[playerId];
     const droppedBy = t.drops?.[playerId];
     if (addedTo === undefined && droppedBy === undefined) continue; // a pick trade, told above
     if (t.type === "trade") {
       const l = leg(t, `player:${playerId}`);
-      if (l) events.push({ kind: "traded", ...l });
+      if (l) moved.push({ kind: "traded", ...l });
       continue;
     }
     const via = t.type === "waiver" || t.type === "free_agent" ? t.type : "commissioner";
@@ -216,12 +217,23 @@ export function buildPlayerHistory(input: PlayerHistoryInput): PlayerHistory {
     // A commissioner can move a player straight between rosters: a drop by
     // one, then an add by the other.
     if (droppedBy !== undefined) {
-      events.push({ kind: "dropped", at: at(t), year: t.year, via, byId: ownerIn(t.league_id, droppedBy), alongside: others(t.adds, droppedBy) });
+      moved.push({ kind: "dropped", at: at(t), year: t.year, via, byId: ownerIn(t.league_id, droppedBy), alongside: others(t.adds, droppedBy) });
     }
     if (addedTo !== undefined) {
-      events.push({ kind: "added", at: at(t), year: t.year, via, byId: ownerIn(t.league_id, addedTo), alongside: others(t.drops, addedTo) });
+      moved.push({ kind: "added", at: at(t), year: t.year, via, byId: ownerIn(t.league_id, addedTo), alongside: others(t.drops, addedTo) });
     }
   }
+
+  // A draft comes before every move in its season. A player can be drafted
+  // again in a later season, after moves in earlier ones, in a redraft or
+  // keeper league.
+  const events: PlayerEvent[] = [];
+  let next = 0;
+  for (const d of drafts) {
+    while (next < moved.length && moved[next]!.year < d.year) events.push(moved[next++]!);
+    events.push(d);
+  }
+  events.push(...moved.slice(next));
 
   let currentOwnerId: string | null = null;
   const ownerIds = new Set<string>();

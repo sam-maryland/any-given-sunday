@@ -158,6 +158,30 @@ describe("buildPlayerHistory", () => {
     expect(dropped.events.map((e) => e.kind)).toEqual(["traded", "dropped"]);
   });
 
+  it("puts a later season's draft after the moves of earlier seasons", () => {
+    // Picked up and dropped in 2023, then drafted in a 2025 redraft.
+    const redrafted = buildPlayerHistory({
+      playerId: "500",
+      draftPicks: [draftPick("500", 2025, 3, 30, 6, 6)],
+      transactions: [
+        tx(2023, "2023-10-01T00:00:00Z", "free_agent", { roster_ids: [5], adds: { "500": 5 } }),
+        tx(2023, "2023-11-01T00:00:00Z", "free_agent", { roster_ids: [5], drops: { "500": 5 } }),
+        tx(2025, "2025-10-01T00:00:00Z", "waiver", { roster_ids: [6], drops: { "500": 6 } }),
+      ],
+      rosters,
+      startupYear: 2023,
+      players,
+      pickResults: [],
+    });
+    expect(redrafted.events.map((e) => [e.kind, e.year])).toEqual([
+      ["added", 2023],
+      ["dropped", 2023],
+      ["drafted", 2025],
+      ["dropped", 2025],
+    ]);
+    expect(redrafted.currentOwnerId).toBeNull();
+  });
+
   it("keeps a startup pick who never moved with the owner who drafted him", () => {
     const startup = buildPlayerHistory({
       playerId: "400",
