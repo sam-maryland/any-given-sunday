@@ -120,6 +120,11 @@ it back unparsed (so it stays inside 10 ms of CPU) with a one-day browser
 cache, which lets the site name the players in any Sleeper league's
 transactions. Until the first sync writes it, the endpoint answers 404.
 
+`wrangler dev` uses its own local KV, which starts empty, so a local
+server shows "Player 1234" for anyone not on a draft board. `npm run
+seed-players` copies the live list from ags-hq.org into it; re-run it
+whenever names look stale.
+
 One-time setup (the namespace already exists; these steps are for
 recreating it, e.g. on a new account):
 
@@ -276,5 +281,6 @@ email). Never set `RECAP_DRY_RUN` in production.
 cd worker
 cp .dev.vars.example .dev.vars   # fill in real values
 npm run dev                      # wrangler dev on http://localhost:8787
+npm run seed-players             # copy the live player list into local KV
 npm run check                    # tsc --noEmit
 ```

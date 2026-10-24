@@ -13,6 +13,7 @@
     "test": "vitest run",
     "register-commands": "node --env-file=.dev.vars scripts/register-commands.mjs",
     "backfill-activity": "esbuild scripts/backfill-activity.ts --bundle --platform=node --format=esm --target=node22 --outfile=node_modules/.cache/backfill-activity.mjs --log-level=warning && node --env-file=.dev.vars node_modules/.cache/backfill-activity.mjs",
+    "seed-players": "mkdir -p node_modules/.cache && curl -sfL https://ags-hq.org/api/nfl-players -o node_modules/.cache/nfl-players.json && wrangler kv key put nfl-players --binding PLAYERS --local --path node_modules/.cache/nfl-players.json",
     "sync-players": "esbuild scripts/sync-players.ts --bundle --platform=node --format=esm --target=node22 --outfile=node_modules/.cache/sync-players.mjs --log-level=warning && node --env-file-if-exists=.dev.vars node_modules/.cache/sync-players.mjs"
   },
   "devDependencies": {
