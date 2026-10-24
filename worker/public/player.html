@@ -421,7 +421,6 @@
         </div>
         <div id="intro">
           <h1>Players</h1>
-          <p class="meta"><span>Every player who has passed through the league: who drafted them, and every trade, pickup and drop since.</span></p>
         </div>
       </header>
 
@@ -430,7 +429,6 @@
       <section id="path-section" aria-labelledby="path-title" hidden>
         <div class="section-head">
           <h2 id="path-title">The path</h2>
-          <span class="hint">Oldest first</span>
         </div>
         <ol class="timeline" id="timeline"></ol>
       </section>
@@ -439,7 +437,6 @@
         <section aria-labelledby="recent-title">
           <div class="section-head">
             <h2 id="recent-title">Latest moves</h2>
-            <span class="hint">Trades and pickups</span>
           </div>
           <ol class="timeline" id="recent"></ol>
           <button type="button" class="more" id="recent-more" aria-controls="recent" hidden>Show more</button>
@@ -447,18 +444,16 @@
 
         <div class="boards">
           <section class="board" id="trails-section" aria-labelledby="trails-title">
-            <h2 id="trails-title">Pick trails</h2>
-            <p class="board-note">Picks that changed hands the most before anyone used them.</p>
+            <h2 id="trails-title">Most-traded picks</h2>
             <ol id="trails"></ol>
           </section>
           <section class="board" id="lifers-section" aria-labelledby="lifers-title">
             <h2 id="lifers-title">Lifers</h2>
-            <p class="board-note" id="lifers-note">Startup picks still with the team that drafted them.</p>
+            <p class="board-note" id="lifers-note">Startup picks that never moved.</p>
             <ol id="lifers"></ol>
           </section>
           <section class="board" aria-labelledby="journeymen-title">
-            <h2 id="journeymen-title">Journeymen</h2>
-            <p class="board-note">Players who have been on the most teams.</p>
+            <h2 id="journeymen-title">Most teams</h2>
             <ol id="journeymen"></ol>
           </section>
         </div>
@@ -634,7 +629,6 @@
         return img;
       }
 
-      const ADDED = { waiver: "Claimed off waivers by", free_agent: "Signed as a free agent by", commissioner: "Added by the commissioner to" };
       const ADDED_TAG = { waiver: "Claimed", free_agent: "Signed", commissioner: "Added" };
 
       function eventItem(e) {
@@ -671,9 +665,8 @@
                 "p",
                 { class: "what" },
                 h("span", { class: "tag drafted" }, "Drafted"),
-                e.keeper ? `Kept in the ${draftName(e.year, e.startup)}, by ` : `Pick ${slot} in the ${draftName(e.year, e.startup)}, by `,
+                e.keeper ? "Kept by " : `${e.startup ? "Startup pick" : "Pick"} ${slot} by `,
                 owner(e.byId),
-                ".",
               ),
               trail,
             ),
@@ -687,7 +680,7 @@
             h(
               "div",
               null,
-              h("p", { class: "what" }, h("span", { class: "tag traded" }, "Traded"), "From ", owner(e.fromId), " to ", owner(e.toId), "."),
+              h("p", { class: "what" }, h("span", { class: "tag traded" }, "Traded"), "From ", owner(e.fromId), " to ", owner(e.toId)),
               detail("Along with", e.sentWith),
               detail("For", e.receivedFor),
             ),
@@ -705,11 +698,10 @@
               "p",
               { class: "what" },
               h("span", { class: `tag ${e.kind}` }, added ? ADDED_TAG[e.via] : "Dropped"),
-              added ? `${ADDED[e.via]} ` : "Dropped by ",
+              "By ",
               owner(e.byId),
-              ".",
             ),
-            detail(added ? "Letting go of" : "To make room for", e.alongside),
+            detail(added ? "Dropped" : "For", e.alongside),
           ),
         );
       }
@@ -745,7 +737,7 @@
           draft
             ? tile("Drafted", `${draft.round}.${String(draft.pickInRound).padStart(2, "0")}`, `${draftName(draft.year, draft.startup)} · ${draft.byId ? team(draft.byId) : "—"}`)
             : tile("Drafted", "Undrafted", "Came in off the wire"),
-          tile("Owners", held.size, held.size === 1 ? "Never changed hands" : "Have had a turn"),
+          tile("Teams", held.size, held.size === 1 ? "Never moved" : null),
           tile("Moves", plural(trades, "trade"), `${plural(pickups, "pickup")} · ${plural(data.events.filter((e) => e.kind === "dropped").length, "drop")}`),
         );
         $("highlights").hidden = false;
@@ -776,7 +768,6 @@
                 { class: "what" },
                 h("span", { class: "tag traded" }, "Trade"),
                 m.sides.flatMap((s, i) => [i > 0 ? (i === m.sides.length - 1 ? " and " : ", ") : null, owner(s.ownerId)]),
-                ".",
               ),
               m.sides.map((s) => (s.gets.length ? h("p", { class: "detail" }, h("b", null, `${team(s.ownerId)} got `), list(s.gets)) : null)),
             ),
@@ -789,8 +780,8 @@
           h(
             "div",
             null,
-            h("p", { class: "what" }, h("span", { class: "tag added" }, ADDED_TAG[m.via]), list(m.added), m.via === "waiver" ? ", claimed by " : m.via === "free_agent" ? ", signed by " : ", added to ", owner(m.ownerId), "."),
-            detail("Letting go of", m.dropped),
+            h("p", { class: "what" }, h("span", { class: "tag added" }, ADDED_TAG[m.via]), list(m.added), " to ", owner(m.ownerId)),
+            detail("Dropped", m.dropped),
           ),
         );
       }
@@ -838,12 +829,12 @@
         const l = d.lifers;
         if (l.of) {
           $("lifers-note").replaceChildren(
-            `${l.count} of the ${l.of} picks from the ${l.year} startup draft have never been traded, dropped or claimed.`,
-            ...(l.leader ? [" ", owner(l.leader.ownerId), ` has kept the most: ${l.leader.count}.`] : []),
+            `${l.count} of ${l.of} startup picks never moved.`,
+            ...(l.leader ? [" ", owner(l.leader.ownerId), ` kept the most (${l.leader.count}).`] : []),
           );
         }
         $("lifers").replaceChildren(
-          ...(l.players.length ? l.players.map((p) => row(playerLink(p.player), slot(p.round, p.pickInRound), ["With ", owner(p.ownerId), " since day one"])) : [empty("Every startup pick has moved at least once.")]),
+          ...(l.players.length ? l.players.map((p) => row(playerLink(p.player), slot(p.round, p.pickInRound), owner(p.ownerId))) : [empty("Every startup pick has moved at least once.")]),
         );
 
         $("journeymen").replaceChildren(
