@@ -18,9 +18,10 @@ import { buildPlayerHistory, lookupsFor } from "../domain/playerHistory";
 import { standingsForLeague } from "../domain/standings";
 import { DraftPick, League, LeagueStatus, Player, Transaction, User, UserMap } from "../domain/types";
 import { LeagueData, LeagueNotFoundError, LoadProgress, SeasonData, loadLeague, parseLeagueId } from "./league";
+import { UserLeague, UserNotFoundError, findUserLeagues, parseUsername } from "./userLeagues";
 
-export { LeagueNotFoundError, loadLeague, parseLeagueId };
-export type { LeagueData, LoadProgress };
+export { LeagueNotFoundError, UserNotFoundError, findUserLeagues, loadLeague, parseLeagueId, parseUsername };
+export type { LeagueData, LoadProgress, UserLeague };
 
 // The page shows the first few and reveals the rest on request.
 const RECENT_MOVES = 30;

@@ -40,9 +40,12 @@ const SEASON_VERSION = 3;
 const LIVE_TTL_MS = 15 * 60 * 1000;
 
 // Sleeper asks for under 1000 requests a minute. A first visit is about 40
-// a season, so even an eight-season league stays well under that; requests
-// are latency-bound, so more in flight is what makes that first visit quick.
+// a season, so one league stays well under that; requests are latency-bound,
+// so more in flight is what makes that first visit quick. Setting up several
+// long-running leagues at once could pass it, so requests are also capped
+// per minute, with room to spare.
 const MAX_IN_FLIGHT = 20;
+const MAX_PER_MINUTE = 800;
 
 /** One owner as Sleeper named them in a season. */
 export interface SeasonOwner {
@@ -92,6 +95,27 @@ export class LeagueNotFoundError extends Error {}
 
 // --- requests -------------------------------------------------------------
 
+/**
+ * Waits until fewer than `max` calls have gone ahead of it in the last
+ * `windowMs`, then counts itself.
+ */
+export function rateLimiter(max: number, windowMs: number): () => Promise<void> {
+  const started: number[] = [];
+  return async function wait() {
+    for (;;) {
+      const now = Date.now();
+      while (started.length && started[0]! <= now - windowMs) started.shift();
+      if (started.length < max) {
+        started.push(now);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, started[0]! + windowMs - now));
+    }
+  };
+}
+
+const underLimit = rateLimiter(MAX_PER_MINUTE, 60_000);
+
 let inFlight = 0;
 const waiting: (() => void)[] = [];
 
@@ -99,6 +123,7 @@ async function slot<T>(run: () => Promise<T>): Promise<T> {
   if (inFlight >= MAX_IN_FLIGHT) await new Promise<void>((resolve) => waiting.push(resolve));
   inFlight++;
   try {
+    await underLimit();
     return await run();
   } finally {
     inFlight--;
@@ -107,7 +132,7 @@ async function slot<T>(run: () => Promise<T>): Promise<T> {
 }
 
 /** A GET with one retry, since a cold load is a couple of hundred requests. */
-async function get<T>(path: string): Promise<T> {
+export async function get<T>(path: string): Promise<T> {
   return slot(async () => {
     for (let attempt = 0; ; attempt++) {
       try {

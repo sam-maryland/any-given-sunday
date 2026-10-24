@@ -21,6 +21,8 @@ export interface NFLState {
   week: number;
   season: string;
   season_type: string;
+  /** The season new leagues are made for: next year's once Sleeper rolls over. */
+  league_create_season?: string;
 }
 
 export interface SleeperLeague {

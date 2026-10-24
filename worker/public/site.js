@@ -72,11 +72,14 @@ export const ownerHref = (o) => `/owner?o=${encodeURIComponent(o.slug)}`;
 // Every page shows one Sleeper league, named by ?league=<id>: the id of its
 // current season. A page opened without one falls back to the league this
 // browser last opened, so a bookmark of /history still works.
+//
+// The visitor's leagues — those picked when setting up, and any opened by ID
+// since — are kept in this browser, most recently opened first.
 
 const RECENT_KEY = "recentLeagues";
-const RECENT_MAX = 6;
+const RECENT_MAX = 24;
 
-/** Leagues this browser has opened, most recent first: [{ id, name }]. */
+/** The visitor's leagues, most recently opened first: [{ id, name }]. */
 export function recentLeagues() {
   try {
     const list = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
@@ -92,6 +95,20 @@ function remember(id, name) {
     localStorage.setItem(RECENT_KEY, JSON.stringify(list));
   } catch {
     // Storage blocked: the league just isn't remembered.
+  }
+}
+
+/**
+ * The leagues picked when setting up, in the order given, replacing every
+ * league `offered` that was not picked. Leagues opened some other way stay.
+ */
+export function saveLeagues(picked, offered) {
+  const drop = new Set([...picked, ...offered].map((l) => l.id));
+  const list = [...picked.map(({ id, name }) => ({ id, name })), ...recentLeagues().filter((l) => !drop.has(l.id))];
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+  } catch {
+    // Storage blocked: the leagues just aren't remembered.
   }
 }
 
@@ -156,9 +173,9 @@ function brand(info) {
 
 // ---------- Switching leagues ----------
 //
-// Beside the league's name: every league this browser has opened, one tap
-// away, and a way back to the front page to open another. Shown even with a
-// single league, since that is how a second one gets added.
+// Beside the league's name: every one of the visitor's leagues, one tap
+// away, and a way back to setup to change them. Shown even with a single
+// league, since that is how a second one gets added.
 
 /**
  * The same kind of page in another league. Owners and players differ between
@@ -222,7 +239,7 @@ function leagueSwitcher(info) {
           );
         }),
       ),
-      h("a", { class: "add-league", href: "/", "data-own-league": "" }, "Open another league…"),
+      h("a", { class: "add-league", href: "/?setup", "data-own-league": "" }, "Add or remove leagues…"),
     );
   };
 
