@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { notificationsHeldReason } from "./index";
 
-// The recap runs every week year-round so the database is touched often
-// enough that a free Supabase project never pauses. These rules decide when
-// that run should actually tell anyone about it.
+// The recap runs every week year-round, with no one disabling it between
+// seasons. These rules decide when a run should actually tell anyone.
 describe("notificationsHeldReason", () => {
   it("sends during the regular season when new matchups were recorded", () => {
     expect(notificationsHeldReason("regular", 6)).toBeNull();

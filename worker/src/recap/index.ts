@@ -51,9 +51,9 @@ const ACTIVE_SEASON_TYPES = new Set(["regular", "post"]);
  * Runs the weekly recap: sync from Sleeper, build the summary, post it to
  * Discord, and email it out.
  *
- * Runs every week year-round. The first thing it does is read the league from
- * the database, which doubles as the keepalive that stops a free Supabase
- * project from pausing during the offseason.
+ * Runs every week year-round. Keeping a free Supabase project from pausing is
+ * not this job's work: weekly is too far apart for that, so a daily keepalive
+ * cron does it (see src/keepalive.ts).
  *
  * Notifications are held back unless there is genuinely something new: the
  * league must be IN_PROGRESS, the NFL season must be underway, and the sync
@@ -68,8 +68,6 @@ export async function runWeeklyRecap(
   db: SupabaseClient,
   config: RecapConfig,
 ): Promise<RecapOutcome> {
-  // Also the Supabase keepalive — this read happens on every run, in season
-  // or not, so the project never goes 7 days without activity.
   const league = await db.getLatestLeague();
   if (!league) {
     return { status: "skipped", reason: "no league found" };

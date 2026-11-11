@@ -4,6 +4,7 @@ import { handlePlayerHighlightsRequest, handlePlayerRequest, handlePlayersReques
 import { handlePlayoffRaceRequest } from "./api/playoffRace";
 import { handleStandingsRequest } from "./api/standings";
 import { SupabaseClient } from "./data/supabase";
+import { KEEPALIVE_CRON, runKeepalive } from "./keepalive";
 import { verifyDiscordSignature } from "./discord/verify";
 import {
   Interaction,
@@ -36,9 +37,28 @@ function recapConfig(env: Env, scheduledTime: number): RecapConfig {
 }
 
 export default {
-  // Weekly recap (cron). Syncs Sleeper data, posts to Discord, sends email.
+  // Two crons: the daily Supabase keepalive, and the weekly recap, which syncs
+  // Sleeper data, posts to Discord and sends email. Anything that is not the
+  // keepalive runs the recap, so `wrangler dev --test-scheduled` still does.
   async scheduled(controller, env, ctx): Promise<void> {
     const db = new SupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    if (controller.cron === KEEPALIVE_CRON) {
+      ctx.waitUntil(
+        runKeepalive(db).then(
+          (result) => console.log(JSON.stringify({ event: "keepalive", ...result })),
+          (err) => {
+            console.error(
+              JSON.stringify({
+                event: "keepalive_failed",
+                error: err instanceof Error ? err.message : String(err),
+              }),
+            );
+            throw err;
+          },
+        ),
+      );
+      return;
+    }
     ctx.waitUntil(
       (async () => {
         try {
