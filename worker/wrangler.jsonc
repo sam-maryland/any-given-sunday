@@ -66,7 +66,13 @@
     // off-by-one ran this a full day early, before Monday Night Football had
     // finished, so lastCompletedWeek() (schedule.ts) could never see the
     // prior week as complete and the recap synced nothing every run.
-    "crons": ["0 11 * * 3"]
+    //
+    // Daily Supabase keepalive: 06:00 UTC, every day (see src/keepalive.ts).
+    // A free project pauses after about a week idle, and the weekly recap
+    // alone left no margin — it paused on Nov 3 2026 and missed weeks 8 and
+    // 9. Keep the expression in step with KEEPALIVE_CRON, which is how the
+    // scheduled handler tells this cron from the recap.
+    "crons": ["0 11 * * 3", "0 6 * * *"]
   }
   // Secrets (set with `wrangler secret put <NAME>`, or .dev.vars locally):
   //   DISCORD_PUBLIC_KEY          - Discord app public key (General Information page)

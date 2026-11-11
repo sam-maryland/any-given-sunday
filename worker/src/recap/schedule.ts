@@ -8,7 +8,8 @@
 export const RECAP_TIME_ZONE = "America/New_York";
 export const RECAP_LOCAL_HOUR = 8;
 
-// The cron itself, from wrangler.jsonc's "0 11 * * 2". Cron triggers are UTC,
+// The recap cron itself, from wrangler.jsonc's "0 11 * * 3" (Cloudflare
+// numbers weekdays from 1=Sunday, so 3 is Tuesday). Cron triggers are UTC,
 // so unlike the email time this needs no time zone handling — but it does have
 // to be kept in step with the configured schedule by hand.
 const SYNC_WEEKDAY_UTC = 2; // Tuesday

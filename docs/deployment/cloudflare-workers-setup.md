@@ -170,9 +170,12 @@ version is in git history if it is ever needed.
 
 ### Why the cron never needs disabling in the offseason
 
-The run always starts by reading the league from the database. That read is
-also the **Supabase keepalive**: a free project pauses after ~7 days of
-inactivity, and a weekly read keeps it awake through the offseason.
+The **Supabase keepalive** is a separate cron, `0 6 * * *`, that reads one
+row every day (`worker/src/keepalive.ts`). A free project pauses after about
+7 days of inactivity, and the weekly recap alone is not enough to prevent
+that: once the dashboard stopped reading from the database, the recap was its
+only traffic, and Supabase paused the project on Nov 3 2026, a few hours before
+that week's recap, so weeks 8 and 9 never synced on schedule.
 
 What does *not* happen year-round is notifying anyone. The recap posts and
 emails only when all three hold:
